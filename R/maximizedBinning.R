@@ -33,7 +33,7 @@ lineBin.mi <- makeTree(linex, liney,
 maxRes <- max(c(binChi(unlist(lineBin))$residuals,
                 binChi(unlist(lineBin.mi))$residuals))
 plotBinning(unlist(lineBin), pch = ".",
-            fill = residualFill(unlist(lineBin)),, maxRes = maxRes)
+            fill = residualFill(unlist(lineBin), maxRes = maxRes))
 dev.new()
 plotBinning(unlist(lineBin.mi), pch = ".",
             fill = residualFill(unlist(lineBin.mi), maxRes = maxRes))
