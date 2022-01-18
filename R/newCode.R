@@ -157,6 +157,23 @@ makeAllSplits <- function(bin, splitPoints = meanSplit,
                                   mar = margin, value = splits[ii]))
 }
 
+## for a single margin, the optimized split function which checks for
+## split validity and split score, returns the maximizing split and
+## its score
+maxSplit <- function(bin, splitPoints, scoreFn, criteria,
+                     margin = "y") {
+    allSplits <- makeAllSplits(bin, splitPoints, margin)
+    scores <- sapply(allSplits,
+                     function(spl) score(spl[[1]], spl[[2]]))
+    valid <- sapply(allSplits,
+                    function(spl) checkSplit(spl[[1]],
+                                             spl[[2]],
+                                             criteria))
+    maxPos <- which(valid)[which.max(scores[valid])]
+    list(score = scores[maxPos], bins = allSplits[maxPos])
+}
+
+
 ## max gap splitter (FROM SLIDES, NEEDS UPDATE)
 maxGapSplit <- function(bin, scorer) {
   ord <- dataOrder(bin$x, bin$y) # differences and sorting
