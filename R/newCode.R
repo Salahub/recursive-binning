@@ -42,12 +42,14 @@ splitBin <- function(bin, belowInds, mar,
                   bnds = upbnds, area = uparea,
                   expn = (bin$expn)*(uparea/bin$area),
                   n = length(belowInds),
-                  depth = bin$depth + 1)
+                  depth = bin$depth + 1,
+                  criteria = bin$criteria)
     lower <- list(x = bin$x[-belowInds], y = bin$y[-belowInds],
                   bnds = lowbnds, area = lowarea,
                   expn = (bin$expn)*(lowarea/bin$area),
                   n = bin$n - length(belowInds),
-                  depth = bin$depth + 1) # construct
+                  depth = bin$depth + 1,
+                  criteria = bin$criteria) # construct
     list(lower, upper) # return
 }
 
@@ -134,8 +136,7 @@ orderMargin <- function(bin, margin = "y") {
 }
 
 ## another helper which generates the candidate splits to be scored
-makeAllSplits <- function(bin, splitPoints = splitBetween,
-                          margin = "y") {
+makeAllSplits <- function(bin, splitPoints, margin = "y") {
     marOrd <- orderMargin(bin, margin) # order the margin
     splits <- splitPoints(marOrd$vals[marOrd$ord]) # split values
     lapply(0:length(splits),
@@ -146,15 +147,13 @@ makeAllSplits <- function(bin, splitPoints = splitBetween,
 ## for a single margin, the optimized split function which checks for
 ## split validity and split score, returns the maximizing split and
 ## its score
-maxSplit <- function(bin, splitPoints, scoreFn, criteria,
+maxSplit <- function(bin, scoreFn, splitPoints = splitBetween,
                      margin = "y") {
     allSplits <- makeAllSplits(bin, splitPoints, margin)
     scores <- sapply(allSplits,
                      function(spl) score(spl[[1]], spl[[2]]))
     valid <- sapply(allSplits,
-                    function(spl) checkSplit(spl[[1]],
-                                             spl[[2]],
-                                             criteria))
+                    function(spl) checkSplit(spl[[1]], spl[[2]]))
     maxPos <- which(valid)[which.max(scores[valid])]
     list(score = scores[maxPos], bins = allSplits[maxPos])
 }
