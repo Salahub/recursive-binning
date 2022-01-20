@@ -160,15 +160,24 @@ maxSplit <- function(bin, scoreFn, splitPoints = splitBetween,
 
 ## binning on one margin alone for the case where the second margin
 ## need not be split (because it is already catgeorical, for example)
-binMargin <- function(data, splitter, splitPoints, scorer, stopper,
-                      criteria, margin = "y") {
-    binList <- list(makeBin(data))
-    stopStatus <- stopper(binList) # initialize
+binMargin <- function(data, scorer, criteria,
+                      splitPoints = splitBetween, margin = "y") {
+    binList <- list(makeBin(data, criteria))
+    stopStatus <- sapply(binList, checkStop) # initialize
 
     while (any(!stopStatus)) { # check stop criteria
         newBins <- binList[stopStatus] # stopped bins
         for (bin in binList[!stopStatus]) { # split all others
-            newBins <- c(newBins, splitter(bin, splitPoints,
+            bstSplt <- maxSplit(bin, scorer, splitPoints) # best split
+            newBins <- c(newBins, bstSplt$bins)
+        }
+        binList <- newBins # update binList
+        stopStatus <- sapply(binList, checkStop) # check criteria
+    }
+
+    binList
+}
+
 
 
 ##' the bin wrapper function
