@@ -16,13 +16,16 @@
 ##' formal class but is instead a simple unstructured list object
 
 ## a simple constructor
-makeBin <- function(data) { # for data with x and y elements and no NAs
+## data has elements x and y with no NAs
+## criteria are a list of expressions to evaluate splits and stops
+makeBin <- function(data, criteria) {
     list(x = data$x, y = data$y,
          bnds = list(x = range(data$x),
                      y = range(data$y)), # boundaries
          area = prod(diff(range(data$x)), diff(range(data$y))),
          expn = length(data$x), # expected count is n
-         n = length(data$x), depth = 0) # bin size, depth
+         n = length(data$x), depth = 0, # bin size, depth
+         criteria) # stop criteria
 }
 
 ##' bin splitter given the indices below and the split value:
@@ -83,32 +86,25 @@ makeCriteria <- function(...) {
     crits[-1] # remove self reference
 }
 
-##' a closure which generates a stop function given criteria provided
-##' as a list of expressions for named bin slots
-generateStop <- function(criteria) {
-    checker <- function(bin) { # check one bin
-        sapply(criteria, eval, envir = bin) # evaluate in bin
-    }
-    ## iterate to check all bins
-    function(binList) {
-        sapply(binList, checker)
-    }
+## simple helper to check bin against stop criteria
+checkStop <- function(bin) {
+    sapply(bin$criteria, eval, envir = bin)
 }
 
-##' a closure which generates a candidate checking function: that is
-##' a function which checks splits and bin features to determine
-##' which splits are allowed (i.e. remove boundry cases)
-checkSplit <- function(blw, abv, criteria) {
+## one to check splits
+checkSplit <- function(blw, abv) {
     removeBoundary <- function(expr) { # helper to check expressions
-        if (identical(expr[[1]], as.symbol("<="))) { # inquality
+        if (identical(expr[[1]], as.symbol("<="))) { # inequality
             expr[[1]] <- as.symbol("<") # equality removed
         } else if (identical(expr[[1]], as.symbol(">="))) {
             expr[[1]] <- as.symbol(">") # the same
         }
         expr # return modified expression
     }
-    ## check that both bins satisfy the boundary criteria
-    any(generateStop(removeBoundary(criteria))(list(blw, abv)))
+    any(sapply(blw$criteria,
+               function(cr) eval(removeBoundary(cr), envir = blw)),
+        sapply(abv$criteria,
+               function(cr) eval(removeBoundary(cr), envir = abv)))
 }
 
 
@@ -123,19 +119,9 @@ checkSplit <- function(blw, abv, criteria) {
 
 ##' the first part is dictating the split mechanics on a vector x
 ##' split on the mean of adjacent values
-meanSplit <- function(x) {
+splitBetween <- function(x, alpha = 0.5) {
     len <- length(x)
-    (x[1:(len-1)] + x[2:len])/2 # mean value between each
-}
-##' split some delta below the value
-splitBelow <- function(x, delta = 0.01) {
-    len <- length(x)
-    x[2:len] - mean(x)*delta # small amount below
-}
-##' same for above
-splitAbove <- function(x, delta = 0.01) {
-    len <- length(x)
-    x[1:(len-1)] + mean(x)*delta
+    x[1:(len-1)] + (x[2:len] - x[1:(len-1)])*alpha
 }
 
 ## something to order a given margin
@@ -148,7 +134,7 @@ orderMargin <- function(bin, margin = "y") {
 }
 
 ## another helper which generates the candidate splits to be scored
-makeAllSplits <- function(bin, splitPoints = meanSplit,
+makeAllSplits <- function(bin, splitPoints = splitBetween,
                           margin = "y") {
     marOrd <- orderMargin(bin, margin) # order the margin
     splits <- splitPoints(marOrd$vals[marOrd$ord]) # split values
@@ -173,47 +159,18 @@ maxSplit <- function(bin, splitPoints, scoreFn, criteria,
     list(score = scores[maxPos], bins = allSplits[maxPos])
 }
 
+## binning on one margin alone for the case where the second margin
+## need not be split (because it is already catgeorical, for example)
+binMargin <- function(data, splitter, splitPoints, scorer, stopper,
+                      criteria, margin = "y") {
+    binList <- list(makeBin(data))
+    stopStatus <- stopper(binList) # initialize
 
-## max gap splitter (FROM SLIDES, NEEDS UPDATE)
-maxGapSplit <- function(bin, scorer) {
-  ord <- dataOrder(bin$x, bin$y) # differences and sorting
-  xmar <- with(ord, scorer(x, xord, xdiffs)
-  ymar <- scorer(ydiffs) # the maximum differences
-  if (xmar$max >= ymar$ymax) { # ties go to x
-    newbnd <- mean(bin$x[xsort][xmax:(xmax+1)]) # new bin boundary
-    above <- xsort[(xmax+1):(bin$n)] # get indices of points above
-    list(list(x = bin$x[-above], y = bin$y[-above],
-              bnds = list(x = c(bin$bnds$x[1], newbnd),
-                          y = bin$bnds$y),
-              n = bin$n-length(above), depth = bin$depth + 1),
-         list(x = bin$x[above], y = bin$y[above],
-              bnds = list(x = c(newbnd, bin$bnds$x[2]),
-                          y = bin$bnds$y),
-              n = length(above), depth = bin$depth + 1)) # split bins
-  } else {
-    newbnd <- mean(bin$y[ysort][ymax:(ymax+1)]) # new bin boundary
-    above <- ysort[(ymax+1):(bin$n)] # get indices of points above
-    list(list(x = bin$x[-above], y = bin$y[-above],
-              bnds = list(x = bin$bnds$x,
-                          y = c(bin$bnds$y[1], newbnd)),
-              n = bin$n - length(above), depth = bin$depth + 1),
-         list(x = bin$x[above], y = bin$y[above],
-              bnds = list(x = bin$bnds$x,
-                          y = c(newbnd, bin$bnds$y[2])),
-              n = length(above), depth = bin$depth + 1)) # split bins
-  }
-}
+    while (any(!stopStatus)) { # check stop criteria
+        newBins <- binList[stopStatus] # stopped bins
+        for (bin in binList[!stopStatus]) { # split all others
+            newBins <- c(newBins, splitter(bin, splitPoints,
 
-##' the simplest splitter conceptually uses the maximum gap on
-##' a given margin
-maxGapSplit.univar <- function(bin, stopper, margin = "x") {
-    cands <- 0:bin$n # potential splits (below min, above max)
-    srtd <- order(bin[[margin]])
-    bds <- bin$bnds[[margin]] # bin bounds
-    maxdif <- which.max(diff(c(bds[1],
-                               bin[[margin]][srtd],
-                               bds[2]))) # max split ind
-}
 
 ##' the bin wrapper function
 ##' this function accepts the data (as a data.frame) and stopping,
