@@ -155,20 +155,31 @@ maxSplit <- function(bin, scoreFn, splitPoints = splitBetween,
     valid <- sapply(allSplits,
                     function(spl) checkSplit(spl[[1]], spl[[2]]))
     maxPos <- which(valid)[which.max(scores[valid])]
-    list(score = scores[maxPos], bins = allSplits[maxPos])
+    list(score = scores[maxPos], bins = allSplits[[maxPos]])
 }
 
 ## binning on one margin alone for the case where the second margin
-## need not be split (because it is already catgeorical, for example)
+## need not be split (because it is categorical, for example)
 binMargin <- function(data, scorer, criteria,
                       splitPoints = splitBetween, margin = "y") {
+    ## agument checks
+    if (!(all(c("x", "y") %in% names(data)))) {
+        stop("Data must have named elements 'x' and 'y'")
+    }
+    if (!(is.function(scorer))) {
+        stop("Scorer must be a function")
+    }
+    ## remove nas
+    data <- na.omit(as.data.frame(x = data$x, y = data$y))
+
     binList <- list(makeBin(data, criteria))
     stopStatus <- sapply(binList, checkStop) # initialize
 
     while (any(!stopStatus)) { # check stop criteria
         newBins <- binList[stopStatus] # stopped bins
         for (bin in binList[!stopStatus]) { # split all others
-            bstSplt <- maxSplit(bin, scorer, splitPoints) # best split
+            bstSplt <- maxSplit(bin, scorer, splitPoints,
+                                margin = margin) # best split
             newBins <- c(newBins, bstSplt$bins)
         }
         binList <- newBins # update binList
@@ -178,85 +189,75 @@ binMargin <- function(data, scorer, criteria,
     binList
 }
 
-
-
-##' the bin wrapper function
-##' this function accepts the data (as a data.frame) and stopping,
-##' scoring, and splitting functions
-binner <- function(data, stopCriteria, splitter, scorer) {
-    ## simple agument checks
+##' bivariate binning, with added logic compared to above
+binBoth <- function(data, scorer, criteria,
+                    splitPoints = splitBetween) {
+    ## agument checks
     if (!(all(c("x", "y") %in% names(data)))) {
         stop("Data must have named elements 'x' and 'y'")
     }
-    if (!(all(is.function(stopper), is.function(splitter),
-              is.function(scorer)))) {
-        stop("All of 'scorer', 'splitter', and 'stopper' must be functions")
+    if (!(is.function(scorer))) {
+        stop("Scorer must be a function")
     }
     ## remove nas
     data <- na.omit(as.data.frame(x = data$x, y = data$y))
-    ## initialize a bin with all data
-    binList <- list(makeBin(data)) # use constructor
-    stopStatus <- stopper(binList) # initialize logical vector
+
+    binList <- list(makeBin(data, criteria))
+    stopStatus <- sapply(binList, checkStop) # initialize
 
     while (any(!stopStatus)) { # check the stop criteria
         newBins <- binList[stopStatus] # stopped bins
         for (bin in binList[!stopStatus]) { # split all other bins
-            newBins <- c(newBins, splitter(bin, scorer)) # split and add
+            xSplt <- maxSplit(bin, scorer, splitPoints, margin = "x")
+            ySplt <- maxSplit(bin, scorer, splitPoints, margin = "y")
+            if (xSplt$score >= ySplt$score) { # take the better split
+                newBins <- c(newBins, xSplt$bins)
+            } else {
+                newBins <- c(newBins, ySplt$bins)
+            }
         }
         binList <- newBins # update binList
-        stopStatus <- stopper(binList) # check criteria
+        stopStatus <- sapply(binList, checkStop) # check criteria
     }
 
     binList # return the final list of bins
 }
 
 
+##' TODO: WRITE THE WRAPPER FOR ABOVE (argument checks, default
+##' functions, etc.)
+binner <- function(...) {
 
-## STOPPING FUNCTIONS ################################################
-
-##' thought: should this maybe be a general function which identifies
-##' particular names from a list of criteria? This way important
-##' information about the procedure can also be passed to the splitting
-##' function
-
-## bin size stopper
-sizeStop <- function(binList, minsize = 100) {
-  lens <- sapply(binList, function(bin) bin$n) # bin sizes
-  lens < minsize # check against limit
-}
-
-## a stopper on depth (which doesn't split empty bins)
-depthStop <- function(binList, maxDepth = 100) {
-    depths <- sapply(binList, function(bin) bin$depth) # get depth
-    lens <- sapply(binList, function(bin) bin$size) # get sizes
-    depths >= maxDepth | lens <= 1 # stop if at max depth OR empty/single
 }
 
 
 
 ## SCORING FUNCTIONS #################################################
 
-##' more care is needed here... we require some consistency between
-##' scoring and splitting: the splitter needs to consider a set of
-##' candidate splits that the scorer assesses using some criterion
-##' perhaps make these candidates part of the scoring arguments?
-##' something like:
-##'
-##'         scorer(x, y, cands)
-##'
-##' there are some issues with indices and bookkeeping with this...
-##' unless the candidate splits are reordered with the data? The
-##' candidates could potentially be 0:n where n is the number of
-##' points considered, this would consider splits above and below
-##' the data
-##'
-##' should maybe output the scores, position of maximum split, and
-##' divisions given said max split, then the splitter simply splits
-##' the data based on this information?
+##' these scoring functions take a pair of bins and provide a score
+##' for the pair
 
-## difference score ("identity" score)
-identityScore <- function(x, xord, xdiffs, cands = 1:length(x)) {
+## the identity score is the same as the max gap split:
+## maximize the gap split on/the distance between boundaries
+identityScore <- function(bin1, bin2) {
+    range(bin1$bnds$x) - range(bin1$x) +
+        range(bin1$bnds$y) - range(bin1$y) +
+        range(bin2$bnds$x) - range(bin2$x) +
+        range(bin2$bnds$y) - range(bin2$y)
+}
 
+## a simple chi-sq scoring function
+chiSqScore <- function(bin1, bin2) {
+    (bin1$n - bin1$exp)^2/bin1$exp +
+        (bin2$n - bin2$exp)^2/bin2$exp
+}
+
+## a mutual information scoring function
+mutInfScore <- function(bin1, bin2) {
+    combn <- bin1$n + bin2$n
+    area <- bin1$area + bin2$area
+    bin1$n*log((bin1$n*area)/(combn*bin1$area)) +
+        bin2$n*log((bin2$n*area)/(combn*bin2$area))
 }
 
 
