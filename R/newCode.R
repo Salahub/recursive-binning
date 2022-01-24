@@ -25,29 +25,30 @@ makeBin <- function(data, criteria) {
          area = prod(diff(range(data$x)), diff(range(data$y))),
          expn = length(data$x), # expected count is n
          n = length(data$x), depth = 0, # bin size, depth
-         criteria) # stop criteria
+         criteria = criteria) # stop criteria
 }
 
 ##' bin splitter given the indices below and the split value:
 ##' if the indices are specified without a value, choose the
 ##' maximal value in these indices
-splitBin <- function(bin, belowInds, mar,
-                     value = max(bin[[mar]][belowInds])) {
+splitBin <- function(bin, belowInds, mar, value) {
+    below <- rep(FALSE, bin$n)
+    below[belowInds] <- TRUE # handle 0 case
     lowbnds <- upbnds <- bin$bnds
     lowbnds[[mar]][2] <- value
     upbnds[[mar]][1] <- value # changing bounds
     uparea <- prod(sapply(upbnds, diff))
     lowarea <- bin$area - uparea # compute areas
-    upper <- list(x = bin$x[belowInds], y = bin$y[belowInds],
+    upper <- list(x = bin$x[!below], y = bin$y[!below],
                   bnds = upbnds, area = uparea,
                   expn = (bin$expn)*(uparea/bin$area),
-                  n = length(belowInds),
+                  n = bin$n - length(belowInds),
                   depth = bin$depth + 1,
                   criteria = bin$criteria)
-    lower <- list(x = bin$x[-belowInds], y = bin$y[-belowInds],
+    lower <- list(x = bin$x[below], y = bin$y[below],
                   bnds = lowbnds, area = lowarea,
                   expn = (bin$expn)*(lowarea/bin$area),
-                  n = bin$n - length(belowInds),
+                  n = length(belowInds),
                   depth = bin$depth + 1,
                   criteria = bin$criteria) # construct
     list(lower, upper) # return
@@ -129,19 +130,18 @@ splitBetween <- function(x, alpha = 0.5) {
 ## something to order a given margin
 orderMargin <- function(bin, margin = "y") {
     bnds <- bin$bnds[[margin]]
-    vals <- bin[[margin]] # extract values
-    ord <- c(bnds[1], vals, bnds[2]) # ordered
-    #difs <- diff(vals[ord]) # differences
-    list(vals = vals, ord = ord) #, difs = difs)
+    vals <- c(bnds[1], bin[[margin]], bnds[2]) # extract values
+    ord <- order(vals)
+    list(vals = vals, ord = ord, orig = ord[-1]-1) # shift for bnds[1]
 }
 
 ## another helper which generates the candidate splits to be scored
 makeAllSplits <- function(bin, splitPoints, margin = "y") {
     marOrd <- orderMargin(bin, margin) # order the margin
     splits <- splitPoints(marOrd$vals[marOrd$ord]) # split values
-    lapply(0:length(splits),
-           function(ii) splitBin(bin, marOrd$ord[seq_len(ii)],
-                                  mar = margin, value = splits[ii]))
+    lapply(0:(bin$n), # no. pts below
+           function(ii) splitBin(bin, marOrd$orig[seq_len(ii)],
+                                 mar = margin, value = splits[ii+1]))
 }
 
 ## for a single margin, the optimized split function which checks for
@@ -151,9 +151,10 @@ maxSplit <- function(bin, scoreFn, splitPoints = splitBetween,
                      margin = "y") {
     allSplits <- makeAllSplits(bin, splitPoints, margin)
     scores <- sapply(allSplits,
-                     function(spl) score(spl[[1]], spl[[2]]))
+                     function(spl) score(spl[[1]], spl[[2]], margin))
     valid <- sapply(allSplits,
-                    function(spl) checkSplit(spl[[1]], spl[[2]]))
+                    function(spl) checkSplit(spl[[1]], spl[[2]],
+                                             margin))
     maxPos <- which(valid)[which.max(scores[valid])]
     list(score = scores[maxPos], bins = allSplits[[maxPos]])
 }
@@ -200,7 +201,7 @@ binBoth <- function(data, scorer, criteria,
         stop("Scorer must be a function")
     }
     ## remove nas
-    data <- na.omit(as.data.frame(x = data$x, y = data$y))
+    data <- na.omit(data.frame(x = data$x, y = data$y))
 
     binList <- list(makeBin(data, criteria))
     stopStatus <- sapply(binList, checkStop) # initialize
@@ -239,21 +240,19 @@ binner <- function(...) {
 
 ## the identity score is the same as the max gap split:
 ## maximize the gap split on/the distance between boundaries
-identityScore <- function(bin1, bin2) {
-    range(bin1$bnds$x) - range(bin1$x) +
-        range(bin1$bnds$y) - range(bin1$y) +
-        range(bin2$bnds$x) - range(bin2$x) +
-        range(bin2$bnds$y) - range(bin2$y)
+identityScore <- function(lower, upper, margin = "y") {
+    min(upper[[margin]]) - upper$bnds[[margin]][1] -
+        max(lower[[margin]]) + lower$bnds[[margin]][2]
 }
 
 ## a simple chi-sq scoring function
-chiSqScore <- function(bin1, bin2) {
+chiSqScore <- function(bin1, bin2, margin = "y") {
     (bin1$n - bin1$exp)^2/bin1$exp +
         (bin2$n - bin2$exp)^2/bin2$exp
 }
 
 ## a mutual information scoring function
-mutInfScore <- function(bin1, bin2) {
+mutInfScore <- function(bin1, bin2, margin = "y") {
     combn <- bin1$n + bin2$n
     area <- bin1$area + bin2$area
     bin1$n*log((bin1$n*area)/(combn*bin1$area)) +
