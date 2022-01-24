@@ -241,8 +241,8 @@ binner <- function(...) {
 ## the identity score is the same as the max gap split:
 ## maximize the gap split on/the distance between boundaries
 identityScore <- function(lower, upper, margin = "y") {
-    min(upper[[margin]]) - upper$bnds[[margin]][1] -
-        max(lower[[margin]]) + lower$bnds[[margin]][2]
+    min(c(upper$bnds[[margin]][2], upper[[margin]])) -
+        max(c(lower$bnds[[margin]][1], lower[[margin]]))
 }
 
 ## a simple chi-sq scoring function
