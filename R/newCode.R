@@ -94,16 +94,18 @@ checkStop <- function(bin) {
     sapply(bin$criteria, eval, envir = bin)
 }
 
+## helper to remove boundary conditions
+removeBoundary <- function(expr) { # helper to check expressions
+    if (identical(expr[[1]], as.symbol("<="))) { # inequality
+        expr[[1]] <- as.symbol("<") # equality removed
+    } else if (identical(expr[[1]], as.symbol(">="))) {
+        expr[[1]] <- as.symbol(">") # the same
+    }
+    expr # return modified expression
+}
+
 ## one to check splits
 checkSplit <- function(blw, abv) {
-    removeBoundary <- function(expr) { # helper to check expressions
-        if (identical(expr[[1]], as.symbol("<="))) { # inequality
-            expr[[1]] <- as.symbol("<") # equality removed
-        } else if (identical(expr[[1]], as.symbol(">="))) {
-            expr[[1]] <- as.symbol(">") # the same
-        }
-        expr # return modified expression
-    }
     !any(sapply(blw$criteria,
                function(cr) eval(removeBoundary(cr), envir = blw)),
         sapply(abv$criteria,
@@ -211,8 +213,9 @@ binBoth <- function(data, scorer, criteria,
 
     while (any(!stopStatus)) { # check the stop criteria
         newBins <- binList[stopStatus] # stopped bins
-        stopStatus <- stopStatus[stopStatus] # FALSE repeated
-        for (bin in binList[!stopStatus]) { # split all other bins
+        toSplit <- binList[!stopStatus]
+        stopStatus <- stopStatus[stopStatus] # TRUE repeated
+        for (bin in toSplit) { # split all other bins
             xSplt <- maxSplit(bin, scorer, splitPoints, margin = "x")
             ySplt <- maxSplit(bin, scorer, splitPoints, margin = "y")
             if (xSplt$score >= ySplt$score) { # take the better split
@@ -222,9 +225,11 @@ binBoth <- function(data, scorer, criteria,
                 } else {
                     stopStatus <- c(stopStatus,
                                     sapply(xSplt$bins, checkStop))
-                }
+               }
            } else {
                newBins <- c(newBins, ySplt$bins)
+               stopStatus <- c(stopStatus,
+                               sapply(ySplt$bins, checkStop))
             }
         }
         binList <- newBins # update binList
