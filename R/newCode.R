@@ -104,7 +104,7 @@ checkSplit <- function(blw, abv) {
         }
         expr # return modified expression
     }
-    any(sapply(blw$criteria,
+    !any(sapply(blw$criteria,
                function(cr) eval(removeBoundary(cr), envir = blw)),
         sapply(abv$criteria,
                function(cr) eval(removeBoundary(cr), envir = abv)))
@@ -147,16 +147,19 @@ makeAllSplits <- function(bin, splitPoints, margin = "y") {
 ## for a single margin, the optimized split function which checks for
 ## split validity and split score, returns the maximizing split and
 ## its score
-maxSplit <- function(bin, scoreFn, splitPoints = splitBetween,
+maxSplit <- function(bin, scorer, splitPoints = splitBetween,
                      margin = "y") {
     allSplits <- makeAllSplits(bin, splitPoints, margin)
     scores <- sapply(allSplits,
-                     function(spl) score(spl[[1]], spl[[2]], margin))
+                     function(spl) scorer(spl[[1]], spl[[2]], margin))
     valid <- sapply(allSplits,
-                    function(spl) checkSplit(spl[[1]], spl[[2]],
-                                             margin))
+                    function(spl) checkSplit(spl[[1]], spl[[2]]))
     maxPos <- which(valid)[which.max(scores[valid])]
-    list(score = scores[maxPos], bins = allSplits[[maxPos]])
+    if (length(maxPos) == 0) { # no valid splits are present
+        list(score = Inf, bins = bin)
+    } else {
+        list(score = scores[maxPos], bins = allSplits[[maxPos]])
+    }
 }
 
 ## binning on one margin alone for the case where the second margin
@@ -208,17 +211,23 @@ binBoth <- function(data, scorer, criteria,
 
     while (any(!stopStatus)) { # check the stop criteria
         newBins <- binList[stopStatus] # stopped bins
+        stopStatus <- stopStatus[stopStatus] # FALSE repeated
         for (bin in binList[!stopStatus]) { # split all other bins
             xSplt <- maxSplit(bin, scorer, splitPoints, margin = "x")
             ySplt <- maxSplit(bin, scorer, splitPoints, margin = "y")
             if (xSplt$score >= ySplt$score) { # take the better split
                 newBins <- c(newBins, xSplt$bins)
-            } else {
-                newBins <- c(newBins, ySplt$bins)
+                if (!is.finite(xSplt$score)) { # no valid splits in bin
+                    stopStatus <- c(stopStatus, TRUE)
+                } else {
+                    stopStatus <- c(stopStatus,
+                                    sapply(xSplt$bins, checkStop))
+                }
+           } else {
+               newBins <- c(newBins, ySplt$bins)
             }
         }
         binList <- newBins # update binList
-        stopStatus <- sapply(binList, checkStop) # check criteria
     }
 
     binList # return the final list of bins
