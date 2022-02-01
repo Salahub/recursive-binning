@@ -14,6 +14,7 @@
 ##'    - depth: number of recursive calls needed to generate bin
 ##' this may be expanded or pared down later: currently this is not a
 ##' formal class but is instead a simple unstructured list object
+##'
 
 ## a simple constructor
 ## data has elements x and y with no NAs
@@ -86,30 +87,25 @@ plotBinning <- function(binList, xlab = "x", ylab = "y",
 makeCriteria <- function(...) {
     cl <- match.call() # capturing inputs
     crits <- as.list(cl) # change to a list
-    crits[-1] # remove self reference
+    ## remove self reference, collapse into single OR
+    parse(text = paste(sapply(crits[-1], deparse), collapse = " | "))
 }
 
 ## simple helper to check bin against stop criteria
 checkStop <- function(bin) {
-    sapply(bin$criteria, eval, envir = bin)
+    eval(bin$criteria, envir = bin)
 }
 
 ## helper to remove boundary conditions
-removeBoundary <- function(expr) { # helper to check expressions
-    if (identical(expr[[1]], as.symbol("<="))) { # inequality
-        expr[[1]] <- as.symbol("<") # equality removed
-    } else if (identical(expr[[1]], as.symbol(">="))) {
-        expr[[1]] <- as.symbol(">") # the same
-    }
-    expr # return modified expression
+removeBoundaries <- function(expr) { # helper to check expressions
+    parse(text = gsub("([\\<\\>])\\=", "\\1",
+                      deparse(expr))) # remove =
 }
 
 ## one to check splits
-checkSplit <- function(blw, abv) {
-    !any(sapply(blw$criteria,
-               function(cr) eval(removeBoundary(cr), envir = blw)),
-        sapply(abv$criteria,
-               function(cr) eval(removeBoundary(cr), envir = abv)))
+checkSplits <- function(blw, abv, criteria) {
+    eval(removeBoundaries(criteria), envir = blw) |
+        eval(removeBoundaries(criteria), envir = abv)
 }
 
 
@@ -139,32 +135,33 @@ orderMargin <- function(bin, margin = "y") {
 
 ## find the maximizing split
 maxAllSplits <- function(bin, scorer, splitPoints, margin = "y") {
-    marOrd <- orderMargin(bin, margin) # order the margin
-    splits <- splitPoints(marOrd$vals[marOrd$ord]) # split values
-    props <- (splits - bin$bnds[[margin]][1])/
-        (bin$bnds[[margin]][2] - bin$bnds[[margin]][1]) # proportion
-    below <- list(n = 0:(bin$n), expn = bin$expn * props,
-                  area = bin$area * props, depth = bin$depth + 1)
-    above <- list(n = bin$n - below$n, expn = bin$expn - below$expn,
-                  area = bin$area - below$area, depth = below$depth)
-    scores <- scorer(below, above)
-    validbelow <- sapply(removeBoundary(bin$criteria),
-                         eval, envir = below)
-    validabove <- sapply(removeBoundary(bin$criteria),
-                         eval, envir = above)
-    valid <- !apply(rbind(validbelow, validabove), 2, any)
-    if (all(scores[valid][1] == scores)) {
-        maxPos <- ceiling(bin$n/2)
-    } else {
-        maxPos <- which(valid)[which.max(scores[valid])]
-    }
-    if (!any(valid)) {
+    if (bin$n == 0) {
         list(score = -Inf, stopped = TRUE, bins = list(bin))
-    } else {
-        mxSlt <- splitBin(bin, belowInds = marOrd$orig[seq_len(maxPos)],
-                         mar = margin, value = splits[maxPos])
-        list(score = scores[maxPos], stopped = sapply(bins, checkStop),
-             bins = mxSlt)
+    } else{
+        marOrd <- orderMargin(bin, margin) # order the margin
+        splits <- splitPoints(marOrd$vals[marOrd$ord]) # split values
+        props <- (splits - bin$bnds[[margin]][1])/
+            (bin$bnds[[margin]][2] - bin$bnds[[margin]][1]) # proportion
+        below <- list(n = 0:(bin$n), expn = bin$expn * props,
+                      area = bin$area * props, depth = bin$depth + 1)
+        above <- list(n = bin$n - below$n, expn = bin$expn - below$expn,
+                      area = bin$area - below$area, depth = below$depth)
+        scores <- scorer(marOrd$vals[marOrd$ord], below, above)
+        valid <- !checkSplits(below, above, bin$criteria[[1]])
+        if (length(unique(scores[valid])) <= 1) {
+            maxPos <- ceiling(bin$n/2)
+        } else {
+            maxPos <- which(valid)[which.max(scores[valid])]
+        }
+        if (!any(valid)) {
+            list(score = -Inf, stopped = TRUE, bins = list(bin))
+        } else {
+            mxSlt <- splitBin(bin,
+                              belowInds = marOrd$orig[seq_len(maxPos-1)],
+                              mar = margin, value = splits[maxPos])
+            list(score = scores[maxPos], stopped = sapply(mxSlt, checkStop),
+                 bins = mxSlt)
+        }
     }
 }
 
@@ -269,18 +266,18 @@ binner <- function(...) {
 ##' for the pair
 
 ## max gap score
-maxGapScore <- function(below, above) {
-    c(below$area[1], diff(below$area)) # maybe not quite?
+maxGapScore <- function(vals, below, above) {
+    diff(vals)
 }
 
 ## a simple chi-sq scoring function
-chiSqScore <- function(below, above) {
+chiSqScore <- function(vals, below, above) {
     (below$n - below$expn)^2/below$expn +
         (above$n - above$expn)^2/above$expn
 }
 
 ## a mutual information scoring function
-mutInfScore <- function(below, above) {
+mutInfScore <- function(vals, below, above) {
     combn <- below$n + above$n
     area <- below$area + above$area
     below$n*log((below$n*area)/(combn*below$area)) +
