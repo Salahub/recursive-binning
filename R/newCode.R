@@ -88,18 +88,17 @@ makeCriteria <- function(...) {
     cl <- match.call() # capturing inputs
     crits <- as.list(cl) # change to a list
     ## remove self reference, collapse into single OR
-    parse(text = paste(sapply(crits[-1], deparse), collapse = " | "))
+    paste(sapply(crits[-1], deparse), collapse = " | ")
 }
 
 ## simple helper to check bin against stop criteria
 checkStop <- function(bin) {
-    eval(bin$criteria, envir = bin)
+    eval(parse(text = bin$criteria), envir = bin)
 }
 
 ## helper to remove boundary conditions
 removeBoundaries <- function(expr) { # helper to check expressions
-    parse(text = gsub("([\\<\\>])\\=", "\\1",
-                      deparse(expr))) # remove =
+    parse(text = gsub("([\\<\\>])\\=", "\\1", expr)) # remove =
 }
 
 ## one to check splits
@@ -147,8 +146,9 @@ maxAllSplits <- function(bin, scorer, splitPoints, margin = "y") {
         above <- list(n = bin$n - below$n, expn = bin$expn - below$expn,
                       area = bin$area - below$area, depth = below$depth)
         scores <- scorer(marOrd$vals[marOrd$ord], below, above)
-        valid <- !checkSplits(below, above, bin$criteria[[1]])
-        if (length(unique(scores[valid])) <= 1) {
+        valid <- !checkSplits(below, above, bin$criteria)
+        if (length(unique(scores[valid])) <= 1 &
+            length(scores[valid]) > 1) {
             maxPos <- ceiling(bin$n/2)
         } else {
             maxPos <- which(valid)[which.max(scores[valid])]
@@ -159,7 +159,8 @@ maxAllSplits <- function(bin, scorer, splitPoints, margin = "y") {
             mxSlt <- splitBin(bin,
                               belowInds = marOrd$orig[seq_len(maxPos-1)],
                               mar = margin, value = splits[maxPos])
-            list(score = scores[maxPos], stopped = sapply(mxSlt, checkStop),
+            list(score = scores[maxPos],
+                 stopped = sapply(mxSlt, checkStop),
                  bins = mxSlt)
         }
     }
