@@ -124,6 +124,14 @@ splitBetween <- function(x, alpha = 0.5) {
     x[1:(len-1)] + (x[2:len] - x[1:(len-1)])*alpha
 }
 
+##' centre split: halfway in the middle of the data, otherwise pulled
+##' towards the centre
+splitCentred <- function(x) {
+    len <- length(x)
+    prop <- (x-min(x))/diff(range(x))
+    x[1:(len-1)]*(prop[1:(len-1)]) + x[2:len]*(1-prop[1:(len-1)])
+}
+
 ## something to order a given margin
 orderMargin <- function(bin, margin = "y") {
     bnds <- bin$bnds[[margin]]
@@ -281,8 +289,11 @@ chiSqScore <- function(vals, below, above) {
 mutInfScore <- function(vals, below, above) {
     combn <- below$n + above$n
     area <- below$area + above$area
-    below$n*log((below$n*area)/(combn*below$area)) +
-        above$n*log((above$n*area)/(combn*above$area))
+    lo <-  below$n*log((below$n*area)/(combn*below$area))
+    hi <-  above$n*log((above$n*area)/(combn*above$area))
+    lo[is.nan(lo)] <- 0
+    hi[is.nan(hi)] <- 0
+    lo + hi
 }
 
 
