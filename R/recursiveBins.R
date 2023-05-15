@@ -13,8 +13,7 @@ stopCriterion <- function(depthLim = 4, sizeLim = 1, areaLim = 5) {
 }
 
 ## scoring functions
-chiScores <- function(n, sorted, bnds) {
-    diffs <- diff(c(bnds[1], sorted, bnds[2]))
+chiScores <- function(n, diffs) {
     total <- cumsum(diffs)
     h1 <- total[1:(n+1)] # length below
     h2 <- total[n+2] - h1 # length above
@@ -23,8 +22,7 @@ chiScores <- function(n, sorted, bnds) {
     ni <- n - i # number above i
     (i - d*h1)^2/(h1*d) + (ni - d*h2)^2/(h2*d)
 }
-miScores <- function(n, sorted, bnds) {
-    diffs <- diff(c(bnds[1], sorted, bnds[2]))
+miScores <- function(n, diffs) {
     total <- cumsum(diffs)
     h1 <- total[1:(n+1)] # length below
     h2 <- total[n+2] - h1 # length above
@@ -37,10 +35,83 @@ miScores <- function(n, sorted, bnds) {
     above[n+1] <- 0 # handle known zeros
     below + above
 }
-difScores <- function(n, sorted, bnds) {
-    diffs <- diff(c(bnds[1], sorted, bnds[2]))
+difScores <- function(n, diffs) {
     diffs/(diff(bnds))
 }
+
+## separate maximum logic from the main function
+getMax <- function(n, diffs, fun, tol = 10) {
+    scores <- fun(n, diffs) # get scores
+    scores[!is.finite(scores)] <- 0 # replace NAs
+    if (all(scores == scores[1])) { # perfect agreement
+        c(NA, scores[1]) # no max location
+    } else {
+        exps <- diffs*n/sum(diffs) # expected counts
+        valid <- which(exps > tol) # greater than tolerance
+        maxInd <- valid[which.max(scores[valid])] # max index
+        c(maxInd, scores[maxInd])
+    }
+}
+
+## score-maximizing split
+maxScoreSplit <- function(scorefn, ties = "random", eTol = 10) {
+    if (!(ties %in% c("random", "x", "y"))) { # check ties
+        stop("ties must be one of 'random', 'x', or 'y'")
+    }
+    ## closure which splits based on scorefn
+    function(inds, n, bnds, x, y, xord, yord, diffTol = 1.5e-8) {
+        nbin <- length(inds) # size of the bin to split
+        xsort <- getSorted(x, inds, xord, n)
+        ysort <- getSorted(y, inds, yord, n) # elements in sorted order
+        xsort <- c(xsort[1] - 1, xsort)
+        ysort <- c(ysort[1] - 1, ysort) # split below bottom
+        xdiff <- diff(bnds$x[1], xsort, bnds$x[2])
+        ydiff <- diff(bnds$y[1], ysort, bnds$y[2]) # lengths
+        ## split variable
+        if (ties == "random") {
+            splitVar <- sample(c("x", "y"), size = 1)
+        } else {
+            splitVar <- ties
+        } # overwritten to split on max later
+        ## splitting logic (get maximum)
+        xmax <- getMax(nbin, xdiffs, scorefn, eTol)
+        ymax <- getMax(nbin, ydiffs, scorefn, eTol) # index and score
+        if (xmax[2] > ymax[2]) { # x maximizes
+            splitVar <- "x"
+            if (is.na(xmax[1])) {
+                splitPos <- floor(nbin/2) + 1 # halve for no max
+            } else {
+                splitPos <- xmax[1] # take max index
+            }
+        } else if (ymax[2] > xmax[2]) {
+            splitVar <- "y"
+            if (is.na(ymax[1])) {
+                splitPos <- floor(nbin/2) + 1
+            } else {
+                splitPos <- xmax[1]
+            }
+        } else {
+            splitPos <- floor(nbin/2) + 1
+        }
+        ## apply the splits
+        if (splitVar == "x") {
+            splitVal <- xsort[splitPos]
+            splitInds <- x[inds] <= splitVal
+        } else {
+            splitVal <- ysort[splitPos]
+            splitInds <- y[inds] <= splitVal
+        }
+        allZero <- if (nbin >= 1) { # degenerate case
+                       all(c(xsort[2:(nbin+1)]-xsort[2],
+                             ysort[2:(nbin+1)]-ysort[2]) < diffTol)
+                   } else TRUE
+        list(var = splitVar, at = splitVal, allZero = allZero,
+             below = inds[splitInds], above = inds[!splitInds])
+    }
+}
+
+
+
 
 ## split to maximize a score
 maxScoreSplit <- function(scores, ties = sample(c("x","y"), 1)) {
@@ -99,6 +170,11 @@ maxScoreSplit <- function(scores, ties = sample(c("x","y"), 1)) {
         list(var = splitVar, at = splitVal, allZero = allZero,
              below = inds[splitInds], above = inds[!splitInds])
     }
+}
+
+## randomly split
+randomSplit <- function(inds, n, bnds, x, y, xord, yord) {
+    splitVar <- sample(c("x","y"), 1)
 }
 
 ## wrapper to make a tree

@@ -1,7 +1,7 @@
 source("binMethods.R")
 source("recursiveBins.R")
 
-## go against some random data
+## go against some independent data
 set.seed(16062021)
 randx <- sample(1:1e4)
 randy <- sample(1:1e4)
