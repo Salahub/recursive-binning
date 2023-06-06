@@ -9,8 +9,8 @@ randBin <- makeTree(randx, randy,
                     stopCriterion(depthLim = 10, areaLim = 5),
                     maxScoreSplit(chiScores, ties = "x"), quickBin)
 randBin.mi <- makeTree(randx, randy,
-                    stopCriterion(depthLim = 4, areaLim = 5),
-                    maxScoreSplit(miScores, ties = "x"), quickBin)
+                       stopCriterion(depthLim = 4, areaLim = 5),
+                       maxScoreSplit(miScores, ties = "x"), quickBin)
 ## plot these
 maxRes <- max(c(binChi(unlist(randBin))$residuals,
                 binChi(unlist(randBin.mi))$residuals))
