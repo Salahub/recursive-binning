@@ -36,13 +36,13 @@ splitBin <- function(bin, belowInds, mar, value) {
 ## something to plot/visualize bins
 plotBinning <- function(bins, xlab = "x", ylab = "y",
                         main = "Bins", ...) {
-    nbins <- length(binList) # number of bins
-    xbnds <- sapply(binList, function(bn) bn$bnds$x)
-    ybnds <- sapply(binList, function(bn) bn$bnds$y)
+    nbins <- length(bins) # number of bins
+    xbnds <- sapply(bins, function(bn) bn$bnds$x)
+    ybnds <- sapply(bins, function(bn) bn$bnds$y)
     plot(NA, type = "n", xlim = range(xbnds), ylim = range(ybnds),
          xlab = xlab, ylab = ylab, main = main)
     for (ii in 1:nbins) {
         rect(xbnds[1,ii], ybnds[1,ii], xbnds[2,ii], ybnds[2,ii])
-        points(binList[[ii]]$x, binList[[ii]]$y, ...)
+        points(bins[[ii]]$x, bins[[ii]]$y, ...)
     }
 }

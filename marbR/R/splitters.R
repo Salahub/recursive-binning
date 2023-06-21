@@ -1,89 +1,140 @@
-## max gap splitter
-maxGapSplit <- function(bin) {
+## some scoring functions to be maximized
+chiScores <- function(vals) {
+    diffs <- diff(vals)
+    n <- length(vals) - 2
+    total <- c(diffs[1]-1, cumsum(diffs))
+    h1 <- total[1:(n+1)] # length below
+    h2 <- total[n+2] - h1 # length above
+    d <- n/total[n+2] # density
+    i <- 0:n # number below split i
+    ni <- n - i # number above i
+    scr <- (i - d*h1)^2/(h1*d) + (ni - d*h2)^2/(h2*d)
+    scr[is.na(scr)] <- 0
+    scr
+}
+## mutual informations
+miScores <- function(vals) {
+    diffs <- diff(vals)
+    n <- length(vals) - 2
+    total <- c(diffs[1] - 1, cumsum(diffs))
+    h1 <- total[1:(n+1)] # length below
+    h2 <- total[n+2] - h1 # length above
+    d <- n/total[n+2] # density
+    i <- 0:n # number below point i
+    ni <- n - i # number above i
+    below <- (i/n)*log(i/(d*h1))
+    above <- (ni/n)*log(ni/(d*h2)) # split expectation
+    below[1] <- 0
+    above[n+1] <- 0 # handle known zeros
+    below + above
+}
+
+## halve a bin
+halfSplit <- function(bin, margin = "x") {
+    if (margin == "x") {
+        xsort <- order(bin$x)
+        hind <- floor(bin$n/2) # middle index
+        newbnd <- bin$x[xsort][hind] # middle value
+        above <- xsort[(hind+1):(bin$n)] # points above
+        list(list(x = bin$x[-above], y = bin$y[-above], # new bins
+                  bnds = list(x = c(bin$bnds$x[1], newbnd),
+                              y = bin$bnds$y),
+                  area = bin$area*(newbnd - bin$bnds$x[1])/
+                      diff(bin$bnds$x),
+                  n = bin$n-length(above), depth = bin$depth + 1),
+             list(x = bin$x[above], y = bin$y[above],
+                  bnds = list(x = c(newbnd, bin$bnds$x[2]),
+                              y = bin$bnds$y),
+                  area = bin$area*(bin$bnds$x[2] - newbnd)/
+                      diff(bin$bnds$x),
+                  n = length(above), depth = bin$depth + 1))
+    } else if (margin == "y") {
+        ysort <- order(bin$y)
+        hind <- floor(bin$n/2) # middle index
+        newbnd <- bin$y[ysort][hind] # middle value
+        above <- ysort[(hind+1):(bin$n)] # points above
+        list(list(x = bin$x[-above], y = bin$y[-above],
+                  bnds = list(x = bin$bnds$x,
+                              y = c(bin$bnds$y[1], newbnd)),
+                  area = bin$area*(newbnd - bin$bnds$y[1])/
+                      diff(bin$bnds$y),
+                  n = bin$n - length(above), depth = bin$depth + 1),
+             list(x = bin$x[above], y = bin$y[above],
+                  bnds = list(x = bin$bnds$x,
+                              y = c(newbnd, bin$bnds$y[2])),
+                  area = bin$area*(bin$bnds$y[2] - newbnd)/
+                      diff(bin$bnds$y),
+                  n = length(above), depth = bin$depth + 1))
+    } else stop("Margin must be one of x or y")
+}
+
+## splitter maximizing a score function
+maxScoreSplit <- function(bin, scorer = diff) {
   xsort <- order(bin$x)
   ysort <- order(bin$y) # get marginal ordering
-  xdiffs <- diff(bin$x[xsort])
-  ydiffs <- diff(bin$y[ysort]) # get differences
-  xmax <- which.max(xdiffs)
-  ymax <- which.max(ydiffs) # the maximum differences
-  if (xdiffs[xmax] >= ydiffs[ymax]) { # ties go to x
-    newbnd <- mean(bin$x[xsort][xmax:(xmax+1)]) # new bin boundary
-    above <- xsort[(xmax+1):(bin$n)] # get indices of points above
-    list(list(x = bin$x[-above], y = bin$y[-above],
-              bnds = list(x = c(bin$bnds$x[1], newbnd),
-                          y = bin$bnds$y),
-              n = bin$n-length(above), depth = bin$depth + 1),
-         list(x = bin$x[above], y = bin$y[above],
-              bnds = list(x = c(newbnd, bin$bnds$x[2]),
-                          y = bin$bnds$y),
-              n = length(above), depth = bin$depth + 1)) # split bins
-  } else {
-    newbnd <- mean(bin$y[ysort][ymax:(ymax+1)]) # new bin boundary
-    above <- ysort[(ymax+1):(bin$n)] # get indices of points above
-    list(list(x = bin$x[-above], y = bin$y[-above],
-              bnds = list(x = bin$bnds$x,
-                          y = c(bin$bnds$y[1], newbnd)),
-              n = bin$n - length(above), depth = bin$depth + 1),
-         list(x = bin$x[above], y = bin$y[above],
-              bnds = list(x = bin$bnds$x,
-                          y = c(newbnd, bin$bnds$y[2])),
-              n = length(above), depth = bin$depth + 1)) # split bins
+  xscore <- scorer(c(bin$bnds$x[1], bin$x[xsort], bin$bnds$x[2]))
+  yscore <- scorer(c(bin$bnds$y[1], bin$y[ysort], bin$bnds$y[2]))
+  xmax <- which.max(xscore)
+  ymax <- which.max(yscore) # the score values
+  if (xscore[xmax] >= yscore[ymax]) { # ties go to x
+      xsplts <- bin$x[xsort]
+      newbnd <- c(xsplts[1]-1, xsplts)[xmax] # new boundary
+      below <- xsort[seq_len(xmax-1)] # get indices of points below
+      above <- if (xmax == bin$n+1) integer(0) else xsort[xmax:bin$n]
+      list(list(x = bin$x[below], y = bin$y[below], # new bins
+                bnds = list(x = c(bin$bnds$x[1], newbnd),
+                            y = bin$bnds$y),
+                area = bin$area*(newbnd - bin$bnds$x[1])/
+                    diff(bin$bnds$x),
+                n = length(below), depth = bin$depth + 1),
+           list(x = bin$x[above], y = bin$y[above],
+                bnds = list(x = c(newbnd, bin$bnds$x[2]),
+                            y = bin$bnds$y),
+                area = bin$area*(bin$bnds$x[1] - newbnd)/
+                    diff(bin$bnds$x),
+                n = length(above), depth = bin$depth + 1))
+  } else { # do the same on y
+      ysplts <- bin$y[ysort]
+      newbnd <- c(ysplts[1]-1, ysplts)[ymax]
+      below <- ysort[seq_len(xmax-1)]
+      above <- if (ymax == bin$n+1) integer(0) else ysort[ymax:bin$n]
+      list(list(x = bin$x[below], y = bin$y[below],
+                bnds = list(x = bin$bnds$x,
+                            y = c(bin$bnds$y[1], newbnd)),
+                area = bin$area*(newbnd - bin$bnds$y[1])/
+                    diff(bin$bnds$y),
+                n = length(below), depth = bin$depth + 1),
+           list(x = bin$x[above], y = bin$y[above],
+                bnds = list(x = bin$bnds$x,
+                            y = c(newbnd, bin$bnds$y[2])),
+                area = bin$area*(bin$bnds$y[2] - newbnd)/
+                    diff(bin$bnds$y),
+                n = length(above), depth = bin$depth + 1))
   }
 }
 
-## score-maximizing split
-maxScoreSplit <- function(scorefn, ties = "random", eTol = 10) {
-    if (!(ties %in% c("random", "x", "y"))) { # check ties
-        stop("ties must be one of 'random', 'x', or 'y'")
-    }
-    ## closure which splits based on scorefn
-    function(inds, n, bnds, x, y, xord, yord, diffTol = 1.5e-8) {
-        nbin <- length(inds) # size of the bin to split
-        xsort <- getSorted(x, inds, xord, n)
-        ysort <- getSorted(y, inds, yord, n) # elements in sorted order
-        xsort <- c(xsort[1] - 1, xsort)
-        ysort <- c(ysort[1] - 1, ysort) # split below bottom
-        xdiff <- diff(bnds$x[1], xsort, bnds$x[2])
-        ydiff <- diff(bnds$y[1], ysort, bnds$y[2]) # lengths
-        ## split variable
-        if (ties == "random") {
-            splitVar <- sample(c("x", "y"), size = 1)
-        } else {
-            splitVar <- ties
-        } # overwritten to split on max later
-        ## splitting logic (get maximum)
-        xmax <- getMax(nbin, xdiffs, scorefn, eTol)
-        ymax <- getMax(nbin, ydiffs, scorefn, eTol) # index and score
-        if (xmax[2] > ymax[2]) { # x maximizes
-            splitVar <- "x"
-            if (is.na(xmax[1])) {
-                splitPos <- floor(nbin/2) + 1 # halve for no max
-            } else {
-                splitPos <- xmax[1] # take max index
-            }
-        } else if (ymax[2] > xmax[2]) {
-            splitVar <- "y"
-            if (is.na(ymax[1])) {
-                splitPos <- floor(nbin/2) + 1
-            } else {
-                splitPos <- xmax[1]
-            }
-        } else {
-            splitPos <- floor(nbin/2) + 1
-        }
-        ## apply the splits
-        if (splitVar == "x") {
-            splitVal <- xsort[splitPos]
-            splitInds <- x[inds] <= splitVal
-        } else {
-            splitVal <- ysort[splitPos]
-            splitInds <- y[inds] <= splitVal
-        }
-        allZero <- if (nbin >= 1) { # degenerate case
-                       all(c(xsort[2:(nbin+1)]-xsort[2],
-                             ysort[2:(nbin+1)]-ysort[2]) < diffTol)
-                   } else TRUE
-        list(var = splitVar, at = splitVal, allZero = allZero,
-             below = inds[splitInds], above = inds[!splitInds])
-    }
+## a univariate version
+uniMaxScoreSplit <- function(bin, scorer = diff) {
+  xsort <- order(bin$x)
+  xscore <- scorer(c(bin$bnds$x[1], bin$x[xsort], bin$bnds$x[2]))
+  xmax <- which.max(xscore)
+  xsplts <- bin$x[xsort]
+  newbnd <- c(xsplts[1]-1, xsplts)[xmax]  # new bin boundary
+  below <- xsort[seq_len(xmax-1)]
+  above <- if (xmax == bin$n+1) integer(0) else xsort[xmax:bin$n]
+  list(list(x = bin$x[below], y = bin$y[below], # new bins
+            bnds = list(x = c(bin$bnds$x[1], newbnd),
+                        y = bin$bnds$y),
+            area = bin$area*(newbnd - bin$bnds$x[1])/
+                diff(bin$bnds$x),
+            n = length(below), depth = bin$depth + 1),
+       list(x = bin$x[above], y = bin$y[above],
+            bnds = list(x = c(newbnd, bin$bnds$x[2]),
+                        y = bin$bnds$y),
+            area = bin$area*(bin$bnds$x[2] - newbnd)/
+                diff(bin$bnds$x),
+            n = length(above), depth = bin$depth + 1))
 }
+
+## NB: half/average splits don't really make sense here... we are in
+## the rank space and so no points can possibly exist at half
