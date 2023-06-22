@@ -29,6 +29,37 @@ miScores <- function(vals) {
     below + above
 }
 
+## helper functions to split margins at bound based on indices
+splitX <- function(bin, bd, above, below) {
+    belowfac <- (bd - bin$bnds$x[1])/diff(bin$bnds$x)
+    abovefac <- (bin$bnds$x[2] - bd)/diff(bin$bnds$x)
+    list(list(x = bin$x[below], y = bin$y[below],
+              bnds = list(x = c(bin$bnds$x[1], bd),
+                          y = bin$bnds$y),
+              area = bin$area*belowfac, expn = bin$expn*belowfac,
+              n = bin$n-length(above), depth = bin$depth + 1),
+         list(x = bin$x[above], y = bin$y[above],
+              bnds = list(x = c(bd, bin$bnds$x[2]),
+                          y = bin$bnds$y),
+              area = bin$area*abovefac, expn = bin$expn*abovefac,
+              n = length(above), depth = bin$depth + 1))
+}
+splitY <- function(bin, bd, above, below) {
+    belowfac <- (bd - bin$bnds$y[1])/diff(bin$bnds$y)
+    abovefac <- (bin$bnds$y[2] - bd)/diff(bin$bnds$y)
+    list(list(x = bin$x[below], y = bin$y[below],
+              bnds = list(x = bin$bnds$x,
+                          y = c(bin$bnds$y[1], bd)),
+              area = bin$area*belowfac, expn = bin$expn*belowfac,
+              n = bin$n-length(above), depth = bin$depth + 1),
+         list(x = bin$x[above], y = bin$y[above],
+              bnds = list(x = bin$bnds$x,
+                          y = c(bd, bin$bnds$y[2])),
+              area = bin$area*abovefac, expn = bin$expn*abovefac,
+              n = length(above), depth = bin$depth + 1))
+}
+
+
 ## halve a bin
 halfSplit <- function(bin, margin = "x") {
     if (margin == "x") {
@@ -36,35 +67,14 @@ halfSplit <- function(bin, margin = "x") {
         hind <- floor(bin$n/2) # middle index
         newbnd <- bin$x[xsort][hind] # middle value
         above <- xsort[(hind+1):(bin$n)] # points above
-        list(list(x = bin$x[-above], y = bin$y[-above], # new bins
-                  bnds = list(x = c(bin$bnds$x[1], newbnd),
-                              y = bin$bnds$y),
-                  area = bin$area*(newbnd - bin$bnds$x[1])/
-                      diff(bin$bnds$x),
-                  n = bin$n-length(above), depth = bin$depth + 1),
-             list(x = bin$x[above], y = bin$y[above],
-                  bnds = list(x = c(newbnd, bin$bnds$x[2]),
-                              y = bin$bnds$y),
-                  area = bin$area*(bin$bnds$x[2] - newbnd)/
-                      diff(bin$bnds$x),
-                  n = length(above), depth = bin$depth + 1))
+        below <- xsort[1:hind] # and below
+        splitX(bin, bd = newbnd, above = above, below = below)
     } else if (margin == "y") {
         ysort <- order(bin$y)
         hind <- floor(bin$n/2) # middle index
         newbnd <- bin$y[ysort][hind] # middle value
         above <- ysort[(hind+1):(bin$n)] # points above
-        list(list(x = bin$x[-above], y = bin$y[-above],
-                  bnds = list(x = bin$bnds$x,
-                              y = c(bin$bnds$y[1], newbnd)),
-                  area = bin$area*(newbnd - bin$bnds$y[1])/
-                      diff(bin$bnds$y),
-                  n = bin$n - length(above), depth = bin$depth + 1),
-             list(x = bin$x[above], y = bin$y[above],
-                  bnds = list(x = bin$bnds$x,
-                              y = c(newbnd, bin$bnds$y[2])),
-                  area = bin$area*(bin$bnds$y[2] - newbnd)/
-                      diff(bin$bnds$y),
-                  n = length(above), depth = bin$depth + 1))
+        splitY(bin, bd = newbnd, above = above, below = below)
     } else stop("Margin must be one of x or y")
 }
 
@@ -81,35 +91,13 @@ maxScoreSplit <- function(bin, scorer = diff) {
       newbnd <- c(xsplts[1]-1, xsplts)[xmax] # new boundary
       below <- xsort[seq_len(xmax-1)] # get indices of points below
       above <- if (xmax == bin$n+1) integer(0) else xsort[xmax:bin$n]
-      list(list(x = bin$x[below], y = bin$y[below], # new bins
-                bnds = list(x = c(bin$bnds$x[1], newbnd),
-                            y = bin$bnds$y),
-                area = bin$area*(newbnd - bin$bnds$x[1])/
-                    diff(bin$bnds$x),
-                n = length(below), depth = bin$depth + 1),
-           list(x = bin$x[above], y = bin$y[above],
-                bnds = list(x = c(newbnd, bin$bnds$x[2]),
-                            y = bin$bnds$y),
-                area = bin$area*(bin$bnds$x[1] - newbnd)/
-                    diff(bin$bnds$x),
-                n = length(above), depth = bin$depth + 1))
+      splitX(bin, bd = newbnd, above = above, below = below)
   } else { # do the same on y
       ysplts <- bin$y[ysort]
       newbnd <- c(ysplts[1]-1, ysplts)[ymax]
       below <- ysort[seq_len(xmax-1)]
       above <- if (ymax == bin$n+1) integer(0) else ysort[ymax:bin$n]
-      list(list(x = bin$x[below], y = bin$y[below],
-                bnds = list(x = bin$bnds$x,
-                            y = c(bin$bnds$y[1], newbnd)),
-                area = bin$area*(newbnd - bin$bnds$y[1])/
-                    diff(bin$bnds$y),
-                n = length(below), depth = bin$depth + 1),
-           list(x = bin$x[above], y = bin$y[above],
-                bnds = list(x = bin$bnds$x,
-                            y = c(newbnd, bin$bnds$y[2])),
-                area = bin$area*(bin$bnds$y[2] - newbnd)/
-                    diff(bin$bnds$y),
-                n = length(above), depth = bin$depth + 1))
+      splitY(bin, bd = newbnd, above = above, below = below)
   }
 }
 
@@ -122,18 +110,7 @@ uniMaxScoreSplit <- function(bin, scorer = diff) {
   newbnd <- c(xsplts[1]-1, xsplts)[xmax]  # new bin boundary
   below <- xsort[seq_len(xmax-1)]
   above <- if (xmax == bin$n+1) integer(0) else xsort[xmax:bin$n]
-  list(list(x = bin$x[below], y = bin$y[below], # new bins
-            bnds = list(x = c(bin$bnds$x[1], newbnd),
-                        y = bin$bnds$y),
-            area = bin$area*(newbnd - bin$bnds$x[1])/
-                diff(bin$bnds$x),
-            n = length(below), depth = bin$depth + 1),
-       list(x = bin$x[above], y = bin$y[above],
-            bnds = list(x = c(newbnd, bin$bnds$x[2]),
-                        y = bin$bnds$y),
-            area = bin$area*(bin$bnds$x[2] - newbnd)/
-                diff(bin$bnds$x),
-            n = length(above), depth = bin$depth + 1))
+  splitX(bin, bd = newbnd, above = above, below = below)
 }
 
 ## NB: half/average splits don't really make sense here... we are in
