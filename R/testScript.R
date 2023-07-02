@@ -310,9 +310,9 @@ test <- binner(1:1000, 1:1000,
 ## TESTING/EXPERIMENTATION ###########################################
 ## go against some independent data
 set.seed(16062021)
-criteria <- makeCriteria(expn <= 10, n <= 20, depth >= 4)
-randx <- sample(1:1e4)
-randy <- sample(1:1e4)
+criteria <- makeCriteria(expn <= 10, n <= 10, depth >= 5)
+randx <- sample(1:1e3)
+randy <- sample(1:1e3)
 randBin <- binner(randx, randy,
                   stopper = function(bns) stopper(bns, criteria),
                   splitter = function(bn) maxScoreSplit(bn,
@@ -329,7 +329,7 @@ randBin.rnd <- binner(randx, randy,
 maxRes <- max(c(abs(binChi(randBin)$residuals),
                 abs(binChi(randBin.mi)$residuals),
                 abs(binChi(randBin.rnd)$residuals)))
-plotBinning(randBin, pch = ".",
+plotBinning(randBin, pch = 19, cex = 0.5,
             fill = residualFill(randBin, maxRes = maxRes))
 dev.new()
 plotBinning(randBin.mi, pch = ".",
@@ -443,41 +443,41 @@ for (ii in 1:9) points(log(mean(depthSeq.chi["nbin",ii,]), 10),
                        col = "black", pch = 22,
                        bg = hcl.colors(9, "Dark 2")[ii])
 for (p in c(0.01)) {
-    lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 3)
+    lines(log(2:300,10), log(qchisq(1-p, 1:299),10), lty = 3)
 }
 #legend(x = "bottomright", legend = 2:10, title = "Max. Depth",
 #       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
 
 ## compare this to the chi score under maximum information binning
-narrowPlot(xgrid = seq(0, 3.5, by = 0.5),
+narrowPlot(xgrid = seq(0, 2.5, by = 0.5),
            xlab = expression(log[10]~"(Number of bins)"),
-           ygrid = seq(0, 4.5, by = 0.5),
+           ygrid = seq(0, 4, by = 0.5),
            ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
 points(log(depthSeq.mi["nbin",,],10), log(depthSeq.mi["chi",,],10),
-       col = adjustcolor(hcl.colors(19, "Dark 2"), 0.2), pch = 20)
-for (ii in 1:19) points(log(mean(depthSeq.mi["nbin",ii,]),10),
+       col = adjustcolor(hcl.colors(9, "Dark 2"), 0.2), pch = 20)
+for (ii in 1:9) points(log(mean(depthSeq.mi["nbin",ii,]),10),
                        log(mean(depthSeq.mi["chi",ii,]),10),
                        col = "black", pch = 22,
-                       bg = hcl.colors(19, "Dark 2")[ii])
+                       bg = hcl.colors(9, "Dark 2")[ii])
 for (p in c(0.01)) {
-    lines(log(2:2000,10), log(qchisq(1-p, 1:1999),10), lty = 3)
+    lines(log(2:300,10), log(qchisq(1-p, 1:299),10), lty = 3)
 }
 #legend(x = "bottomright", legend = 2:10, title = "Max. Depth",
 #       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
 
 ## for random binning, the chi-square distribution is better calibrated
-narrowPlot(xgrid = seq(0, 3.5, by = 0.5),
+narrowPlot(xgrid = seq(0, 3, by = 0.5),
            xlab = expression(log[10]~"(Number of bins)"),
-           ygrid = seq(0, 4.5, by = 0.5), # xlim = c(0, 550),
+           ygrid = seq(0, 4, by = 0.5), # xlim = c(0, 550),
            ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
 points(log(depthSeq.rnd["nbin",,],10), log(depthSeq.rnd["chi",,],10),
-       col = adjustcolor(hcl.colors(19, "Dark 2"), 0.3), pch = 20)
-for (ii in 1:19) points(log(mean(depthSeq.rnd["nbin",ii,]),10),
-                        log(mean(depthSeq.rnd["chi",ii,]),10),
-                        col = "black", pch = 22,
-                        bg = hcl.colors(19, "Dark 2")[ii])
+       col = adjustcolor(hcl.colors(9, "Dark 2"), 0.1), pch = 20)
+for (ii in 1:9) points(log(mean(depthSeq.rnd["nbin",ii,]),10),
+                       log(mean(depthSeq.rnd["chi",ii,]),10),
+                       col = "black", pch = 22,
+                       bg = hcl.colors(9, "Dark 2")[ii])
 for (p in c(0.01)) {
-    lines(log(2:2000,10), log(qchisq(1-p, 1:1999),10), lty = 3)
+    lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 3)
 }
 #legend(x = "topleft", legend = 2:10, title = "Max. Depth",
 #       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
