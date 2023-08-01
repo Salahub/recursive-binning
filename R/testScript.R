@@ -214,13 +214,16 @@ stopper <- function(binList, criteria) {
 }
 
 ## a wrapper to plot a list of bins using BinPlot
-plotBinning <- function(bins, fill, xlab = "x", ylab = "y", ...) {
+plotBinning <- function(bins, fill, add = FALSE, xlab = "x",
+                        ylab = "y", ...) {
     if (missing(fill)) fill <- rep(NA, length(bins)) # custom fill option
     nbins <- length(bins)
     xbnds <- sapply(bins, function(bn) bn$bnds$x)
     ybnds <- sapply(bins, function(bn) bn$bnds$y)
-    plot(NA, xlim = range(xbnds), ylim = range(ybnds), xlab = xlab,
-         ylab = ylab, ...)
+    if (!add) {
+        plot(NA, xlim = range(xbnds), ylim = range(ybnds), xlab = xlab,
+             ylab = ylab, ...)
+    }
     for (ii in seq_along(bins)) {
         rect(xbnds[1,ii], ybnds[1,ii], xbnds[2,ii], ybnds[2,ii],
              col = fill[ii])
@@ -310,7 +313,7 @@ test <- binner(1:1000, 1:1000,
 ## TESTING/EXPERIMENTATION ###########################################
 ## go against some independent data
 set.seed(16062021)
-criteria <- makeCriteria(expn <= 10, n <= 10, depth >= 5)
+criteria <- makeCriteria(expn <= 10, n <= 10, depth >= 6)
 randx <- sample(1:1e3)
 randy <- sample(1:1e3)
 randBin <- binner(randx, randy,
@@ -332,23 +335,18 @@ narrowPlot(xgrid = seq(0, 1000, by = 250),
            ygrid = seq(0, 1000, by = 250),
            addGrid = FALSE, xlab = "x", ylab = "y")
 points(randx, randy, pch = 19, cex = 0.5)
+#plotBinning(randBin, pch = 19, cex = 0.5, add = TRUE)
 dev.off()
 
-## plot these
+## plot a binning
 maxRes <- max(c(abs(binChi(randBin)$residuals),
                 abs(binChi(randBin.mi)$residuals),
                 abs(binChi(randBin.rnd)$residuals)))
-plotBinning(randBin, pch = 19, cex = 0.5,
-            fill = residualFill(randBin, maxRes = maxRes))
-dev.new()
-plotBinning(randBin.mi, pch = 19, cex = 0.5,
-            fill = residualFill(randBin.mi, maxRes = maxRes))
-dev.new()
 plotBinning(randBin.rnd, pch = 19, cex = 0.5,
             fill = residualFill(randBin.rnd, maxRes = maxRes))
 
 ## a straight line
-criteria <- makeCriteria(expn <= 10, n <= 20, depth >= 10)
+criteria <- makeCriteria(expn <= 10, n <= 20, depth >= 6)
 linex <- 1:1e3
 liney <- 1:1e3
 lineBin <- binner(linex, liney,
@@ -370,21 +368,53 @@ narrowPlot(xgrid = seq(0, 1000, by = 250),
            ygrid = seq(0, 1000, by = 250),
            addGrid = FALSE, xlab = "x", ylab = "y")
 points(linex, liney, pch = 19, cex = 0.5)
+#plotBinning(lineBin, pch = 19, cex = 0.5, add = TRUE)
 dev.off()
 
-## plot these
+## plot one
 maxRes <- max(abs(c(binChi(lineBin)$residuals,
                     binChi(lineBin.mi)$residuals,
                     binChi(lineBin.rnd)$residuals)))
-plotBinning(lineBin, pch = 19, cex = 0.5,
-            fill = residualFill(lineBin, maxRes = maxRes))
-dev.new()
-plotBinning(lineBin.mi, pch = 19, cex = 0.5,
-            fill = residualFill(lineBin.mi, maxRes = maxRes))
-dev.new()
 plotBinning(lineBin.rnd, pch = 19, cex = 0.5,
             fill = residualFill(lineBin.rnd, maxRes = maxRes))
 
+## plot the random splits shaded by depth
+png("randomSplitDepth.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 250),
+           ygrid = seq(0, 1000, by = 250),
+           addGrid = FALSE, xlab = "x", ylab = "y")
+plotBinning(randBin, pch = 19, cex = 0.5, add = TRUE,
+            fill = depthFill(randBin))
+dev.off()
+png("lineSplitDepth.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 250),
+           ygrid = seq(0, 1000, by = 250),
+           addGrid = FALSE, xlab = "x", ylab = "y")
+plotBinning(lineBin, pch = 19, cex = 0.5, add = TRUE,
+            fill = depthFill(lineBin))
+dev.off()
+
+## shaded by residual
+maxRes <- max(c(abs(binChi(randBin)$residuals),
+                abs(binChi(lineBin)$residuals)))
+png("randomSplitResid.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 250),
+           ygrid = seq(0, 1000, by = 250),
+           addGrid = FALSE, xlab = "x", ylab = "y")
+plotBinning(randBin, pch = 19, cex = 0.5, add = TRUE,
+            fill = residualFill(randBin, maxRes = maxRes))
+dev.off()
+png("lineSplitResid.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 250),
+           ygrid = seq(0, 1000, by = 250),
+           addGrid = FALSE, xlab = "x", ylab = "y")
+plotBinning(lineBin, pch = 19, cex = 0.5, add = TRUE,
+            fill = residualFill(lineBin, maxRes = maxRes))
+dev.off()
 
 ## how does changing the depth limit impact this?
 set.seed(506391)
@@ -546,19 +576,19 @@ for (ii in 1:19) points(log(mean(depthSeq.rnd["nbin",ii,]), 10),
 ## input makes sense to provide test quantiles
 library(quantreg)
 ## quantile regression of chi under chi splitting
-chiChi <- rq(chi ~ nbin, tau = c(0.95, 0.99),
+chiChi <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
              data = data.frame(nbin = c(depthSeq.chi["nbin",,]),
                                chi = c(depthSeq.chi["chi",,])))
 ## quantile of chi under mi splitting
-chiMi <- rq(chi ~ nbin, tau = c(0.95, 0.99),
+chiMi <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
             data = data.frame(nbin = c(depthSeq.mi["nbin",,]),
                               chi = c(depthSeq.mi["chi",,])))
 ## quantile of mi under chi splitting
-miChi <- rq(mi ~ nbin, tau = c(0.95, 0.99),
+miChi <- rq(mi ~ nbin, tau = c(0.95, 0.99, 0.999),
             data = data.frame(nbin = c(depthSeq.chi["nbin",,]),
                               mi = c(depthSeq.chi["mi",,])))
 ## quantiles of mi under mi splitting
-miMi <- rq(mi ~ nbin, tau = c(0.95, 0.99),
+miMi <- rq(mi ~ nbin, tau = c(0.95, 0.99, 0.999),
            data = data.frame(nbin = c(depthSeq.mi["nbin",,]),
                              mi = c(depthSeq.mi["mi",,])))
 
@@ -634,7 +664,8 @@ png(file="measurePatterns.png", height=m, width=6*m, units = "in",
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7)
  {
-  plot(xx[,i], yy[,i], xlab="", ylab="", axes=F, pch = ".")
+     plot(xx[,i], yy[,i], xlab="", ylab="", axes=F, pch = 19,
+          cex = 0.5)
  }
 dev.off()
 
@@ -647,7 +678,8 @@ png(file="measurePatternsRank.png", height=m, width=6*m, units = "in",
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7)
  {
-  plot(xxr[,i], yyr[,i], xlab="", ylab="", axes=F, pch = ".")
+     plot(xxr[,i], yyr[,i], xlab="", ylab="", axes=F, pch = 19,
+          cex = 0.5)
  }
 dev.off()
 
