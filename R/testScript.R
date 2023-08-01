@@ -325,6 +325,15 @@ randBin.rnd <- binner(randx, randy,
                       stopper = function(bns) stopper(bns, criteria),
                       splitter = function(bn) maxScoreSplit(bn,
                                                             randScores))
+
+## random data plot
+png("randomData.png", width = 3, height = 3, units = "in", res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 250),
+           ygrid = seq(0, 1000, by = 250),
+           addGrid = FALSE, xlab = "x", ylab = "y")
+points(randx, randy, pch = 19, cex = 0.5)
+dev.off()
+
 ## plot these
 maxRes <- max(c(abs(binChi(randBin)$residuals),
                 abs(binChi(randBin.mi)$residuals),
@@ -332,16 +341,16 @@ maxRes <- max(c(abs(binChi(randBin)$residuals),
 plotBinning(randBin, pch = 19, cex = 0.5,
             fill = residualFill(randBin, maxRes = maxRes))
 dev.new()
-plotBinning(randBin.mi, pch = ".",
+plotBinning(randBin.mi, pch = 19, cex = 0.5,
             fill = residualFill(randBin.mi, maxRes = maxRes))
 dev.new()
-plotBinning(randBin.rnd, pch = ".",
+plotBinning(randBin.rnd, pch = 19, cex = 0.5,
             fill = residualFill(randBin.rnd, maxRes = maxRes))
 
 ## a straight line
 criteria <- makeCriteria(expn <= 10, n <= 20, depth >= 10)
-linex <- 1:1e4
-liney <- 1:1e4
+linex <- 1:1e3
+liney <- 1:1e3
 lineBin <- binner(linex, liney,
                   stopper = function(bns) stopper(bns, criteria),
                   splitter = function(bn) maxScoreSplit(bn,
@@ -355,17 +364,25 @@ lineBin.rnd <- binner(linex, liney,
                       splitter = function(bn) maxScoreSplit(bn,
                                                             randScores))
 
+## line data plot
+png("lineData.png", width = 3, height = 3, units = "in", res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 250),
+           ygrid = seq(0, 1000, by = 250),
+           addGrid = FALSE, xlab = "x", ylab = "y")
+points(linex, liney, pch = 19, cex = 0.5)
+dev.off()
+
 ## plot these
 maxRes <- max(abs(c(binChi(lineBin)$residuals,
                     binChi(lineBin.mi)$residuals,
                     binChi(lineBin.rnd)$residuals)))
-plotBinning(lineBin, pch = ".",
+plotBinning(lineBin, pch = 19, cex = 0.5,
             fill = residualFill(lineBin, maxRes = maxRes))
 dev.new()
-plotBinning(lineBin.mi, pch = ".",
+plotBinning(lineBin.mi, pch = 19, cex = 0.5,
             fill = residualFill(lineBin.mi, maxRes = maxRes))
 dev.new()
-plotBinning(lineBin.rnd, pch = ".",
+plotBinning(lineBin.rnd, pch = 19, cex = 0.5,
             fill = residualFill(lineBin.rnd, maxRes = maxRes))
 
 
@@ -427,9 +444,9 @@ saveRDS(list(depths = depths, chiSplit = depthSeq.chi,
 ## read this in
 data <- readRDS("SplitsRandomData.Rds")
 depths <- data$depths
-depthSeq.chi <- data$depthSeq.chi
-depthSeq.mi <- data$depthSeq.mi
-depthSeq.rnd <- data$depthSeq.rnd
+depthSeq.chi <- data$chiSplit
+depthSeq.mi <- data$miSplit
+depthSeq.rnd <- data$randSplit
 
 ## increased depth increases statistic values
 narrowPlot(xgrid = seq(0, 2.5, by = 0.5),
