@@ -313,7 +313,7 @@ test <- binner(1:1000, 1:1000,
 ## TESTING/EXPERIMENTATION ###########################################
 ## go against some independent data
 set.seed(16062021)
-criteria <- makeCriteria(expn <= 10, n <= 10, depth >= 6)
+criteria <- makeCriteria(expn <= 10, n <= 1, depth >= 6)
 randx <- sample(1:1e3)
 randy <- sample(1:1e3)
 randBin <- binner(randx, randy,
@@ -425,7 +425,7 @@ dev.off()
 
 ## how does changing the depth limit impact this?
 set.seed(506391)
-n <- 1e4
+n <- 1e3
 nsim <- 1e4
 depths <- 2:10
 simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
@@ -437,7 +437,7 @@ depthSeq.rnd <- array(NA, dim = c(4, length(depths), nsim))
 for (ii in 1:nsim) {
     for (dep in depths) {
         depInd <- match(dep, depths) # storage index
-        crits <- makeCriteria(depth >= dep, expn <= 10, n <= 10)
+        crits <- makeCriteria(depth >= dep, expn <= 10, n <= 1)
         chtr <- binner(simDataSets[[ii]]$x, # split using chi scores
                        simDataSets[[ii]]$y,
                        stopper = function(bns) stopper(bns, crits),
