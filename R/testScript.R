@@ -425,7 +425,7 @@ dev.off()
 
 ## how does changing the depth limit impact this?
 set.seed(506391)
-n <- 1e3
+n <- 1e2
 nsim <- 1e4
 depths <- 2:10
 simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
@@ -865,13 +865,14 @@ xx[,i] <- u
 yy[,i] <- v
 ## plot the data
 m <- 1
+pal <- c(RColorBrewer::brewer.pal(6, "Set2"), "black")
 png(file="measurePatterns.png", height=m, width=6*m, units = "in",
     res = 480)
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7)
  {
      plot(xx[,i], yy[,i], xlab="", ylab="", axes=F, pch = 19,
-          cex = 0.2)
+          cex = 0.2, col = pal[i])
  }
 dev.off()
 
@@ -885,12 +886,12 @@ par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7)
  {
      plot(xxr[,i], yyr[,i], xlab="", ylab="", axes=F, pch = 19,
-          cex = 0.2)
+          cex = 0.2, col = pal[i])
  }
 dev.off()
 
 ## try the binning algorithm
-crits <- makeCriteria(depth >= ii, expn <= 10, n <= 10) # dynamic crit
+crits <- makeCriteria(depth >= ii, expn <= 10, n <= 1) # dynamic crit
 ## chi splitting on patterns
 testChiBins <- vector("list", 9)
 for (ii in 1:9) {
@@ -935,21 +936,25 @@ depthSeq.chi <- data$chiSplit
 depthSeq.mi <- data$miSplit
 depthSeq.rnd <- data$randSplit # null data
 ## plot paths
-jj <- 4
-narrowPlot(xgrid = seq(0, 3, by = 1),
-           xlab = expression(log[10]~"(Number of bins)"),
-           ygrid = seq(-1, 4, by = 1),
-           ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
+png("simDataRandPath.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(0, 160, by = 40),
+           xlab = "Number of bins",
+           ygrid = seq(0, 1600, by = 400), ylim = c(0, 1700),
+           ylab = expression(chi^2~statistic))
 for (ii in 1:1e4) {
-    lines(log(depthSeq.rnd["nbin",,ii], 10),
-          log(depthSeq.rnd["chi",,ii], 10),
+    lines(depthSeq.rnd["nbin",,ii],
+          depthSeq.rnd["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
 paths <- sapply(testRndChi,
                function(lst) sapply(lst, function(el) el$stat))
 nbin <- sapply(testRndChi,
                function(lst) sapply(lst, function(el) length(el$residuals)))
-lines(log(nbin, 10), log(path, 10))
+for (jj in 1:7) {
+    lines(nbin[jj,], paths[jj,], col = pal[jj])
+}
+dev.off()
 
 ## abalone data
 url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/"
