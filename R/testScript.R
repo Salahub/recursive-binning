@@ -800,6 +800,7 @@ dev.off()
 
 ## simulated data...
 ## patterns from Newton
+set.seed(29112)
 n <- 1000
 xx <- matrix(NA,n,7)
 yy <- matrix(NA,n,7)
@@ -913,48 +914,92 @@ for (ii in 1:9) {
        })
 }
 ## random splitting
-testRndBins <- vector("list", 9)
-for (ii in 1:9) {
-    testRndBins[[ii]] <- lapply(1:7,
-       function(jj){
-           binner(xxr[, jj], yyr[, jj],
-                  stopper = function(bns) stopper(bns, crits),
-                  splitter = function(bn) maxScoreSplit(bn, randScores))
+set.seed(72115)
+testRndBins <- vector("list", 100)
+for (jj in 1:100) {
+    testRndBins[[jj]] <- vector("list", 9)
+    for (ii in 1:9) {
+        testRndBins[[jj]][[ii]] <- lapply(1:7,
+           function(jj){
+             binner(xxr[, jj], yyr[, jj],
+                stopper = function(bns) stopper(bns, crits),
+                splitter = function(bn) maxScoreSplit(bn, randScores))
        })
+    }
 }
 
 ## get chi square statistics for all
 testChiChi <- lapply(testChiBins, function(lst) lapply(lst, binChi))
 testMiChi <- lapply(testMiBins, function(lst) lapply(lst, binChi))
-testRndChi <- lapply(testRndBins, function(lst) lapply(lst, binChi))
+testRndChi <- lapply(testRndBins,
+                     function(lst) {
+                         lapply(lst,
+                                function(el) lapply(el, binChi))
+                     })
 
-## plot the path of a particular pattern under a particular splitting
-## regime compared to the null
+## plot the path of every pattern under a splitting regime compared to
+## the null
 data <- readRDS(paste0("SplitsRandomDatan1000.Rds")) # read in null
 depths <- data$depths
 depthSeq.chi <- data$chiSplit
 depthSeq.mi <- data$miSplit
 depthSeq.rnd <- data$randSplit # null data
 ## plot paths
-png("simDataRandPath.png", width = 3, height = 3, units = "in",
+png("simDataMaxChiPath.png", width = 3, height = 3, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = "Number of bins",
-           ygrid = seq(0, 1600, by = 400), ylim = c(0, 1700),
+           ygrid = seq(0, 1200, by = 300), ylim = c(0, 1300),
+           ylab = expression(chi^2~statistic))
+for (ii in 1:1e4) {
+    lines(depthSeq.chi["nbin",,ii],
+          depthSeq.chi["chi",,ii],
+          col = adjustcolor("gray", 0.1))
+}
+paths <- sapply(testChiChi,
+               function(lst) sapply(lst, function(el) el$stat))
+nbin <- sapply(testChiChi,
+               function(lst) sapply(lst, function(el) length(el$residuals)))
+for (jj in 1:7) {
+    lines(nbin[jj,], paths[jj,], col = pal[jj])
+    points(nbin[jj,], paths[jj,], col = pal[jj], pch = 19, cex = 0.5)
+}
+dev.off()
+
+## plot every random binning path of the 100
+png("simDataRandAll.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(0, 160, by = 40),
+           xlab = "Number of bins",
+           ygrid = seq(0, 1200, by = 300), ylim = c(0, 1300),
            ylab = expression(chi^2~statistic))
 for (ii in 1:1e4) {
     lines(depthSeq.rnd["nbin",,ii],
           depthSeq.rnd["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-paths <- sapply(testRndChi,
-               function(lst) sapply(lst, function(el) el$stat))
-nbin <- sapply(testRndChi,
-               function(lst) sapply(lst, function(el) length(el$residuals)))
+paths <- simplify2array(
+    lapply(testRndChi, function(olst) {
+        sapply(olst, function(lst) {
+            sapply(lst, function(el) el$stat)
+        })
+    }))
+nbin <- simplify2array(
+    lapply(testRndChi, function(olst) {
+        sapply(olst, function(lst) {
+            sapply(lst, function(el) length(el$residuals))
+        })
+    }))
 for (jj in 1:7) {
-    lines(nbin[jj,], paths[jj,], col = pal[jj])
+    #points(nbin[jj,,], paths[jj,,], col = adjustcolor(pal[jj], 0.2),
+    #       pch = 19)
+    for (ii in 1:100) {
+        lines(nbin[jj,,ii], paths[jj,,ii],
+              col = adjustcolor(pal[jj], 0.2))
+    }
 }
 dev.off()
+
 
 ## abalone data
 url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/"
