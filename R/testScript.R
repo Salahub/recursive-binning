@@ -507,7 +507,7 @@ for (ii in 1:9) points(log(mean(depthSeq.rnd["nbin",ii,]),10),
 for (p in c(0.01)) {
     lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 3)
 }
-legend(x = "topleft", legend = 2:10, title = "Max. Depth",
+legend(x = "topleft", legend = 2:10, title = "Max depth",
        bg = "white", cex = 0.8,
        fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
 dev.off()
@@ -575,7 +575,7 @@ if (n == 1e2) {
     }
     bnds <- par()$usr
     legend(x = bnds[2], y = bnds[4], legend = 2:10,
-           title = "Max. Depth", bg = "white",
+           title = "Max depth", bg = "white",
            cex = 0.6, xpd = NA,
            fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
     dev.off()
@@ -597,7 +597,7 @@ for (ii in 1:9) points(log(mean(depthSeq.chi["nbin",ii,]), 10),
 for (p in c(0.01)) {
     lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 3)
 }
-legend(x = "bottomright", legend = 2:10, title = "Max. Depth",
+legend(x = "bottomright", legend = 2:10, title = "Max depth",
        bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6),
        cex = 0.8)
 dev.off()
@@ -665,7 +665,7 @@ if (n == 1e2) {
     }
     bnds <- par()$usr
     legend(x = bnds[2], y = bnds[4], legend = 2:10,
-           title = "Max. Depth", bg = "white",
+           title = "Max depth", bg = "white",
            cex = 0.6, xpd = NA,
            fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
     dev.off()
@@ -692,7 +692,7 @@ for (ii in 1:9) points(log(mean(depthSeq.chi["nbin",ii,]), 10),
 ## add null line
 lines(log(as.numeric(names(miNull)), 10),
       log(miNull, 10), lty = 3)
-legend(x = "bottomright", legend = 2:10, title = "Max. Depth",
+legend(x = "bottomright", legend = 2:10, title = "Max depth",
        bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6),
        cex = 0.8)
 dev.off()
@@ -713,7 +713,7 @@ for (ii in 1:9) points(log(mean(depthSeq.mi["nbin",ii,]),10),
 for (p in c(0.01)) {
     lines(log(2:300,10), log(qchisq(1-p, 1:299),10), lty = 3)
 }
-legend(x = "bottomright", legend = 2:10, title = "Max. Depth",
+legend(x = "bottomright", legend = 2:10, title = "Max. depth",
        bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6),
        cex = 0.8)
 dev.off()
@@ -730,7 +730,7 @@ points(log(depthSeq.mi["nbin",,],10), log(depthSeq.mi["mi",,],10),
 for (ii in 1:9) points(log(mean(depthSeq.mi["nbin",ii,]),10),
                        log(mean(depthSeq.mi["mi",ii,]),10), col = "black",
                        bg = hcl.colors(9, "Dark 2")[ii], pch = 22)
-#legend(x = "bottomright", legend = 2:10, title = "Max. Depth",
+#legend(x = "bottomright", legend = 2:10, title = "Max. depth",
 #       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
 
 ## mutual information for random splitting
@@ -745,7 +745,7 @@ for (ii in 1:9) points(log(mean(depthSeq.rnd["nbin",ii,]), 10),
                        log(mean(depthSeq.rnd["mi",ii,]), 10),
                        col = "black",
                        bg = hcl.colors(9, "Dark 2")[ii], pch = 22)
-#legend(x = "topleft", legend = 2:10, title = "Max. Depth",
+#legend(x = "topleft", legend = 2:10, title = "Max. depth",
 #       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
 
 ## quantile regression at 0.05, 0.01 taking the number of bins as the
@@ -800,7 +800,7 @@ dev.off()
 
 ## simulated data...
 ## patterns from Newton
-set.seed(29112)
+set.seed(70111238)
 n <- 1000
 xx <- matrix(NA,n,7)
 yy <- matrix(NA,n,7)
@@ -895,7 +895,7 @@ dev.off()
 crits <- makeCriteria(depth >= ii, expn <= 10, n <= 1) # dynamic crit
 ## chi splitting on patterns
 testChiBins <- vector("list", 9)
-for (ii in 1:9) {
+for (ii in 1:10) {
     testChiBins[[ii]] <- lapply(1:7,
        function(jj){
            binner(xxr[, jj], yyr[, jj],
@@ -905,7 +905,7 @@ for (ii in 1:9) {
 }
 ## mi splitting
 testMiBins <- vector("list", 9)
-for (ii in 1:9) {
+for (ii in 1:10) {
     testMiBins[[ii]] <- lapply(1:7,
        function(jj){
            binner(xxr[, jj], yyr[, jj],
@@ -918,7 +918,7 @@ set.seed(72115)
 testRndBins <- vector("list", 100)
 for (jj in 1:100) {
     testRndBins[[jj]] <- vector("list", 9)
-    for (ii in 1:9) {
+    for (ii in 1:10) {
         testRndBins[[jj]][[ii]] <- lapply(1:7,
            function(jj){
              binner(xxr[, jj], yyr[, jj],
@@ -945,20 +945,20 @@ depthSeq.chi <- data$chiSplit
 depthSeq.mi <- data$miSplit
 depthSeq.rnd <- data$randSplit # null data
 ## plot paths
-png("simDataMaxChiPath.png", width = 3, height = 3, units = "in",
+png("simDataRandPath.png", width = 3, height = 3, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = "Number of bins",
-           ygrid = seq(0, 1200, by = 300), ylim = c(0, 1300),
+           ygrid = seq(0, 2000, by = 500), ylim = c(0, 2000),
            ylab = expression(chi^2~statistic))
 for (ii in 1:1e4) {
-    lines(depthSeq.chi["nbin",,ii],
-          depthSeq.chi["chi",,ii],
+    lines(depthSeq.rnd["nbin",,ii],
+          depthSeq.rnd["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-paths <- sapply(testChiChi,
+paths <- sapply(testRndChi[[1]],
                function(lst) sapply(lst, function(el) el$stat))
-nbin <- sapply(testChiChi,
+nbin <- sapply(testRndChi[[1]],
                function(lst) sapply(lst, function(el) length(el$residuals)))
 for (jj in 1:7) {
     lines(nbin[jj,], paths[jj,], col = pal[jj])
@@ -998,6 +998,43 @@ for (jj in 1:7) {
               col = adjustcolor(pal[jj], 0.2))
     }
 }
+dev.off()
+
+## view the chi bins are a particular depth
+maxRes <- max(abs(unlist(sapply(unlist(testChiChi,
+                                       recursive = FALSE),
+                                function(el) el$residuals))))
+for (depth in 2:10) {
+png(file=paste0("simDataBins", depth, ".png"), height=m, width=6*m,
+    units = "in", res = 480)
+par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+for(i in 1:7)
+ {
+     plotBinning(testChiBins[[depth]][[i]], xlab="", ylab="",
+                 pch = 19, cex = 0.1, axes = F,
+                 col = adjustcolor(pal[i], 0.5),
+                 fill = residualFill(testChiBins[[depth]][[i]],
+                                     maxRes = maxRes))
+ }
+dev.off()
+}
+
+## view the random bins a their maximum depth
+maxRes <- max(abs(unlist(sapply(unlist(testRndChi[[1]],
+                                       recursive = FALSE),
+                                function(el) el$residuals))))
+depth <- 10
+png(file="simDataBinsRand.png", height=m, width=6*m,
+    units = "in", res = 480)
+par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+for(i in 1:7)
+ {
+     plotBinning(testRndBins[[1]][[depth]][[i]], xlab="", ylab="",
+                 pch = 19, cex = 0.1, axes = F,
+                 col = adjustcolor(pal[i], 0.5),
+                 fill = residualFill(testRndBins[[1]][[depth]][[i]],
+                                     maxRes = maxRes))
+ }
 dev.off()
 
 
