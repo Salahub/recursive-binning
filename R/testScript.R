@@ -52,7 +52,7 @@ binner <- function(x, y, stopper, splitter, init = halfSplit) {
 ## bin: list with x, y, bnds, expn, n, depth
 
 ## some scoring functions to be maximized
-chiScores <- function(vals) {
+chiScores <- function(vals, expn, minExp = 0) {
     diffs <- diff(vals)
     n <- length(vals) - 2
     total <- c(diffs[1]-1, cumsum(diffs))
@@ -63,10 +63,12 @@ chiScores <- function(vals) {
     ni <- n - i # number above i
     scr <- (i - d*h1)^2/(h1*d) + (ni - d*h2)^2/(h2*d)
     scr[is.na(scr)] <- 0
+    scr[pmin(expn*h1/total[n+2],
+             expn*h2/total[n+2]) < minExp] <- 0 # minimum size limit
     scr
 }
 ## mutual informations
-miScores <- function(vals) {
+miScores <- function(vals, expn, minExp = 0) {
     diffs <- diff(vals)
     n <- length(vals) - 2
     total <- c(diffs[1] - 1, cumsum(diffs))
@@ -79,17 +81,27 @@ miScores <- function(vals) {
     above <- (ni/n)*log(ni/(d*h2)) # split expectation
     below[1] <- 0
     above[n+1] <- 0 # handle known zeros
-    below + above
+    scr <- below + above
+    scr[pmin(expn*h1/total[n+2],
+             expn*h2/total[n+2]) < minExp] <- 0 # minimum size limit
+    scr
 }
 ## random scoring for random splits
-randScores <- function(vals) {
+randScores <- function(vals, expn, minExp = 0) {
     diffs <- diff(vals)
+    n <- length(vals) - 2
     scores <- runif(length(diffs))
+    ## compute the expected counts at each split
+    total <- c(diffs[1]-1, cumsum(diffs))
+    h1 <- total[1:(n+1)] # length below
+    h2 <- total[n+2] - h1 # length above
     ## if the difference is one, splitting creates bin with area 0
     scores[1] <- min(diffs[1]-1, scores[1])
     ## difference of zero here does the same
     scores[length(scores)] <- min(diffs[length(diffs)],
                                   scores[length(scores)])
+    scores[pmin(expn*h1/total[n+2],
+                expn*h2/total[n+2]) < minExp] <- 0 # minimum size limit
     scores
 }
 
@@ -148,11 +160,14 @@ sizeLimMax <- function(scores, lim = 10) {
 }
 
 ## splitter maximizing a score function
-maxScoreSplit <- function(bin, scorer = diff, pickMax = which.max) {
+maxScoreSplit <- function(bin, scorer = diff, pickMax = which.max,
+                          ...) {
   xsort <- order(bin$x)
   ysort <- order(bin$y) # get marginal ordering
-  xscore <- scorer(c(bin$bnds$x[1], bin$x[xsort], bin$bnds$x[2]))
-  yscore <- scorer(c(bin$bnds$y[1], bin$y[ysort], bin$bnds$y[2]))
+  xscore <- scorer(c(bin$bnds$x[1], bin$x[xsort], bin$bnds$x[2]),
+                   expn = bin$expn, ...)
+  yscore <- scorer(c(bin$bnds$y[1], bin$y[ysort], bin$bnds$y[2]),
+                   expn = bin$expn, ...)
   xmax <- pickMax(xscore)
   ymax <- pickMax(yscore) # the score values
   xallEq <- all(abs(xscore - xscore[1]) < sqrt(.Machine$double.eps))
@@ -188,9 +203,11 @@ maxScoreSplit <- function(bin, scorer = diff, pickMax = which.max) {
 
 ## a univariate version
 uniMaxScoreSplit <- function(bin, scorer = diff,
-                             pickMax = which.max) {
+                             pickMax = which.max,
+                             ...) {
   xsort <- order(bin$x)
-  xscore <- scorer(c(bin$bnds$x[1], bin$x[xsort], bin$bnds$x[2]))
+  xscore <- scorer(c(bin$bnds$x[1], bin$x[xsort], bin$bnds$x[2]),
+                   expn = bin$expn, ...)
   xmax <- pickMax(xscore)
   xsplts <- bin$x[xsort]
   newbnd <- c(xsplts[1]-1, xsplts)[xmax]  # new bin boundary
@@ -319,15 +336,18 @@ randy <- sample(1:1e3)
 randBin <- binner(randx, randy,
                   stopper = function(bns) stopper(bns, criteria),
                   splitter = function(bn) maxScoreSplit(bn,
-                                                        chiScores))
+                                                        chiScores,
+                                                        minExp = 5))
 randBin.mi <- binner(randx, randy,
                      stopper = function(bns) stopper(bns, criteria),
                      splitter = function(bn) maxScoreSplit(bn,
-                                                           miScores))
+                                                           miScores,
+                                                           minExp = 5))
 randBin.rnd <- binner(randx, randy,
                       stopper = function(bns) stopper(bns, criteria),
                       splitter = function(bn) maxScoreSplit(bn,
-                                                            randScores))
+                                                            randScores,
+                                                            minExp = 5))
 
 ## random data plot
 png("randomData.png", width = 3, height = 3, units = "in", res = 480)
@@ -425,7 +445,7 @@ dev.off()
 
 ## how does changing the depth limit impact this?
 set.seed(506391)
-n <- 1e4
+n <- 1e2
 nsim <- 1e4
 depths <- 2:10
 simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
@@ -437,12 +457,12 @@ depthSeq.rnd <- array(NA, dim = c(4, length(depths), nsim))
 for (ii in 1:nsim) {
     for (dep in depths) {
         depInd <- match(dep, depths) # storage index
-        crits <- makeCriteria(depth >= dep, expn <= 10, n <= 1)
+        crits <- makeCriteria(depth >= dep, expn <= 5, n <= 1)
         chtr <- binner(simDataSets[[ii]]$x, # split using chi scores
                        simDataSets[[ii]]$y,
                        stopper = function(bns) stopper(bns, crits),
                        splitter = function(bn)  {
-                           maxScoreSplit(bn, chiScores)
+                           maxScoreSplit(bn, chiScores, minExp = 5)
                        })
         depthSeq.chi[,depInd,ii] <- # store results
             c(chi = binChi(chtr)$stat, mi = binMI(chtr)$stat,
@@ -452,7 +472,7 @@ for (ii in 1:nsim) {
                        simDataSets[[ii]]$y,
                        stopper = function(bns) stopper(bns, crits),
                        splitter = function(bn) {
-                           maxScoreSplit(bn, miScores)
+                           maxScoreSplit(bn, miScores, minExp = 5)
                        })
         depthSeq.mi[,depInd,ii] <- # store results
             c(chi = binChi(mitr)$stat,
@@ -463,7 +483,7 @@ for (ii in 1:nsim) {
                        simDataSets[[ii]]$y,
                        stopper = function(bns) stopper(bns, crits),
                        splitter = function(bn) {
-                           maxScoreSplit(bn, randScores)
+                           maxScoreSplit(bn, randScores, minExp = 5)
                        })
         depthSeq.rnd[,depInd,ii] <- # store results
             c(chi = binChi(rntr)$stat, mi = binMI(rntr)$stat,
