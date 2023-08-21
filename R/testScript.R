@@ -425,7 +425,7 @@ dev.off()
 
 ## how does changing the depth limit impact this?
 set.seed(506391)
-n <- 1e2
+n <- 1e4
 nsim <- 1e4
 depths <- 2:10
 simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
@@ -584,7 +584,7 @@ if (n == 1e2) {
 ## maximum chi depth
 png(paste0("chiBinChiDepth", n, ".png"), width = 4, height = 4,
     units = "in", res = 480)
-narrowPlot(xgrid = seq(0, 3, by = 1),
+narrowPlot(xgrid = seq(0, 3, by = 0.5),
            xlab = expression(log[10]~"(Number of bins)"),
            ygrid = seq(-1, 4, by = 1),
            ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
@@ -671,6 +671,27 @@ if (n == 1e2) {
     dev.off()
 }
 
+## compare this to the chi score under maximum information binning
+png(paste0("miBinChiDepth", n, ".png"), width = 4, height = 4,
+    units = "in", res = 480)
+narrowPlot(xgrid = seq(0, 3, by = 0.5),
+           xlab = expression(log[10]~"(Number of bins)"),
+           ygrid = seq(-1, 4, by = 1),
+           ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
+points(log(depthSeq.mi["nbin",,],10), log(depthSeq.mi["chi",,],10),
+       col = adjustcolor(hcl.colors(9, "Dark 2"), 0.2), pch = 20)
+for (ii in 1:9) points(log(mean(depthSeq.mi["nbin",ii,]),10),
+                       log(mean(depthSeq.mi["chi",ii,]),10),
+                       col = "black", pch = 22,
+                       bg = hcl.colors(9, "Dark 2")[ii])
+for (p in c(0.01)) {
+    lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 3)
+}
+legend(x = "bottomright", legend = 2:10, title = "Max depth",
+       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6),
+       cex = 0.8)
+dev.off()
+
 ## mutual information for chi splitting
 ## first compute the null quantiles from the simulation
 miNull <- tapply(depthSeq.rnd["mi",,],
@@ -693,27 +714,6 @@ for (ii in 1:9) points(log(mean(depthSeq.chi["nbin",ii,]), 10),
 lines(log(as.numeric(names(miNull)), 10),
       log(miNull, 10), lty = 3)
 legend(x = "bottomright", legend = 2:10, title = "Max depth",
-       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6),
-       cex = 0.8)
-dev.off()
-
-## compare this to the chi score under maximum information binning
-png(paste0("miBinChiDepth", n, ".png"), width = 4, height = 4,
-    units = "in", res = 480)
-narrowPlot(xgrid = seq(0, 2.5, by = 0.5),
-           xlab = expression(log[10]~"(Number of bins)"),
-           ygrid = seq(-1, 4, by = 1),
-           ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
-points(log(depthSeq.mi["nbin",,],10), log(depthSeq.mi["chi",,],10),
-       col = adjustcolor(hcl.colors(9, "Dark 2"), 0.2), pch = 20)
-for (ii in 1:9) points(log(mean(depthSeq.mi["nbin",ii,]),10),
-                       log(mean(depthSeq.mi["chi",ii,]),10),
-                       col = "black", pch = 22,
-                       bg = hcl.colors(9, "Dark 2")[ii])
-for (p in c(0.01)) {
-    lines(log(2:300,10), log(qchisq(1-p, 1:299),10), lty = 3)
-}
-legend(x = "bottomright", legend = 2:10, title = "Max. depth",
        bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6),
        cex = 0.8)
 dev.off()
@@ -751,28 +751,29 @@ for (ii in 1:9) points(log(mean(depthSeq.rnd["nbin",ii,]), 10),
 ## quantile regression at 0.05, 0.01 taking the number of bins as the
 ## input makes sense to provide test quantiles
 library(quantreg)
+qnts <- c(0.95, 0.99, 0.999)
 ## quantile regression of chi under random splitting
-rndChi <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
+rndChi <- rq(chi ~ nbin, tau = qnts,
              data = data.frame(nbin = c(depthSeq.rnd["nbin",,]),
                                chi = c(depthSeq.rnd["chi",,])))
 ## quantile regression of mi under random splitting
-rndMi <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
+rndMi <- rq(chi ~ nbin, tau = qnts,
             data = data.frame(nbin = c(depthSeq.rnd["nbin",,]),
                               chi = c(depthSeq.rnd["mi",,])))
 ## quantile regression of chi under chi splitting
-chiChi <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
+chiChi <- rq(chi ~ nbin, tau = qnts,
              data = data.frame(nbin = c(depthSeq.chi["nbin",,]),
                                chi = c(depthSeq.chi["chi",,])))
 ## quantile of chi under mi splitting
-chiMi <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
+chiMi <- rq(chi ~ nbin, tau = qnts,
             data = data.frame(nbin = c(depthSeq.mi["nbin",,]),
                               chi = c(depthSeq.mi["chi",,])))
 ## quantile of mi under chi splitting
-miChi <- rq(mi ~ nbin, tau = c(0.95, 0.99, 0.999),
+miChi <- rq(mi ~ nbin, tau = qnts,
             data = data.frame(nbin = c(depthSeq.chi["nbin",,]),
                               mi = c(depthSeq.chi["mi",,])))
 ## quantiles of mi under mi splitting
-miMi <- rq(mi ~ nbin, tau = c(0.95, 0.99, 0.999),
+miMi <- rq(mi ~ nbin, tau = qnts,
            data = data.frame(nbin = c(depthSeq.mi["nbin",,]),
                              mi = c(depthSeq.mi["mi",,])))
 
@@ -782,20 +783,28 @@ randQntPred <- predict(rndChi, newdata = data.frame(nbin = xseq))
 chiQntPred <- predict(chiChi, newdata = data.frame(nbin = xseq))
 png("binQuantileRegression.png", width = 3, height = 3, res = 480,
     units = "in")
-narrowPlot(xgrid = seq(0, 600, by = 150), xlab = "Number of bins",
-           ygrid = seq(0, 12000, by = 3000),
-           ylab = expression(chi^2~statistic))
+narrowPlot(xgrid = seq(1, 3, by = 1),
+           xlab = expression(log[10]~"(Number of bins)"),
+           ygrid = seq(0, 4, by = 1),
+           ylab = expression(log[10]~{"("~chi^2~statistic~")"}),
+           xlim = c(0.5, 3))
 for (ii in 1:3) {
-    lines(xseq, randQntPred[,ii], lty = ii, col = "steelblue")
-    lines(xseq, chiQntPred[,ii], lty = ii, col = "firebrick")
+    lines(log(xseq, 10), log(randQntPred[,ii], 10),
+          lty = ii, col = "steelblue")
+    lines(log(xseq, 10), log(chiQntPred[,ii], 10),
+          lty = ii, col = "firebrick")
+    text(log(xseq[1], 10), log(chiQntPred[1,ii], 10),
+         labels = paste0(100*qnts[ii], "%"), cex = 0.6,
+         adj = c(0.5,-0.1))
+    lines(log(xseq, 10), log(qchisq(qnts[ii], df = xseq), 10),
+          lty = ii)
 }
-legend(x = "topleft", legend = c("Random bins",
-                                 expression("Max "~chi~bins),
-                                 "95% quantile", "99% quantile",
-                                 "99.9% quantile"),
-       cex = 0.8, col = c("steelblue", "firebrick", "black", "black",
-                          "black"),
-       lty = c(1,1,1,2,3))
+legend(x = "bottomright",
+       legend = c("Random bins",
+                  expression("Max "~chi~bins),
+                  expression(chi^2~" critical value")),
+       cex = 0.8, col = c("steelblue", "firebrick", "black"),
+       lty = c(1,1,1,2,3), bg = "white")
 dev.off()
 
 ## simulated data...
