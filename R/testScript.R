@@ -445,7 +445,7 @@ dev.off()
 
 ## how does changing the depth limit impact this?
 set.seed(506391)
-n <- 1e2
+n <- 1e3
 nsim <- 1e4
 depths <- 2:10
 simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
@@ -457,7 +457,7 @@ depthSeq.rnd <- array(NA, dim = c(4, length(depths), nsim))
 for (ii in 1:nsim) {
     for (dep in depths) {
         depInd <- match(dep, depths) # storage index
-        crits <- makeCriteria(depth >= dep, expn <= 5, n <= 1)
+        crits <- makeCriteria(depth >= dep, expn <= 10, n <= 1)
         chtr <- binner(simDataSets[[ii]]$x, # split using chi scores
                        simDataSets[[ii]]$y,
                        stopper = function(bns) stopper(bns, crits),
@@ -499,6 +499,7 @@ dimnames(depthSeq.rnd) <- list(c("chi", "mi", "nbin", "maxDep"))
 saveRDS(list(depths = depths, chiSplit = depthSeq.chi,
              miSplit = depthSeq.mi, randSplit = depthSeq.rnd),
         file = paste0("SplitsRandomDatan", n, ".Rds"))
+
 ## read this in
 data <- readRDS(paste0("SplitsRandomDatan", n, ".Rds"))
 depths <- data$depths
@@ -712,61 +713,74 @@ legend(x = "bottomright", legend = 2:10, title = "Max depth",
        cex = 0.8)
 dev.off()
 
-## mutual information for chi splitting
-## first compute the null quantiles from the simulation
-miNull <- tapply(depthSeq.rnd["mi",,],
-                 depthSeq.rnd["nbin",,], quantile, probs = 0.99)
-## plot
-png(paste0("chiBinMiDepth", n, ".png"), width = 4, height = 4,
-    units = "in", res = 480)
-narrowPlot(xgrid = seq(0, 3, by = 1),
-           xlab = expression(log[10]~"(Number of bins)"),
-           ygrid = seq(-4, -1, by = 1),
-           ylab = expression(log[10]~"(Mutual information)"))
-points(log(depthSeq.chi["nbin",,], 10),
-       log(depthSeq.chi["mi",,], 10), pch = 20,
-       col = adjustcolor(hcl.colors(9, "Dark 2"), 0.2))
-for (ii in 1:9) points(log(mean(depthSeq.chi["nbin",ii,]), 10),
-                       log(mean(depthSeq.chi["mi",ii,]),10),
-                       col = "black",
-                       bg = hcl.colors(9, "Dark 2")[ii], pch = 22)
-## add null line
-lines(log(as.numeric(names(miNull)), 10),
-      log(miNull, 10), lty = 3)
-legend(x = "bottomright", legend = 2:10, title = "Max depth",
-       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6),
-       cex = 0.8)
-dev.off()
-
-## mutual information scores for the same splitting rules
-
-## mutual information for mi splitting
-narrowPlot(xgrid = seq(0, 3, by = 1),
-           xlab = expression(log[10]~"(Number of bins)"),
-           ygrid = seq(-4, -1, by = 1),
-           ylab = expression(log[10]~"(Mutual information)"))
-points(log(depthSeq.mi["nbin",,],10), log(depthSeq.mi["mi",,],10),
-       pch = 20, col = adjustcolor(hcl.colors(9, "Dark 2"), 0.3))
-for (ii in 1:9) points(log(mean(depthSeq.mi["nbin",ii,]),10),
-                       log(mean(depthSeq.mi["mi",ii,]),10), col = "black",
-                       bg = hcl.colors(9, "Dark 2")[ii], pch = 22)
-#legend(x = "bottomright", legend = 2:10, title = "Max. depth",
-#       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
-
-## mutual information for random splitting
-narrowPlot(xgrid = seq(0, 3, by = 1),
-           xlab = expression(log[10]~"(Number of bins)"),
-           ygrid = seq(-4, -1, by = 1),
-           ylab = expression(log[10]~"(Mutual information)"))
-points(log(depthSeq.rnd["nbin",,], 10),
-       log(depthSeq.rnd["mi",,], 10), pch = 20,
-       col = adjustcolor(hcl.colors(9, "Dark 2"), 0.2))
-for (ii in 1:9) points(log(mean(depthSeq.rnd["nbin",ii,]), 10),
-                       log(mean(depthSeq.rnd["mi",ii,]), 10),
-                       col = "black",
-                       bg = hcl.colors(9, "Dark 2")[ii], pch = 22)
-#legend(x = "topleft", legend = 2:10, title = "Max. depth",
-#       bg = "white", fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
+## plots to compare different sample sizes for the maximum chi split
+size <- 1.8
+if (n == 1e2) {
+    png(paste0("miBinChiDepth", n, ".png"), width = size+0.1,
+        height = size, units = "in", res = 480)
+    narrowPlot(xgrid = seq(0, 3, by = 1),
+               xlab = expression(log[10]~"(Number of bins)"),
+               ygrid = seq(-1, 4, by = 1),
+               ylab = expression(log[10]~{"("~chi^2~statistic~")"}),
+               mars = c(2.1, 2.1, 0.1, 0.1))
+    points(log(depthSeq.mi["nbin",,],10),
+           log(depthSeq.mi["chi",,],10),
+           col = adjustcolor(hcl.colors(9, "Dark 2"), 0.1), pch = 20,
+           cex = 0.5)
+    for (ii in 1:9) points(log(mean(depthSeq.mi["nbin",ii,]),10),
+                           log(mean(depthSeq.mi["chi",ii,]),10),
+                           col = "black", pch = 22, cex = 0.5,
+                           bg = hcl.colors(9, "Dark 2")[ii])
+    for (p in c(0.01)) {
+        lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 3)
+    }
+    dev.off()
+} else if (n == 1e3) {
+    png(paste0("chiBinChiDepth", n, ".png"), width = size-0.1,
+        height = size, units = "in", res = 480)
+    narrowPlot(xgrid = seq(0, 3, by = 1),
+               xlab = expression(log[10]~"(Number of bins)"),
+               ygrid = seq(-1, 4, by = 1),
+               ylab = expression(log[10]~{"("~chi^2~statistic~")"}),
+               mars = c(2.1, 1.1, 0.1, 0.1))
+    points(log(depthSeq.mi["nbin",,],10),
+           log(depthSeq.mi["chi",,],10),
+           col = adjustcolor(hcl.colors(9, "Dark 2"), 0.1), pch = 20,
+           cex = 0.5)
+    for (ii in 1:9) points(log(mean(depthSeq.mi["nbin",ii,]),10),
+                           log(mean(depthSeq.mi["chi",ii,]),10),
+                           col = "black", pch = 22, cex = 0.5,
+                           bg = hcl.colors(9, "Dark 2")[ii])
+    for (p in c(0.01)) {
+        lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 3)
+    }
+    dev.off()
+} else {
+    png(paste0("chiBinChiDepth", n, ".png"), width = size+0.4,
+        height = size, units = "in", res = 480)
+    narrowPlot(xgrid = seq(0, 3, by = 1),
+               xlab = expression(log[10]~"(Number of bins)"),
+               ygrid = seq(-1, 4, by = 1), # xlim = c(0, 550),
+               ylab = expression(log[10]~{"("~chi^2~statistic~")"}),
+               mars = c(2.1, 1.1, 0.1, 3.1))
+    points(log(depthSeq.mi["nbin",,],10),
+           log(depthSeq.mi["chi",,],10),
+           col = adjustcolor(hcl.colors(9, "Dark 2"), 0.1), pch = 20,
+           cex = 0.5)
+    for (ii in 1:9) points(log(mean(depthSeq.mi["nbin",ii,]),10),
+                           log(mean(depthSeq.mi["chi",ii,]),10),
+                           col = "black", pch = 22, cex = 0.5,
+                           bg = hcl.colors(9, "Dark 2")[ii])
+    for (p in c(0.01)) {
+        lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 3)
+    }
+    bnds <- par()$usr
+    legend(x = bnds[2], y = bnds[4], legend = 2:10,
+           title = "Max depth", bg = "white",
+           cex = 0.6, xpd = NA,
+           fill = adjustcolor(hcl.colors(9, "Dark 2"), 0.6))
+    dev.off()
+}
 
 ## quantile regression at 0.05, 0.01 taking the number of bins as the
 ## input makes sense to provide test quantiles
@@ -801,29 +815,34 @@ miMi <- rq(mi ~ nbin, tau = qnts,
 xseq <- seq(4, 600, by = 1)
 randQntPred <- predict(rndChi, newdata = data.frame(nbin = xseq))
 chiQntPred <- predict(chiChi, newdata = data.frame(nbin = xseq))
+miQntPred <- predict(chiMi, newdata = data.frame(nbin = xseq))
 png("binQuantileRegression.png", width = 3, height = 3, res = 480,
     units = "in")
-narrowPlot(xgrid = seq(1, 3, by = 1),
+narrowPlot(xgrid = seq(1, 3, by = 1), ylim = c(0, 3.5),
            xlab = expression(log[10]~"(Number of bins)"),
            ygrid = seq(0, 4, by = 1),
            ylab = expression(log[10]~{"("~chi^2~statistic~")"}),
-           xlim = c(0.5, 3))
+           xlim = c(0.5, 3), mars = c(2.1, 2.1, 0.1, 0.1))
 for (ii in 1:3) {
     lines(log(xseq, 10), log(randQntPred[,ii], 10),
-          lty = ii, col = "steelblue")
+          lty = ii, col = adjustcolor("steelblue", 0.8))
     lines(log(xseq, 10), log(chiQntPred[,ii], 10),
-          lty = ii, col = "firebrick")
-    text(log(xseq[1], 10), log(chiQntPred[1,ii], 10),
+          lty = ii, col = adjustcolor("firebrick", 0.8))
+    lines(log(xseq, 10), log(miQntPred[,ii], 10),
+          lty = ii, col = adjustcolor("seagreen", 0.8))
+    lines(log(xseq, 10), log(qchisq(qnts[ii], df = xseq), 10),
+          lty = ii, col = adjustcolor("black", 0.8))
+    text(log(xseq[1], 10), log(randQntPred[1,ii], 10),
          labels = paste0(100*qnts[ii], "%"), cex = 0.6,
          adj = c(0.5,-0.1))
-    lines(log(xseq, 10), log(qchisq(qnts[ii], df = xseq), 10),
-          lty = ii)
 }
 legend(x = "bottomright",
-       legend = c("Random bins",
+       legend = c("Random bins", "Max MI bins",
                   expression("Max "~chi~bins),
                   expression(chi^2~" critical value")),
-       cex = 0.8, col = c("steelblue", "firebrick", "black"),
+       cex = 0.8, col = adjustcolor(c("steelblue", "seagreen",
+                                      "firebrick", "black"),
+                                    0.8),
        lty = c(1,1,1,2,3), bg = "white")
 dev.off()
 
@@ -929,7 +948,8 @@ for (ii in 1:10) {
        function(jj){
            binner(xxr[, jj], yyr[, jj],
                   stopper = function(bns) stopper(bns, crits),
-                  splitter = function(bn) maxScoreSplit(bn, chiScores))
+                  splitter = function(bn) maxScoreSplit(bn, chiScores,
+                                                        minExp = 5))
        })
 }
 ## mi splitting
@@ -939,11 +959,12 @@ for (ii in 1:10) {
        function(jj){
            binner(xxr[, jj], yyr[, jj],
                   stopper = function(bns) stopper(bns, crits),
-                  splitter = function(bn) maxScoreSplit(bn, miScores))
+                  splitter = function(bn) maxScoreSplit(bn, miScores,
+                                                        minExp = 5))
        })
 }
 ## random splitting
-set.seed(72115)
+set.seed(7211)
 testRndBins <- vector("list", 100)
 for (jj in 1:100) {
     testRndBins[[jj]] <- vector("list", 9)
@@ -952,7 +973,8 @@ for (jj in 1:100) {
            function(jj){
              binner(xxr[, jj], yyr[, jj],
                 stopper = function(bns) stopper(bns, crits),
-                splitter = function(bn) maxScoreSplit(bn, randScores))
+                splitter = function(bn) maxScoreSplit(bn, randScores,
+                                                      minExp = 5))
        })
     }
 }
@@ -973,12 +995,12 @@ depths <- data$depths
 depthSeq.chi <- data$chiSplit
 depthSeq.mi <- data$miSplit
 depthSeq.rnd <- data$randSplit # null data
-## plot paths
+## plot random paths
 png("simDataRandPath.png", width = 3, height = 3, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = "Number of bins",
-           ygrid = seq(0, 2000, by = 500), ylim = c(0, 2000),
+           ygrid = seq(0, 1600, by = 400),
            ylab = expression(chi^2~statistic))
 for (ii in 1:1e4) {
     lines(depthSeq.rnd["nbin",,ii],
@@ -988,6 +1010,29 @@ for (ii in 1:1e4) {
 paths <- sapply(testRndChi[[1]],
                function(lst) sapply(lst, function(el) el$stat))
 nbin <- sapply(testRndChi[[1]],
+               function(lst) sapply(lst, function(el) length(el$residuals)))
+for (jj in 1:7) {
+    lines(nbin[jj,], paths[jj,], col = pal[jj])
+    points(nbin[jj,], paths[jj,], col = pal[jj], pch = 19, cex = 0.5)
+}
+lines(1:160, qchisq(0.95, 1:160), lty = 2)
+dev.off()
+
+## plot chi paths
+png("simDataChiPath.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(0, 160, by = 40),
+           xlab = "Number of bins",
+           ygrid = seq(0, 1600, by = 400),
+           ylab = expression(chi^2~statistic))
+for (ii in 1:1e4) {
+    lines(depthSeq.chi["nbin",,ii],
+          depthSeq.chi["chi",,ii],
+          col = adjustcolor("gray", 0.1))
+}
+paths <- sapply(testChiChi,
+               function(lst) sapply(lst, function(el) el$stat))
+nbin <- sapply(testChiChi,
                function(lst) sapply(lst, function(el) length(el$residuals)))
 for (jj in 1:7) {
     lines(nbin[jj,], paths[jj,], col = pal[jj])
@@ -1027,6 +1072,7 @@ for (jj in 1:7) {
               col = adjustcolor(pal[jj], 0.2))
     }
 }
+lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
 
 ## view the chi bins are a particular depth
