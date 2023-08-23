@@ -736,7 +736,7 @@ if (n == 1e2) {
     }
     dev.off()
 } else if (n == 1e3) {
-    png(paste0("chiBinChiDepth", n, ".png"), width = size-0.1,
+    png(paste0("miBinChiDepth", n, ".png"), width = size-0.1,
         height = size, units = "in", res = 480)
     narrowPlot(xgrid = seq(0, 3, by = 1),
                xlab = expression(log[10]~"(Number of bins)"),
@@ -756,7 +756,7 @@ if (n == 1e2) {
     }
     dev.off()
 } else {
-    png(paste0("chiBinChiDepth", n, ".png"), width = size+0.4,
+    png(paste0("miBinChiDepth", n, ".png"), width = size+0.4,
         height = size, units = "in", res = 480)
     narrowPlot(xgrid = seq(0, 3, by = 1),
                xlab = expression(log[10]~"(Number of bins)"),
@@ -1019,7 +1019,7 @@ lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
 
 ## plot chi paths
-png("simDataChiPath.png", width = 3, height = 3, units = "in",
+png("simDataMaxChiPath.png", width = 3, height = 3, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = "Number of bins",
@@ -1098,13 +1098,13 @@ dev.off()
 maxRes <- max(abs(unlist(sapply(unlist(testRndChi[[1]],
                                        recursive = FALSE),
                                 function(el) el$residuals))))
-depth <- 10
+depth <- 9
 png(file="simDataBinsRand.png", height=m, width=6*m,
     units = "in", res = 480)
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7)
  {
-     plotBinning(testRndBins[[1]][[depth]][[i]], xlab="", ylab="",
+     plotBinning(testRndBins[[10]][[depth]][[i]], xlab="", ylab="",
                  pch = 19, cex = 0.1, axes = F,
                  col = adjustcolor(pal[i], 0.5),
                  fill = residualFill(testRndBins[[1]][[depth]][[i]],
