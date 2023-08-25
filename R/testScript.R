@@ -172,19 +172,43 @@ maxScoreSplit <- function(bin, scorer = diff, pickMax = which.max,
   ymax <- pickMax(yscore) # the score values
   xallEq <- all(abs(xscore - xscore[1]) < sqrt(.Machine$double.eps))
   yallEq <- all(abs(yscore - yscore[1]) < sqrt(.Machine$double.eps))
-  if (xallEq & yallEq) { # no variation, halve a random margin
+  if (xallEq & yallEq) { # no variation, split along margin which makes
+                         # the resulting bins most balanced
       hind <- floor(bin$n/2)
-      u <- runif(1)
-      if (u < 0.5) {
-          newbnd <- bin$y[ysort][hind]
-          above <- ysort[(hind+1):(bin$n)]
-          below <- ysort[1:hind]
-          splitY(bin, bd = newbnd, above = above, below = below)
+      abInd <- (hind+1):(bin$n)
+      blInd <- 1:hind # indices above and below mid split
+      if (hind == 0) { # n = 1 case: halve bin ignoring point position
+          u <- runif(1) # randomly choose a margin
+          if (u <= 0.5) { # ties go to x
+              newbnd <- mean(bin$bnds$x) # split the bin
+              ptabove <- bin$x > newbnd # check if point above
+              above <- seq_len(ptabove)
+              below <- seq_len(!ptabove)
+              splitX(bin, bd = newbnd, above = above, below = below)
+          } else { # split y
+              newbnd <- mean(bin$bnds$y) # split the bin
+              ptabove <- bin$y > newbnd # check if point above
+              above <- seq_len(ptabove)
+              below <- seq_len(!ptabove)
+              splitY(bin, bd = newbnd, above = above, below = below)
+          }
       } else {
-          newbnd <- bin$x[xsort][hind]
-          above <- xsort[(hind+1):(bin$n)]
-          below <- xsort[1:hind]
-          splitX(bin, bd = newbnd, above = above, below = below)
+          ## find which split is closer to 50/50
+          xbal <- abs(0.5 - (bin$x[xsort][hind] -
+                             bin$bnds$x[1])/diff(bin$bnds$x))
+          ybal <- abs(0.5 - (bin$y[ysort][hind] -
+                             bin$bnds$y[1])/diff(bin$bnds$y))
+          if (xbal > ybal) { # ties go to x
+              newbnd <- bin$y[ysort][hind]
+              above <- ysort[abInd]
+              below <- ysort[blInd]
+              splitY(bin, bd = newbnd, above = above, below = below)
+          } else {
+              newbnd <- bin$x[xsort][hind]
+              above <- xsort[abInd]
+              below <- xsort[blInd]
+              splitX(bin, bd = newbnd, above = above, below = below)
+          }
       }
   } else if (xscore[xmax] >= yscore[ymax]) { # ties go to x
       xsplts <- bin$x[xsort]
@@ -316,17 +340,6 @@ plotShading <- function(bins, resFun, brks = c(-1, 1, by = 0.1),
     }
 }
 
-## TRY THESE OUT
-sizeLim10 <- function(scores) sizeLimMax(scores, lim = 10)
-criteria <- makeCriteria(expn <= 10, n <= 20, depth >= 10)
-## monotonic associations
-test <- binner(1:1000, 1:1000,
-               stopper = function(bns) stopper(bns, criteria),
-               splitter = function(bin) {
-                   maxScoreSplit(bin, chiScores)
-               })
-
-
 
 ## SIMPLE EXAMPLES ###################################################
 ## generate some random data
@@ -337,7 +350,7 @@ randy <- sample(1:1e3) # random ranks
 dep <- c(1, 2, 10)
 ## R's lexical scoping allows for dynamic criteria construction: d is
 ## not defined, but will be within a later loop
-criteria <- makeCriteria(expn <= 10, n <= 1, depth >= d)
+criteria <- makeCriteria(expn <= 10, n == 0, depth >= d)
 ## define a stopper based on this
 stopFn <- function(bns) stopper(bns, criteria)
 ## and some splitters for different score functions
@@ -466,7 +479,7 @@ dev.off()
 
 ## INVESTIGATING THE NULL DISTRIBUTION ###############################
 set.seed(506391)
-n <- 1e2 # the sample size
+n <- 1e4 # the sample size
 nsim <- 1e4 # number of samples
 depths <- 2:10 # range of depths
 simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
@@ -477,7 +490,7 @@ depthSeq.chi <- array(NA, dim = c(4, length(depths), nsim))
 depthSeq.mi <- array(NA, dim = c(4, length(depths), nsim))
 depthSeq.rnd <- array(NA, dim = c(4, length(depths), nsim))
 ## set criteria/stop function
-crits <- makeCriteria(depth >= dep, expn <= 10, n <= 1)
+crits <- makeCriteria(depth >= dep, expn <= 10, n == 0)
 stopFn <- function(bns) stopper(bns, crits)
 ## and splitting functions
 chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
@@ -762,7 +775,7 @@ dev.off()
 
 ## try the binning algorithm on these data
 ## again define the criteria dynamically
-crits <- makeCriteria(depth >= ii, expn <= 10, n <= 1)
+crits <- makeCriteria(depth >= ii, expn <= 10, n == 0)
 ## define the stop function
 stopFn <- function(bns) stopper(bns, crits)
 ## chi splitting on patterns
@@ -955,7 +968,35 @@ dev.off()
 
 
 ## REAL DATA EXAMPLE #################################################
-## S&P500 data: "SP500" demo in "zenplots" package
+## S&P500 data: "SP500" demo in "zenplots" package, code from Marius
+## Hofert, produces a set of pseudo-observations that are uniform
+## these are loaded here and converted to ranks
+spData <- readRDS("sp500pseudo.Rds")
+spRanks <- apply(spData, 2, rank, ties.method = "random")
+rownames(spRanks) <- NULL
+spPairs <- combn(ncol(spData), 2) # all possible pairs
+## next, we iterate through all pairs and bin to a maximum depth of 6
+## define the criteria to used
+crits <- makeCriteria(depth >= 6, expn <= 10, n == 0)
+stopFn <- function(bns) stopper(bns, crits)
+## and potential splitting functions
+chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
+miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
+rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
+## allocate storage
+spBins <- vector("list", ncol(spPairs))
+msgInd <- ((1:ncol(spPairs)) %% 1000) == 0
+## iterate through all pairs
+for (ii in seq_len(ncol(spPairs))) {
+    pair <- spPairs[, ii] # indices of pairs
+    spBins[[ii]] <- binner(spRanks[, pair[1]], spRanks[, pair[2]],
+                           stopper = stopFn,
+                           splitter = chiSplit)
+    if (msgInd[ii]) {
+        cat("\r Completed ", ii, " pairs")
+    }
+}
+
 ## abalone data
 url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/"
 ## loading here is locally, otherwise replace "~/Downloads/" with the url above
