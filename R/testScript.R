@@ -154,14 +154,34 @@ halfSplit <- function(bin, margin = "x") {
     } else stop("Margin must be one of x or y")
 }
 
+## another function which halves a bin independent of the point
+## locations to break ties and limit bin expecations
+halfCutTie <- function(bin, xscore, yscore) {
+    u <- as.numeric(yscore > xscore) # prefer to split on max score
+    if (yscore == xscore) u <- runif(1)
+    if (u < 0.5) { # y has a larger score, or random
+        newbnd <- ceiling(mean(bin$bnds$x)) # split value
+        abv <- bin$x > newbnd # which x values are above
+        above <- which(abv) # indices above
+        below <- which(!abv) # indices below
+        splitX(bin, bd = newbnd, above = above, below = below)
+    } else {
+        newbnd <- ceiling(mean(bin$bnds$y)) # split value
+        abv <- bin$y > newbnd # which y values are above
+        above <- which(abv) # indices above
+        below <- which(!abv) # indices below
+        splitY(bin, bd = newbnd, above = above, below = below)
+    }
+}
+
 ## choose maximum values subject to constraints
 sizeLimMax <- function(scores, lim = 10) {
     which.max(scores[(lim+1):(length(scores)-lim)]) + lim
 }
 
 ## splitter maximizing a score function
-maxScoreSplit <- function(bin, scorer = diff, pickMax = which.max,
-                          ...) {
+maxScoreSplit <- function(bin, scorer, ties = halfCutTie,
+                          pickMax = which.max, ...) {
   xsort <- order(bin$x)
   ysort <- order(bin$y) # get marginal ordering
   xscore <- scorer(c(bin$bnds$x[1], bin$x[xsort], bin$bnds$x[2]),
@@ -172,44 +192,8 @@ maxScoreSplit <- function(bin, scorer = diff, pickMax = which.max,
   ymax <- pickMax(yscore) # the score values
   xallEq <- all(abs(xscore - xscore[1]) < sqrt(.Machine$double.eps))
   yallEq <- all(abs(yscore - yscore[1]) < sqrt(.Machine$double.eps))
-  if (xallEq & yallEq) { # no variation, split along margin which makes
-                         # the resulting bins most balanced
-      hind <- floor(bin$n/2)
-      abInd <- (hind+1):(bin$n)
-      blInd <- 1:hind # indices above and below mid split
-      if (hind == 0) { # n = 1 case: halve bin ignoring point position
-          u <- runif(1) # randomly choose a margin
-          if (u <= 0.5) { # ties go to x
-              newbnd <- mean(bin$bnds$x) # split the bin
-              ptabove <- bin$x > newbnd # check if point above
-              above <- seq_len(ptabove)
-              below <- seq_len(!ptabove)
-              splitX(bin, bd = newbnd, above = above, below = below)
-          } else { # split y
-              newbnd <- mean(bin$bnds$y) # split the bin
-              ptabove <- bin$y > newbnd # check if point above
-              above <- seq_len(ptabove)
-              below <- seq_len(!ptabove)
-              splitY(bin, bd = newbnd, above = above, below = below)
-          }
-      } else {
-          ## find which split is closer to 50/50
-          xbal <- abs(0.5 - (bin$x[xsort][hind] -
-                             bin$bnds$x[1])/diff(bin$bnds$x))
-          ybal <- abs(0.5 - (bin$y[ysort][hind] -
-                             bin$bnds$y[1])/diff(bin$bnds$y))
-          if (xbal > ybal) { # ties go to x
-              newbnd <- bin$y[ysort][hind]
-              above <- ysort[abInd]
-              below <- ysort[blInd]
-              splitY(bin, bd = newbnd, above = above, below = below)
-          } else {
-              newbnd <- bin$x[xsort][hind]
-              above <- xsort[abInd]
-              below <- xsort[blInd]
-              splitX(bin, bd = newbnd, above = above, below = below)
-          }
-      }
+  if (xallEq & yallEq) { # in the case of ties, use tie function
+      ties(bin, xscore[1], yscore[1])
   } else if (xscore[xmax] >= yscore[ymax]) { # ties go to x
       xsplts <- bin$x[xsort]
       newbnd <- c(xsplts[1]-1, xsplts)[xmax] # new boundary
@@ -826,7 +810,7 @@ depthSeq.chi <- data$chiSplit
 depthSeq.mi <- data$miSplit
 depthSeq.rnd <- data$randSplit # null data
 
-## plot paths for an individual random split
+## plot paths for an individual random split (Figure 4.14(b))
 png("simDataRandPath.png", width = 3, height = 3, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(0, 160, by = 40), xlab = "Number of bins",
@@ -853,7 +837,7 @@ for (jj in 1:7) {
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
 
-## make the same plot for paths from chi splitting
+## make the same plot for paths from chi splitting (Figure 4.14(a))
 png("simDataMaxChiPath.png", width = 3, height = 3, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(0, 160, by = 40),
@@ -876,7 +860,7 @@ for (jj in 1:7) {
 }
 dev.off()
 
-## for the 100 random split repetitions, plot every single one
+## for the random split repetitions, plot every single one (Fig 4.15)
 png("simDataRandAll.png", width = 3, height = 3, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(0, 160, by = 40),
@@ -909,7 +893,7 @@ for (jj in 1:7) {
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
 
-## let's see what the bins look like for every depth
+## next, check the bins for every depth
 ## start by getting the maximum residual to make the shading constant
 maxRes <- max(abs(unlist(sapply(unlist(testChiChi,
                                        recursive = FALSE),
@@ -920,9 +904,10 @@ for (depth in 2:10) {
         width= 6*m, units = "in", res = 480)
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
     for(i in 1:7) {
-        plotBinning(testChiBins[[depth]][[i]], xlab="", ylab="",
-                    pch = 19, cex = 0.1, axes = F,
-                    col = adjustcolor(pal[i], 0.5),
+        plot(NA, ylim = c(1, n), xlim = c(1, n),
+             axes = F, xlab = "", ylab = "", main = "")
+        plotBinning(testChiBins[[depth]][[i]], pch = 19, cex = 0.1,
+                    add = TRUE, col = adjustcolor(pal[i], 0.8),
                     fill = residualFill(testChiBins[[depth]][[i]],
                                         maxRes = maxRes))
     }
@@ -933,22 +918,22 @@ for (depth in 2:10) {
 maxRes <- max(abs(unlist(sapply(unlist(testMiChi,
                                        recursive = FALSE),
                                 function(el) el$residuals))))
-## for every depth, display the binning for each pattern
 for (depth in 2:10) {
     png(file = paste0("simDataBins", depth, "MI.png"), height = m,
         width= 6*m, units = "in", res = 480)
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
     for(i in 1:7) {
-        plotBinning(testMiBins[[depth]][[i]], xlab="", ylab="",
-                    pch = 19, cex = 0.1, axes = F,
-                    col = adjustcolor(pal[i], 0.5),
+        plot(NA, ylim = c(1, n), xlim = c(1, n),
+             axes = F, xlab = "", ylab = "", main = "")
+        plotBinning(testMiBins[[depth]][[i]], pch = 19, cex = 0.1,
+                    add = TRUE, col = adjustcolor(pal[i], 0.5),
                     fill = residualFill(testMiBins[[depth]][[i]],
                                         maxRes = maxRes))
     }
     dev.off()
 }
 
-## view the random bins a their maximum depth
+## view the random bins at their maximum depth (Fig 4.17)
 ## again, standardize the residuals
 maxRes <- max(abs(unlist(sapply(unlist(testRndChi[[1]],
                                        recursive = FALSE),
@@ -958,8 +943,10 @@ png(file = "simDataBinsRand.png", height = m, width = 6*m,
     units = "in", res = 480)
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7) {
-    plotBinning(testRndBins[[10]][[depth]][[i]], xlab="", ylab="",
-                pch = 19, cex = 0.1, axes = F,
+    plot(NA, ylim = c(1, n), xlim = c(1, n),
+         axes = F, xlab = "", ylab = "", main = "")
+    plotBinning(testRndBins[[10]][[depth]][[i]],
+                pch = 19, cex = 0.1, add = TRUE,
                 col = adjustcolor(pal[i], 0.5),
                 fill = residualFill(testRndBins[[10]][[depth]][[i]],
                                     maxRes = maxRes))
