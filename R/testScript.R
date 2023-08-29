@@ -893,7 +893,7 @@ for (jj in 1:7) {
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
 
-## next, check the bins for every depth
+## next, check the bins for every depth (Fig 4.16)
 ## start by getting the maximum residual to make the shading constant
 maxRes <- max(abs(unlist(sapply(unlist(testChiChi,
                                        recursive = FALSE),
@@ -904,7 +904,7 @@ for (depth in 2:10) {
         width= 6*m, units = "in", res = 480)
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
     for(i in 1:7) {
-        plot(NA, ylim = c(1, n), xlim = c(1, n),
+        plot(NA, ylim = c(1, n), xlim = c(1, n), # remove axes
              axes = F, xlab = "", ylab = "", main = "")
         plotBinning(testChiBins[[depth]][[i]], pch = 19, cex = 0.1,
                     add = TRUE, col = adjustcolor(pal[i], 0.8),
@@ -926,7 +926,7 @@ for (depth in 2:10) {
         plot(NA, ylim = c(1, n), xlim = c(1, n),
              axes = F, xlab = "", ylab = "", main = "")
         plotBinning(testMiBins[[depth]][[i]], pch = 19, cex = 0.1,
-                    add = TRUE, col = adjustcolor(pal[i], 0.5),
+                    add = TRUE, col = adjustcolor(pal[i], 0.8),
                     fill = residualFill(testMiBins[[depth]][[i]],
                                         maxRes = maxRes))
     }
@@ -945,7 +945,7 @@ par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7) {
     plot(NA, ylim = c(1, n), xlim = c(1, n),
          axes = F, xlab = "", ylab = "", main = "")
-    plotBinning(testRndBins[[10]][[depth]][[i]],
+    plotBinning(testRndBins[[1]][[depth]][[i]],
                 pch = 19, cex = 0.1, add = TRUE,
                 col = adjustcolor(pal[i], 0.5),
                 fill = residualFill(testRndBins[[10]][[depth]][[i]],
