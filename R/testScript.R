@@ -252,7 +252,7 @@ plotBinning <- function(bins, fill, add = FALSE, xlab = "x",
     for (ii in seq_along(bins)) {
         rect(xbnds[1,ii], ybnds[1,ii], xbnds[2,ii], ybnds[2,ii],
              col = fill[ii])
-        points(bins[[ii]]$x, bins[[ii]]$y, ...) # diasble with pch = ""
+        points(bins[[ii]]$x, bins[[ii]]$y, ...) # disable with pch = ""
     }
 }
 
@@ -305,6 +305,13 @@ binAbsDif <- function(bins, agg = sum) {
     resids <- abs(obs - ex)
     signs <- sign(obs - ex)
     list(residuals = signs*resids, stat = agg(resids))
+}
+
+## reduce size of binning in storage by dropping points
+dropBinPoints <- function(bins) {
+    lapply(bins, function(bn) {
+        bn$x <- NULL; bn$y <- NULL; bn
+    })
 }
 
 plotShading <- function(bins, resFun, brks = c(-1, 1, by = 0.1),
@@ -974,7 +981,7 @@ rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
 spBins <- vector("list", ncol(spPairs))
 msgInd <- ((1:ncol(spPairs)) %% 1000) == 0
 ## iterate through all pairs
-for (ii in seq_len(ncol(spPairs))) {
+system.time({for (ii in seq_len(ncol(spPairs))) { ## ~57 mins
     pair <- spPairs[, ii] # indices of pairs
     spBins[[ii]] <- binner(spRanks[, pair[1]], spRanks[, pair[2]],
                            stopper = stopFn,
@@ -982,7 +989,16 @@ for (ii in seq_len(ncol(spPairs))) {
     if (msgInd[ii]) {
         cat("\r Completed ", ii, " pairs")
     }
-}
+             }})
+## drop points for smaller storage size
+spBinsNP <- lapply(spBins, dropBinPoints)
+## save binnings
+saveRDS(spBinsNP, file = "sp500binsNoPts.Rds")
+
+## get chi statistics across the bins
+spChis <- sapply(spBins, function(bns) binChi(bns)$stat)
+## order by most interesting
+spOrd <- order(spChis, decreasing = TRUE)
 
 ## abalone data
 url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/"
