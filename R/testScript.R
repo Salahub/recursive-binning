@@ -981,6 +981,7 @@ rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
 spBins <- vector("list", ncol(spPairs))
 msgInd <- ((1:ncol(spPairs)) %% 1000) == 0
 ## iterate through all pairs
+## ~ 57 mins
 system.time({for (ii in seq_len(ncol(spPairs))) { ## ~57 mins
     pair <- spPairs[, ii] # indices of pairs
     spBins[[ii]] <- binner(spRanks[, pair[1]], spRanks[, pair[2]],
@@ -993,12 +994,157 @@ system.time({for (ii in seq_len(ncol(spPairs))) { ## ~57 mins
 ## drop points for smaller storage size
 spBinsNP <- lapply(spBins, dropBinPoints)
 ## save binnings
-saveRDS(spBinsNP, file = "sp500binsNoPts.Rds")
+saveRDS(spBinsNP, file = paste0("sp500bins", "NoPts.Rds"))
 
+## load pre-processed data
+spBinsNP <- readRDS("sp500binsNoPts.Rds")
 ## get chi statistics across the bins
-spChis <- sapply(spBins, function(bns) binChi(bns)$stat)
+spChis <- lapply(spBinsNP, function(bns) binChi(bns))
+spChiStats <- sapply(spChis, function(x) x$stat)
+spChiResid <- sapply(spChis, function(x) x$residuals)
+spChiNbin <- sapply(spChiResid, length)
 ## order by most interesting
-spOrd <- order(spChis, decreasing = TRUE)
+spOrd <- order(spChiStats, decreasing = TRUE)
+spMaxRes <- max(abs(unlist(spChiResid)))
+
+## plot the distribution of the final statistic
+library(MASS) # to add contours
+library(quantreg)
+## add the null density
+nulls <- readRDS("SplitsRandomDatan1000.Rds")
+## splitting the null statistics by number of bins allows us to more
+## easily compute the empirical quantiles of the sp500 data
+splitNulls <- split(c(nulls$chiSplit["chi",c(5,6),]),
+                    c(nulls$chiSplit["nbin",c(5,6),]))
+binVals <- as.numeric(names(splitNulls))
+## compute the empirical p-values by comparing each of the observed
+## statistics to the corresponding split bin of the null distribution
+empP <- sapply(seq_along(spChiStats),
+               function(ii) {
+                   nb <- as.character(spChiNbin[ii])
+                   sum(spChiStats[ii] >
+                       splitNulls[[nb]])/length(splitNulls[[nb]])
+               })
+## convert these to a hue for plotting of points
+spRGB <- colorRamp(c("steelblue", "firebrick"),
+                   bias = 10)(empP^2)/255
+spCol <- rgb(spRGB[,1], spRGB[,2], spRGB[,3])
+## perform quantile regression for the null data as well
+modQnt <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
+             data = data.frame(nbin = c(nulls$chiSplit["nbin",,]),
+                               chi = c(nulls$chiSplit["chi",,])))
+predQnt <- predict(modQnt,
+                   newdata = data.frame(nbin = binVals))
+
+## plot the sp500 point cloud alongside the null
+png("sp500vsNullPoints.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(1, 2, by = 0.25),
+           ygrid = seq(1, 3, by = 0.5), ylim = c(1, 3.2),
+           xlab = expression(log[10]~"(Number of bins)"),
+           ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
+points(log(nulls$chiSplit["nbin", c(5, 6),], 10),
+       log(nulls$chiSplit["chi", c(5, 6),], 10), cex = 1,
+       pch = 20, col = adjustcolor("steelblue", 0.03))
+points(log(spChiNbin, 10), log(spChiStats, 10),
+       col = adjustcolor("firebrick", 0.03),
+       pch = 20)
+for (ii in 1:3) {
+    lines(log(binVals[-c(1,2)], 10),
+          log(predQnt[-c(1,2),ii], 10), lty = ii)
+    yadj <- 1 - 0.5*(ii - 1)
+    text(labels = paste0(100*qnts[ii], "%"),
+         x = log(binVals[3], 10), y = log(predQnt[3, ii], 10),
+         adj = c(1, yadj), cex = 0.6)
+}
+legend(x = "bottomright", cex = 0.8, legend = c("Null", "S&P500"),
+       pch = 20, col = c("steelblue", "firebrick"))
+dev.off()
+
+## plot the sp500 point cloud coloured by empirical p-value with the
+## quantile regression lines alongside
+png("sp500empPColour.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(1, 2, by = 0.25),
+           ygrid = seq(1, 3, by = 0.5), ylim = c(1, 3.2),
+           xlab = expression(log[10]~"(Number of bins)"),
+           ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
+points(log(spChiNbin, 10), log(spChiStats, 10),
+       col = adjustcolor(spCol, 0.2), pch = 20)
+for (ii in 1:3) {
+    lines(log(binVals[-c(1,2)], 10),
+          log(predQnt[-c(1,2),ii], 10), lty = ii)
+    yadj <- 1 - 0.5*(ii - 1)
+    text(labels = paste0(100*qnts[ii], "%"),
+         x = log(binVals[3], 10), y = log(predQnt[3, ii], 10),
+         adj = c(1, yadj), cex = 0.6)
+}
+dev.off()
+
+## use this to plot the top pairs and their binnings
+png("sp500top36.png", width = 4, height = 4, units = "in",
+    res = 480)
+par(mfrow = c(6, 6), mar = c(0.1, 0.55, 1.1, 0.55))
+for (prInd in spOrd[1:36]) {
+    pr <- spPairs[, prInd] # pair indices
+    plot(NA, xlim = c(1, (nrow(spRanks))),
+         ylim = c(1, (nrow(spRanks))), axes = "F",
+         xlab = colnames(spRanks)[pr[1]],
+         ylab = colnames(spRanks)[pr[2]],
+         main = "")
+    mtext(paste(colnames(spRanks)[pr], collapse = ":"),
+          cex = 0.6)
+    plotBinning(spBinsNP[[prInd]],
+                fill = residualFill(spBinsNP[[prInd]],
+                                    maxRes = spMaxRes),
+                add = TRUE)
+    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".")
+}
+dev.off()
+
+## do the same for pairs in the middle of the distribution
+png("sp500mid36.png", width = 4, height = 4, units = "in",
+    res = 480)
+par(mfrow = c(6, 6), mar = c(0.1, 0.55, 1.1, 0.55))
+for (prInd in spOrd[seq(length(spOrd)/2 - 17, by = 1,
+                        length.out = 36)]) {
+    pr <- spPairs[, prInd] # pair indices
+    plot(NA, xlim = c(1, (nrow(spRanks))),
+         ylim = c(1, (nrow(spRanks))), axes = "F",
+         xlab = colnames(spRanks)[pr[1]],
+         ylab = colnames(spRanks)[pr[2]],
+         main = "")
+    mtext(paste(colnames(spRanks)[pr], collapse = ":"),
+          cex = 0.6)
+    plotBinning(spBinsNP[[prInd]],
+                fill = residualFill(spBinsNP[[prInd]],
+                                    maxRes = spMaxRes),
+                add = TRUE)
+    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".")
+}
+dev.off()
+
+## finally view the weakest associations
+png("sp500last36.png", width = 4, height = 4, units = "in",
+    res = 480)
+par(mfrow = c(6, 6), mar = c(0.1, 0.55, 1.1, 0.55))
+for (prInd in spOrd[seq(length(spOrd)-35, by = 1,
+                        length.out = 36)]) {
+    pr <- spPairs[, prInd] # pair indices
+    plot(NA, xlim = c(1, (nrow(spRanks))),
+         ylim = c(1, (nrow(spRanks))), axes = "F",
+         xlab = colnames(spRanks)[pr[1]],
+         ylab = colnames(spRanks)[pr[2]],
+         main = "")
+    mtext(paste(colnames(spRanks)[pr], collapse = ":"),
+          cex = 0.6)
+    plotBinning(spBinsNP[[prInd]],
+                fill = residualFill(spBinsNP[[prInd]],
+                                    maxRes = spMaxRes),
+                add = TRUE)
+    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".")
+}
+dev.off()
 
 ## abalone data
 url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/"
@@ -1115,30 +1261,3 @@ for (ii in 1:length(abOrders[,ind])) {
                 xaxt = "n", yaxt = "n",
                 main = names(abBins)[abOrders[,ind]][ii])
 }
-
-## the iris data
-data(iris)
-wid <- rank(iris$Sepal.Width, ties.method = "random")
-len <- rank(iris$Sepal.Length, ties.method = "random")
-widLen <- makeTree(wid, len,
-                   stopCriterion(depthLim = 5, areaLim = 5),
-                   maxScoreSplit(chiScores, ties = "x"), quickBin)
-widLen.mi <- makeTree(wid, len,
-                   stopCriterion(depthLim = 5, areaLim = 5),
-                   maxScoreSplit(miScores, ties = "x"), quickBin)
-
-## some simulated structural data
-data <- data.frame(x = c(sample(rnorm(2000, c(-10, 10), c(4,3))), rnorm(400)),
-                   y = c(sample(rnorm(2000, c(-10, 10), c(1,5))), rnorm(400)))
-fourCent <- makeTree(rank(data$x), rank(data$y),
-                     stopCriterion(depthLim = 5, areaLim = 5),
-                     maxScoreSplit(chiScores, ties = "x"), quickBin)
-
-## upper corner
-upCorn <- list()
-upCorn$x <- runif(1000)
-upCorn$x <- (1 - sqrt(upCorn$x))*1000
-upCorn$y <- upCorn$x + runif(1000)*(1000 - upCorn$x)
-upCornChi <- makeTree(upCorn$x, upCorn$y,
-                     stopCriterion(depthLim = 5, areaLim = 5),
-                     maxScoreSplit(chiScores, ties = "x"), quickBin)
