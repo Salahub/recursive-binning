@@ -314,23 +314,6 @@ dropBinPoints <- function(bins) {
     })
 }
 
-plotShading <- function(bins, resFun, brks = c(-1, 1, by = 0.1),
-                        pal = colorRampPalette(
-                            c("steelblue", "white",
-                              "firebrick"))(length(brks)),
-                        xlab = "x", ylab = "y") {
-    nbins <- length(bins)
-    xbnds <- sapply(bins, function(bn) bn$bnds$x)
-    ybnds <- sapply(bins, function(bn) bn$bnds$y)
-    res <- cut(sapply(bins, resFun), brks) # residual scores binned
-    plot(NA, type = "n", xlim = range(xbnds), ylim = range(ybnds),
-         xlab = xlab, ylab = ylab, main = main)
-    for (ii in 1:nbins) {
-        rect(xbnds[1,ii], ybnds[1,ii], xbnds[2,ii], ybnds[2,ii],
-             col = pal[unclass(res)])
-    }
-}
-
 
 ## SIMPLE EXAMPLES ###################################################
 ## generate some random data
