@@ -655,73 +655,72 @@ dev.off()
 
 
 ## SIMULATED DATA PATTERNS ###########################################
-## patterns from Newton (2009)
+
+## patterns from Newton (2009) provided in a list of functions
+patFns <- list(
+    wave = function(n) {
+        x <- seq(-1, 1, length=n)
+        u <- x + runif(n)/3; v <- 4*((x^2 - 1/2)^2 + runif(n)/500)
+        cbind(x = u, y = v)
+    },
+    rotatedSquare = function(n) {
+        x <- runif(n, min = -1, max = 1)
+        y <- runif(n, min = -1, max = 1)
+        theta <--pi/8
+        rr <- rbind(c(cos(theta), -sin(theta)),
+                    c(sin(theta), cos(theta)))
+        tmp <- cbind(x, y) %*% rr
+        colnames(tmp) <- c("x",  "y")
+        tmp
+    },
+    circle = function(n) {
+        x <- runif(n, min = -1, max = 1)
+        y <- runif(n, min = -1, max = 1)
+        theta <- -pi/4
+        rr <- rbind(c(cos(theta), -sin(theta)),
+                    c(sin(theta), cos(theta)))
+        tmp <- cbind(x, y) %*% rr
+        colnames(tmp) <- c("x",  "y")
+        tmp
+    },
+    valley = function(n) {
+        x <- seq(-1,1, length=n )
+        y <- (x ^2 + runif(n))/2
+        cbind(x = x, y = y)
+    },
+    cross = function(n) {
+        x <- seq(-1, 1, length = n)
+        y <- (x^2 + runif(n)/2)*(sample(c(-1,1), size=n, replace = T))
+        cbind(x = x, y = y)
+    },
+    ring = function(n) {
+        x <- seq(-1, 1, length = n)
+        u <- sin(x*pi) + rnorm(n)/8
+        v <- cos(x*pi) + rnorm(n)/8
+        cbind(x = u, y = v)
+    },
+    noise = function(n) {
+        dx <- rnorm(n)/3
+        dy <- rnorm(n)/3
+        cx <- sample(c(-1, 1), size=n, replace = T)
+        cy <- sample(c(-1, 1), size=n, replace = T)
+        u <- cx + dx
+        v <- cy + dy
+        cbind(x = u, y = v)
+    })
+
+## write a wrapper for these patterns to generate an array of all
+generatePatterns <- function(n) {
+    simplify2array(lapply(patFns, function(fn) fn(n)))
+}
+
+## generate many repetitions of each to bin
 set.seed(70111238)
 n <- 1000
-xx <- matrix(NA,n,7)
-yy <- matrix(NA,n,7)
-## 1
-i <- 1
-x <- seq( -1, 1, length=n )
-u <- x + runif(n)/3
-v <-  4*( ( x^2 - 1/2 )^2 + runif(n)/500 )
-xx[,i] <- u
-yy[,i] <- v
-## 2
-i <- 2
-x <- runif(n, min=(-1), max=1 )
-y <- runif(n, min=(-1), max=1 )
-theta <- -pi/8
-rr <- rbind( c(cos(theta), -sin(theta) ),
-             c( sin(theta), cos(theta) ) )
-tmp <- cbind( x, y ) %*% rr
-u <- tmp[,1]
-v <-  tmp[,2]
-xx[,i] <- u
-yy[,i] <- v
-## i=3
-i <- 3
-x <- runif(n, min=(-1), max=1 )
-y <- runif(n, min=(-1), max=1 )
-theta <- -pi/4
-rr <- rbind( c(cos(theta), -sin(theta) ),
-             c( sin(theta), cos(theta) ) )
-tmp <- cbind( x, y ) %*% rr
-u <- tmp[,1]
-v <-  tmp[,2]
-xx[,i] <- u
-yy[,i] <- v
-## 4
-i <- 4
-x <- seq(-1,1, length=n )
-y <- (x ^2 + runif(n))/2
-xx[,i] <- x
-yy[,i] <- y
-## 5
-i <- 5
-x <- seq(-1,1, length=n )
-y <- (x ^2 + runif(n)/2 )*( sample( c(-1,1), size=n, replace=T ) )
-xx[,i] <- x
-yy[,i] <- y
-## 6
-i <- 6
-x <- seq( -1, 1, length=n )
-u <- sin( x*pi ) + rnorm( n )/8
-v <- cos( x*pi ) + rnorm( n )/8
-xx[,i] <- u
-yy[,i] <- v
-##
-i <- 7
-dx <- rnorm(n)/3
-dy <- rnorm(n)/3
-cx <- sample( c(-1,1), size=n, replace=T )
-cy <- sample( c(-1,1), size=n, replace=T )
-u <- cx + dx
-v <- cy + dy
-xx[,i] <- u
-yy[,i] <- v
+nsim <- 100
+simData <- replicate(nsim, generatePatterns(n))
 
-## plot the data (Fig 4.12)
+## plot the first data realization (Fig 4.12)
 m <- 1
 pal <- c(RColorBrewer::brewer.pal(6, "Set2"), "black")
 png(file="measurePatterns.png", height=m, width=6*m, units = "in",
@@ -729,68 +728,104 @@ png(file="measurePatterns.png", height=m, width=6*m, units = "in",
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7)
  {
-     plot(xx[,i], yy[,i], xlab="", ylab="", axes=F, pch = 19,
-          cex = 0.2, col = pal[i])
+     plot(simData[, "x", i, 1], simData[, "y", i, 1], xlab="", ylab="",
+          axes = F, pch = 19, cex = 0.2, col = pal[i])
  }
 dev.off()
 
 ## convert this data into pairwise ranks and plot it (Fig 4.13)
-xxr <- apply(xx, 2, rank)
-yyr <- apply(yy, 2, rank)
+simXr <- apply(simData[, "x", , ], c(2, 3), rank)
+simYr <- apply(simData[, "y", , ], c(2, 3), rank)
 png(file="measurePatternsRank.png", height=m, width=6*m, units = "in",
     res = 480)
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7)
  {
-     plot(xxr[,i], yyr[,i], xlab="", ylab="", axes=F, pch = 19,
-          cex = 0.2, col = pal[i])
+     plot(simXr[, i, 1], simYr[, i, 1], xlab="", ylab="",
+          axes= F, pch = 19, cex = 0.2, col = pal[i])
  }
 dev.off()
 
 ## try the binning algorithm on these data
-## again define the criteria dynamically
+## define a range of depths
+depths <- 1:10
+## define the criteria dynamically, works due to R's lexical scoping
 crits <- makeCriteria(depth >= ii, expn <= 10, n == 0)
 ## define the stop function
 stopFn <- function(bns) stopper(bns, crits)
-## chi splitting on patterns
-testChiBins <- vector("list", 10)
-testMiBins <- vector("list", 9) # allocate storage
-for (ii in 1:10) { # iterate through depths
-    ## chi bins for each pattern
-    testChiBins[[ii]] <- lapply(1:7, function(jj){
-        binner(xxr[, jj], yyr[, jj], stopper = stopFn,
-               splitter = chiSplit)
-    })
-    ## mi bins for each pattern
-    testMiBins[[ii]] <- lapply(1:7, function(jj){
-        binner(xxr[, jj], yyr[, jj], stopper = stopFn,
-                  splitter = miSplit)
-    })
-}
+## and splitting functions
+chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
+miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
+rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
+## allocate storage for every split method
+testChiBins <- vector("list", nsim)
+testMiBins <- vector("list", nsim)
+testRndBins <- vector("list", nsim)
 
-## for random splitting, consider performing many repetitions due to
-## the instability of any individual path
-set.seed(7211)
-testRndBins <- vector("list", 100) # allocate storage
-for (jj in 1:100) { # 100 iterations
-    testRndBins[[jj]] <- vector("list", 10) # allocate sub-storage
-    for (ii in 1:10) { # iterate through depths
-        ## randomly split the space for each pattern
-        testRndBins[[jj]][[ii]] <- lapply(1:7, function(jj){
-            binner(xxr[, jj], yyr[, jj],
+## bin each realization
+for (jj in 1:nsim) {
+    ## each list element is also a list for each
+    testChiBins[[jj]] <- vector("list", length(depths)) 
+    testMiBins[[jj]] <- vector("list", length(depths))
+    testRndBins[[jj]] <- vector("list", length(depths))
+    for (ii in seq_along(depths)) { # iterate through depths
+        ## chi bins for each pattern
+        testChiBins[[jj]][[ii]] <- lapply(1:7, function(kk) {
+            binner(simXr[, kk, jj], simYr[, kk, jj],
+                   stopper = stopFn, splitter = chiSplit)
+        })
+        ## mi bins for each pattern
+        testMiBins[[jj]][[ii]] <- lapply(1:7, function(kk) {
+            binner(simXr[, kk, jj], simYr[, kk, jj],
+                   stopper = stopFn, splitter = miSplit)
+        })
+        ## finally, random bins for each pattern
+        testRndBins[[jj]][[ii]] <- lapply(1:7, function(kk) {
+            binner(simXr[, kk, jj], simYr[, kk, jj],
                    stopper = stopFn, splitter = rndSplit)
-       })
+        })
     }
 }
 
-## compute the chi square statistics from all
-testChiChi <- lapply(testChiBins, function(lst) lapply(lst, binChi))
-testMiChi <- lapply(testMiBins, function(lst) lapply(lst, binChi))
-testRndChi <- lapply(testRndBins,
+## compute the chi square statistics for each split method
+testChiChi <- lapply(testChiBins, # nested list  makes it ugly
                      function(lst) {
                          lapply(lst,
                                 function(el) lapply(el, binChi))
                      })
+testChiChi <- lapply(testMiBins, ## same thing for mi...
+                     function(lst) {
+                         lapply(lst,
+                                function(el) lapply(el, binChi))
+                     })
+testRndChi <- lapply(testRndBins, ## ... and random splitting
+                     function(lst) {
+                         lapply(lst,
+                                function(el) lapply(el, binChi))
+                     })
+
+## for ease of plotting, convert these tests to statistic values,
+## final bin counts
+## define some helpers to make this cleaner...
+## wrapper to apply function to a nested list and return an array
+deNest <- function(nstdLst, fn) {
+    lapply(nstdLst, function(olst) {
+        sapply(olst, function(lst) {
+            sapply(lst, fn)
+        })
+    })
+}
+## the internal functions to work with deNest
+getStat <- function(x) x$stat
+getnBin <- function(x) length(x$residuals)
+
+## apply this to everything else
+chiPaths <- deNest(testChiChi, getStat)
+chiNbin <- deNest(testChiChi, getnBin)
+miPaths <- deNest(testChiChi, getStat)
+miNbin <- deNest(testChiChi, getnBin)
+rndPaths <- deNest(testChiChi, getStat)
+rndNbin <- deNest(testChiChi, getnBin)
 
 ## plot the paths of every pattern under different splitting regimes
 ## compared to the null
