@@ -765,7 +765,7 @@ testRndBins <- vector("list", nsim)
 ## bin each realization
 for (jj in 1:nsim) {
     ## each list element is also a list for each
-    testChiBins[[jj]] <- vector("list", length(depths)) 
+    testChiBins[[jj]] <- vector("list", length(depths))
     testMiBins[[jj]] <- vector("list", length(depths))
     testRndBins[[jj]] <- vector("list", length(depths))
     for (ii in seq_along(depths)) { # iterate through depths
@@ -793,7 +793,7 @@ testChiChi <- lapply(testChiBins, # nested list  makes it ugly
                          lapply(lst,
                                 function(el) lapply(el, binChi))
                      })
-testChiChi <- lapply(testMiBins, ## same thing for mi...
+testMiChi <- lapply(testMiBins, ## same thing for mi...
                      function(lst) {
                          lapply(lst,
                                 function(el) lapply(el, binChi))
@@ -818,14 +818,15 @@ deNest <- function(nstdLst, fn) {
 ## the internal functions to work with deNest
 getStat <- function(x) x$stat
 getnBin <- function(x) length(x$residuals)
+getMaxRes <- function(x) max(abs(x$residuals))
 
 ## apply this to everything else
 chiPaths <- deNest(testChiChi, getStat)
 chiNbin <- deNest(testChiChi, getnBin)
-miPaths <- deNest(testChiChi, getStat)
-miNbin <- deNest(testChiChi, getnBin)
-rndPaths <- deNest(testChiChi, getStat)
-rndNbin <- deNest(testChiChi, getnBin)
+miPaths <- deNest(testMiChi, getStat)
+miNbin <- deNest(testMiChi, getnBin)
+rndPaths <- deNest(testRndChi, getStat)
+rndNbin <- deNest(testRndChi, getnBin)
 
 ## plot the paths of every pattern under different splitting regimes
 ## compared to the null
@@ -846,17 +847,11 @@ for (ii in 1:1e4) { # add the null lines
           depthSeq.rnd["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-## extract the statistic values from the split
-paths <- sapply(testRndChi[[1]],
-                function(lst) sapply(lst, function(el) el$stat))
-## and the number of bins for each
-nbin <- sapply(testRndChi[[1]], function(lst) {
-    sapply(lst, function(el) length(el$residuals))
-})
 ## add these as lines to the plot of null lines
 for (jj in 1:7) {
-    lines(nbin[jj,], paths[jj,], col = pal[jj])
-    points(nbin[jj,], paths[jj,], col = pal[jj], pch = 19, cex = 0.5)
+    lines(rndNbin[[1]][jj,], rndPaths[[1]][jj,], col = pal[jj])
+    points(rndNbin[[1]][jj,], rndPaths[[1]][jj,], col = pal[jj],
+           pch = 19, cex = 0.5)
 }
 ## add the 95% chi quantile
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
@@ -874,18 +869,14 @@ for (ii in 1:1e4) {
           depthSeq.chi["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-paths <- sapply(testChiChi,
-               function(lst) sapply(lst, function(el) el$stat))
-nbin <- sapply(testChiChi, function(lst) {
-    sapply(lst, function(el) length(el$residuals))
-})
 for (jj in 1:7) {
-    lines(nbin[jj,], paths[jj,], col = pal[jj])
-    points(nbin[jj,], paths[jj,], col = pal[jj], pch = 19, cex = 0.5)
+    lines(chiNbin[[1]][jj,], chiPaths[[1]][jj,], col = pal[jj])
+    points(chiNbin[[1]][jj,], chiPaths[[1]][jj,], col = pal[jj],
+           pch = 19, cex = 0.5)
 }
 dev.off()
 
-## for the random split repetitions, plot every single one (Fig 4.15)
+## for the random split repetitions, plot every one (Fig 4.15(b))
 png("simDataRandAll.png", width = 3, height = 3, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(0, 160, by = 40),
@@ -897,21 +888,30 @@ for (ii in 1:1e4) {
           depthSeq.rnd["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-paths <- simplify2array(
-    lapply(testRndChi, function(olst) {
-        sapply(olst, function(lst) {
-            sapply(lst, function(el) el$stat)
-        })
-    }))
-nbin <- simplify2array(
-    lapply(testRndChi, function(olst) {
-        sapply(olst, function(lst) {
-            sapply(lst, function(el) length(el$residuals))
-        })
-    }))
 for (jj in 1:7) {
     for (ii in 1:100) {
-        lines(nbin[jj,,ii], paths[jj,,ii],
+        lines(rndNbin[[ii]][jj,], rndPaths[[ii]][jj,],
+              col = adjustcolor(pal[jj], 0.2))
+    }
+}
+lines(1:160, qchisq(0.95, 1:160), lty = 2)
+dev.off()
+
+## do the same for the chi splits (Fig 4.15(a))
+png("simDataMaxChiAll.png", width = 3, height = 3, units = "in",
+    res = 480)
+narrowPlot(xgrid = seq(0, 160, by = 40),
+           xlab = "Number of bins",
+           ygrid = seq(0, 1200, by = 300), ylim = c(0, 1300),
+           ylab = expression(chi^2~statistic))
+for (ii in 1:1e4) {
+    lines(depthSeq.chi["nbin",,ii],
+          depthSeq.chi["chi",,ii],
+          col = adjustcolor("gray", 0.1))
+}
+for (jj in 1:7) {
+    for (ii in 1:100) {
+        lines(chiNbin[[ii]][jj,], chiPaths[[ii]][jj,],
               col = adjustcolor(pal[jj], 0.2))
     }
 }
@@ -920,9 +920,9 @@ dev.off()
 
 ## next, check the bins for every depth (Fig 4.16)
 ## start by getting the maximum residual to make the shading constant
-maxRes <- max(abs(unlist(sapply(unlist(testChiChi,
-                                       recursive = FALSE),
-                                function(el) el$residuals))))
+maxRes <- max(sapply(unlist(testChiChi[[1]],
+                            recursive = FALSE),
+                     getMaxRes))
 ## for every depth, display the binning for each pattern
 for (depth in 2:10) {
     png(file = paste0("simDataBins", depth, ".png"), height = m,
@@ -931,18 +931,19 @@ for (depth in 2:10) {
     for(i in 1:7) {
         plot(NA, ylim = c(1, n), xlim = c(1, n), # remove axes
              axes = F, xlab = "", ylab = "", main = "")
-        plotBinning(testChiBins[[depth]][[i]], pch = 19, cex = 0.1,
-                    add = TRUE, col = adjustcolor(pal[i], 0.8),
-                    fill = residualFill(testChiBins[[depth]][[i]],
+        plotBinning(testChiBins[[1]][[depth]][[i]], pch = 19,
+                    cex = 0.1, add = TRUE,
+                    col = adjustcolor("grey", 0.8),
+                    fill = residualFill(testChiBins[[1]][[depth]][[i]],
                                         maxRes = maxRes))
     }
     dev.off()
 }
 
 ## do the same thing for the bins from MI splitting
-maxRes <- max(abs(unlist(sapply(unlist(testMiChi,
-                                       recursive = FALSE),
-                                function(el) el$residuals))))
+maxRes <- max(sapply(unlist(testMiChi[[1]],
+                            recursive = FALSE),
+                     getMaxRes))
 for (depth in 2:10) {
     png(file = paste0("simDataBins", depth, "MI.png"), height = m,
         width= 6*m, units = "in", res = 480)
@@ -950,9 +951,10 @@ for (depth in 2:10) {
     for(i in 1:7) {
         plot(NA, ylim = c(1, n), xlim = c(1, n),
              axes = F, xlab = "", ylab = "", main = "")
-        plotBinning(testMiBins[[depth]][[i]], pch = 19, cex = 0.1,
-                    add = TRUE, col = adjustcolor(pal[i], 0.8),
-                    fill = residualFill(testMiBins[[depth]][[i]],
+        plotBinning(testMiBins[[1]][[depth]][[i]], pch = 19,
+                    cex = 0.1, add = TRUE,
+                    col = adjustcolor("grey", 0.8),
+                    fill = residualFill(testMiBins[[1]][[depth]][[i]],
                                         maxRes = maxRes))
     }
     dev.off()
@@ -960,9 +962,9 @@ for (depth in 2:10) {
 
 ## view the random bins at their maximum depth (Fig 4.17)
 ## again, standardize the residuals
-maxRes <- max(abs(unlist(sapply(unlist(testRndChi[[1]],
-                                       recursive = FALSE),
-                                function(el) el$residuals))))
+maxRes <- max(sapply(unlist(testRndChi[[10]],
+                            recursive = FALSE),
+                     getMaxRes))
 depth <- 10
 png(file = "simDataBinsRand.png", height = m, width = 6*m,
     units = "in", res = 480)
@@ -970,9 +972,9 @@ par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7) {
     plot(NA, ylim = c(1, n), xlim = c(1, n),
          axes = F, xlab = "", ylab = "", main = "")
-    plotBinning(testRndBins[[1]][[depth]][[i]],
+    plotBinning(testRndBins[[10]][[depth]][[i]],
                 pch = 19, cex = 0.1, add = TRUE,
-                col = adjustcolor(pal[i], 0.5),
+                col = adjustcolor("grey", 0.8),
                 fill = residualFill(testRndBins[[10]][[depth]][[i]],
                                     maxRes = maxRes))
 }
@@ -1026,8 +1028,9 @@ spOrd <- order(spChiStats, decreasing = TRUE)
 spMaxRes <- max(abs(unlist(spChiResid)))
 
 ## plot the distribution of the final statistic
-library(MASS) # to add contours
 library(quantreg)
+## quantiles
+qnts <- c(0.95, 0.99, 0.999)
 ## add the null density
 nulls <- readRDS("SplitsRandomDatan1000.Rds")
 ## splitting the null statistics by number of bins allows us to more
@@ -1087,7 +1090,7 @@ narrowPlot(xgrid = seq(1, 2, by = 0.25),
            ygrid = seq(1, 3, by = 0.5), ylim = c(1, 3.2),
            xlab = expression(log[10]~"(Number of bins)"),
            ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
-points(log(spChiNbin, 10), log(spChiStats, 10),
+points(log(spChiNbin, 10), log(spChiStats, 10), cex = 0.5,
        col = adjustcolor(spCol, 0.2), pch = 20)
 for (ii in 1:3) {
     lines(log(binVals[-c(1,2)], 10),
@@ -1163,119 +1166,3 @@ for (prInd in spOrd[seq(length(spOrd)-35, by = 1,
     points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".")
 }
 dev.off()
-
-## abalone data
-url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/"
-## loading here is locally, otherwise replace "~/Downloads/" with the url above
-abalone <- read.table("~/Downloads/abalone.data", sep = ",")
-abalone.names <- scan("~/Downloads/abalone.names", what = character(),
-                      sep = "\n")[64:72]
-names(abalone) <- regmatches(gsub(" ", ".", abalone.names),
-                             regexpr("(?<=^\\t)[A-Za-z\\.]+(?=\\t)",
-                                     gsub(" ", ".", abalone.names),
-                                     perl = TRUE))
-## take ranks, get all pairs
-set.seed(2306201)
-abPairs <- combn(ncol(abalone), 2)
-abRanks <- lapply(abalone, rank, ties.method = "random")
-abBins <- lapply(1:ncol(abPairs),
-                 function(p) {
-                     lapply(depths,
-                            function(dep) {
-                     makeTree(abRanks[[abPairs[1,p]]],
-                              abRanks[[abPairs[2,p]]],
-                              stopCriterion(depthLim = dep,
-                                            areaLim = 10),
-                              maxScoreSplit(chiScores), quickBin)
-                 })})
-names(abBins) <- paste(names(abRanks)[abPairs[1,]],
-                       names(abRanks)[abPairs[2,]],
-                       sep = "-")
-abChis <- lapply(abBins, function(ds) lapply(ds, function(bnlst) binChi(unlist(bnlst))))
-abMis <- lapply(abBins, function(ds) lapply(ds, function(bnlst) binMI(unlist(bnlst))))
-
-## plot these against other points
-plot(depthSeq.chi["nbin",,], depthSeq.chi["chi",,], xlab = "Number of bins",
-     ylab = "", col = adjustcolor("gray", 0.5), pch = 20,
-     ylim = c(0, max(sapply(abChis, function(lst) sapply(lst, function(scr) scr$stat)))),
-     xlim = c(0, 275))
-mtext(expression(chi^2~statistic), side = 2, line = 2)
-lines(c(rbind(sapply(abChis[grepl("Rings", names(abChis))],
-                     function(lst) sapply(lst, function(scr) length(scr$residuals))),NA)),
-      c(rbind(sapply(abChis[grepl("Rings", names(abChis))],
-                     function(lst) sapply(lst, function(scr) scr$stat)), NA)),
-      pch = 20, col = adjustcolor("#fc8d62", 0.8), type = "b")
-lines(c(rbind(sapply(abChis[grepl("Sex", names(abChis))],
-                     function(lst) sapply(lst, function(scr) length(scr$residuals))),NA)),
-      c(rbind(sapply(abChis[grepl("Sex", names(abChis))],
-                     function(lst) sapply(lst, function(scr) scr$stat)), NA)),
-      pch = 20, col = adjustcolor("#66c2a5", 0.8), type = "b")
-lines(c(rbind(sapply(abChis[!grepl("Rings|Sex", names(abChis))],
-                     function(lst) sapply(lst, function(scr) length(scr$residuals))),NA)),
-      c(rbind(sapply(abChis[!grepl("Rings|Sex", names(abChis))],
-                     function(lst) sapply(lst, function(scr) scr$stat)), NA)),
-      pch = 20, col = adjustcolor("#8da0cb", 0.8), type = "b")
-legend(x = "topleft", pch = 20, legend = c("Continuous", "Categorical", "Count", "Null"),
-       col = adjustcolor(c("#8da0cb","#66c2a5","#fc8d62","gray"), 0.8),
-       title = "Data type")
-
-## ... also using MI
-plot(depthSeq.chi["nbin",,], depthSeq.chi["mi",,], xlab = "Number of bins",
-     ylab = "Mutual information", col = adjustcolor("gray", 0.5), pch = 20,
-     ylim = c(0, max(sapply(abMis, function(lst) sapply(lst, function(scr) scr$stat)))),
-     xlim = c(0, 275))
-lines(c(rbind(sapply(abMis[grepl("Rings", names(abMis))],
-                     function(lst) sapply(lst, function(scr) length(scr$residuals))),NA)),
-      c(rbind(sapply(abMis[grepl("Rings", names(abMis))],
-                     function(lst) sapply(lst, function(scr) scr$stat)), NA)),
-      pch = 20, col = adjustcolor("#fc8d62", 0.8), type = "b")
-lines(c(rbind(sapply(abMis[grepl("Sex", names(abMis))],
-                     function(lst) sapply(lst, function(scr) length(scr$residuals))),NA)),
-      c(rbind(sapply(abMis[grepl("Sex", names(abMis))],
-                     function(lst) sapply(lst, function(scr) scr$stat)), NA)),
-      pch = 20, col = adjustcolor("#66c2a5", 0.8), type = "b")
-lines(c(rbind(sapply(abMis[!grepl("Rings|Sex", names(abMis))],
-                     function(lst) sapply(lst, function(scr) length(scr$residuals))),NA)),
-      c(rbind(sapply(abMis[!grepl("Rings|Sex", names(abMis))],
-                     function(lst) sapply(lst, function(scr) scr$stat)), NA)),
-      pch = 20, col = adjustcolor("#8da0cb", 0.8), type = "b")
-legend(x = "topleft", pch = 20, legend = c("Continuous", "Categorical", "Count", "Null"),
-       col = adjustcolor(c("#8da0cb","#66c2a5","#fc8d62","gray"), 0.8),
-       title = "Data type")
-
-## get some pairwise values
-linex <- 1:(nrow(abalone))
-liney <- 1:(nrow(abalone))
-lineBin <- makeTree(linex, liney, # to scale values
-                    stopCriterion(depthLim = 6, areaLim = 10),
-                    maxScoreSplit(chiScores, ties = "x"), quickBin)
-lineChi <- binChi(unlist(lineBin))
-pairwiseAb <- matrix(lineChi$stat, ncol(abalone), ncol(abalone))
-for (ii in 1:ncol(abPairs)) {
-    tempC <- abPairs[,ii]
-    tempChi <- abChis[[ii]]
-    pairwiseAb[tempC[1], tempC[2]] <- pairwiseAb[tempC[2], tempC[1]] <- tempChi[[5]]$stat
-}
-pairwiseAb <- pairwiseAb/lineChi$stat
-
-
-## definitely some stronger relationships than uniform...
-## also, note the strong ordering for both, plot all of these
-abOrders <- sapply(1:length(depths),
-                   function(ii){
-                       order(sapply(abChis, function(scr) scr[[ii]]$stat),
-                             decreasing = TRUE)
-                   })
-maxRes <- sapply(1:length(depths),
-                 function(ii) {
-                     max(abs(unlist(sapply(abChis, function(scr) scr[[ii]]$residuals))))
-                 })
-ind <- 5
-par(mfrow = c(6,6), mar = c(1.1,1.1,2.1,1.1))
-for (ii in 1:length(abOrders[,ind])) {
-    tempBins <- unlist(abBins[abOrders[,ind]][[ii]][[ind]])
-    plotBinning(tempBins, pch = "", xaxt = "n", yaxt = "n",
-                residualFill(tempBins, maxRes = maxRes[ind]),
-                xaxt = "n", yaxt = "n",
-                main = names(abBins)[abOrders[,ind]][ii])
-}
