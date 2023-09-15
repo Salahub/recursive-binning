@@ -654,6 +654,7 @@ legend(x = "bottomright",
 dev.off()
 
 
+
 ## SIMULATED DATA PATTERNS ###########################################
 
 ## patterns from Newton (2009) provided in a list of functions
