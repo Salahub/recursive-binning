@@ -1,3 +1,26 @@
+## add marginal histograms to a scatterplot
+addMarHists <- function(x, y, xcuts, ycuts) {
+    bds <- par()$usr
+    rowDist <- table(cut(x, xcuts))
+    colDist <- table(cut(y, ycuts)) # marginal distributions
+    vboxBds <- c(bds[2], bds[2] + 0.1*(bds[2] - bds[1]), bds[3:4])
+    hboxBds <- c(bds[1:2], bds[4], bds[4] + 0.1*(bds[4] - bds[3]))
+    ## density boxes
+    rect(vboxBds[1], vboxBds[3], vboxBds[2], vboxBds[4], xpd = NA)
+    rect(hboxBds[1], hboxBds[3], hboxBds[2], hboxBds[4], xpd = NA)
+    ## add marginal histograms
+    vseq <- ycuts
+    rect(vboxBds[1], vseq[1:length(colDist)],
+         vboxBds[1] + 0.9*diff(vboxBds[1:2])*(colDist/max(colDist)),
+         vseq[2:(length(colDist) + 1)], xpd = NA,
+         col = adjustcolor("firebrick", 0.5))
+    hseq <- xcuts
+    rect(hseq[1:length(rowDist)], hboxBds[3],
+         hseq[2:(length(rowDist) + 1)], xpd = NA,
+         hboxBds[3] + 0.9*diff(hboxBds[3:4])*(rowDist/max(rowDist)),
+         col = adjustcolor("firebrick", 0.5))
+}
+
 ## custom plotting function with narrow margins
 narrowPlot <- function(xgrid, ygrid, main = "", xlab = "", ylab = "",
                        xticks = xgrid, yticks = ygrid,
@@ -1059,7 +1082,7 @@ predQnt <- predict(modQnt,
                    newdata = data.frame(nbin = binVals))
 
 ## plot the sp500 point cloud alongside the null
-png("sp500vsNullPoints.png", width = 3, height = 3, units = "in",
+png("sp500vsNullPoints.png", width = 3.5, height = 3.5, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(1, 2, by = 0.25),
            ygrid = seq(1, 3, by = 0.5), ylim = c(1, 3.2),
@@ -1085,12 +1108,13 @@ dev.off()
 
 ## plot the sp500 point cloud coloured by empirical p-value with the
 ## quantile regression lines alongside
-png("sp500empPColour.png", width = 3, height = 3, units = "in",
+png("sp500empPColour.png", width = 3.5, height = 3.5, units = "in",
     res = 480)
 narrowPlot(xgrid = seq(1, 2, by = 0.25),
-           ygrid = seq(1, 3, by = 0.5), ylim = c(1, 3.2),
+           ygrid = seq(1.5, 3, by = 0.5), ylim = c(1.4, 3.2),
            xlab = expression(log[10]~"(Number of bins)"),
-           ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
+           ylab = expression(log[10]~{"("~chi^2~statistic~")"}),
+           mars = c(2.1, 2.1, 2.1, 2.1))
 points(log(spChiNbin, 10), log(spChiStats, 10), cex = 0.5,
        col = adjustcolor(spCol, 0.2), pch = 20)
 for (ii in 1:3) {
@@ -1101,10 +1125,13 @@ for (ii in 1:3) {
          x = log(binVals[3], 10), y = log(predQnt[3, ii], 10),
          adj = c(1, yadj), cex = 0.6)
 }
+addMarHists(log(spChiNbin, 10), log(spChiStats, 10),
+            xcuts = seq(1, 2, by = 0.03125),
+            ycuts = seq(1.5, 3, by = 0.0625))
 dev.off()
 
 ## use this to plot the top pairs and their binnings
-png("sp500top36.png", width = 4, height = 4, units = "in",
+png("sp500top36.png", width = 5, height = 5, units = "in",
     res = 480)
 par(mfrow = c(6, 6), mar = c(0.1, 0.55, 1.1, 0.55))
 for (prInd in spOrd[1:36]) {
@@ -1120,12 +1147,13 @@ for (prInd in spOrd[1:36]) {
                 fill = residualFill(spBinsNP[[prInd]],
                                     maxRes = spMaxRes),
                 add = TRUE)
-    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".")
+    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".",
+           col = adjustcolor("gray50"))
 }
 dev.off()
 
 ## do the same for pairs in the middle of the distribution
-png("sp500mid36.png", width = 4, height = 4, units = "in",
+png("sp500mid36.png", width = 5, height = 5, units = "in",
     res = 480)
 par(mfrow = c(6, 6), mar = c(0.1, 0.55, 1.1, 0.55))
 for (prInd in spOrd[seq(length(spOrd)/2 - 17, by = 1,
@@ -1142,12 +1170,13 @@ for (prInd in spOrd[seq(length(spOrd)/2 - 17, by = 1,
                 fill = residualFill(spBinsNP[[prInd]],
                                     maxRes = spMaxRes),
                 add = TRUE)
-    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".")
+    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".",
+           col = adjustcolor("gray50"))
 }
 dev.off()
 
 ## finally view the weakest associations
-png("sp500last36.png", width = 4, height = 4, units = "in",
+png("sp500last36.png", width = 5, height = 5, units = "in",
     res = 480)
 par(mfrow = c(6, 6), mar = c(0.1, 0.55, 1.1, 0.55))
 for (prInd in spOrd[seq(length(spOrd)-35, by = 1,
@@ -1164,6 +1193,7 @@ for (prInd in spOrd[seq(length(spOrd)-35, by = 1,
                 fill = residualFill(spBinsNP[[prInd]],
                                     maxRes = spMaxRes),
                 add = TRUE)
-    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".")
+    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".",
+           col = adjustcolor("gray50"))
 }
 dev.off()
