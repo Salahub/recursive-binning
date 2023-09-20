@@ -1,3 +1,5 @@
+library(marbR)
+
 ## add marginal histograms to a scatterplot
 addMarHists <- function(x, y, xcuts, ycuts) {
     bds <- par()$usr
