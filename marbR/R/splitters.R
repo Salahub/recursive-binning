@@ -1,5 +1,20 @@
-
-## helper functions to split margins at bound based on indices
+##` Marginalsplitters
+##' @title Helper functions for marginal splitting
+##' @description These functions are helpers to safely split bins
+##' along X or Y.
+##' @details These unexported functions have been defined primarily
+##' to clean up other code, but could be changed to obtain different
+##' core functionality.
+##' @param bin a bin to be split with elements `x`, `y`, `depth`,
+##' `bnds` (list with elements `x` and `y`), `expn`, `n`
+##' @param bd numeric split point within the bin bounds
+##' @param above indices of `x` and `y` points in the bin above `bd`
+##' @param below indices of `x` and `y` points in the bin below `bd`
+##' @return A list of two bins resulting from the split of `bin` at
+##' `bds`.
+##' @examples
+##' @author Chris Salahub
+##' @describeIn marginalsplitters Splitting on x
 splitX <- function(bin, bd, above, below) {
     belowfac <- (bd - bin$bnds$x[1])/diff(bin$bnds$x)
     abovefac <- (bin$bnds$x[2] - bd)/diff(bin$bnds$x)
@@ -14,6 +29,7 @@ splitX <- function(bin, bd, above, below) {
               expn = bin$expn*abovefac,
               n = length(above), depth = bin$depth + 1))
 }
+##' @describeIn marginalsplitters Splitting on y
 splitY <- function(bin, bd, above, below) {
     belowfac <- (bd - bin$bnds$y[1])/diff(bin$bnds$y)
     abovefac <- (bin$bnds$y[2] - bd)/diff(bin$bnds$y)
@@ -29,7 +45,18 @@ splitY <- function(bin, bd, above, below) {
               n = length(above), depth = bin$depth + 1))
 }
 
-## halve a bin
+##' @title Halve at an observed point
+##' @description This function halves a bin under the restriction that
+##' splits can only occur at observation coordinates.
+##' @details Given a bin and a margin, this function splits the bin so
+##' half the points are above the new split point and half are below.
+##' @param bin a bin to be split with elements `x`, `y`, `depth`,
+##' `bnds` (list with elements `x` and `y`), `expn`, `n`
+##' @param margin string, one of `x` or `y`
+##' @return A list of two bins resulting from the split of `bin` in
+##' half along the specified margin
+##' @examples
+##' @author Chris Salahub
 halfSplit <- function(bin, margin = "x") {
     if (margin == "x") {
         xsort <- order(bin$x)
@@ -48,8 +75,22 @@ halfSplit <- function(bin, margin = "x") {
     } else stop("Margin must be one of x or y")
 }
 
-## another function which halves a bin independent of the point
-## locations to break ties and limit bin expecations
+##' @title Halve continuously to break ties
+##' @description This function halves a bin based on the midpoint of
+##' the bounds along whichever margin produces the larger score.
+##' @details The goal of this function is to break ties within bin
+##' splitting in a way which prevents very small or lopsided bins from
+##' forming, a common problem with the `halfSplit` function
+##' @param bin a bin to be split with elements `x`, `y`, `depth`,
+##' `bnds` (list with elements `x` and `y`), `expn`, `n`
+##' @param xscore numeric value giving the score for all splits along
+##' x
+##' @param yscore numeric value giving the score for all splits along
+##' y
+##' @return A list of two bins resulting from the split of `bin` in
+##' half along the margin corresponding to the larger score.
+##' @examples
+##' @author Chris Salahub
 halfCutTie <- function(bin, xscore, yscore) {
     u <- as.numeric(yscore > xscore) # prefer to split on max score
     if (yscore == xscore) u <- runif(1)
@@ -68,7 +109,28 @@ halfCutTie <- function(bin, xscore, yscore) {
     }
 }
 
-## splitter maximizing a score function
+##' @title Bivariate score maximizing splitting
+##' @description A function which splits a bin based on the location
+##' maximizing a score function.
+##' @details This function serves as a wrapper which manages the
+##' interaction of a score function, marginal splitting functions,
+##' tie breaking function, and a maximum selection function to split
+##' a bin at the observation coordinate which maximizes the score
+##' function.
+##' @param bin a bin to be split with elements `x`, `y`, `depth`,
+##' `bnds` (list with elements `x` and `y`), `expn`, `n`
+##' @param scorer function which accepts a numeric vector of potential
+##' split coordinates and the bounds of `bin` and returns a numeric
+##' vector of scores for each
+##' @param ties function which is called to break ties when all splits
+##' generate the same score
+##' @param pickMax function which accepts a list of scores and returns
+##' the element of the largest score according to some rule
+##' @param ... optional additional arguments to `scorer`
+##' @return A list of two bins resulting from the split of `bin`
+##' along the corresponding margin at the maximum location
+##' @examples
+##' @author Chris Salahub
 maxScoreSplit <- function(bin, scorer, ties = halfCutTie,
                           pickMax = which.max, ...) {
   xsort <- order(bin$x)
@@ -98,9 +160,26 @@ maxScoreSplit <- function(bin, scorer, ties = halfCutTie,
   }
 }
 
-## a univariate version
-uniMaxScoreSplit <- function(bin, scorer = diff,
-                             pickMax = which.max,
+##' @title Univariate score maximizing splitting
+##' @description A function which splits a bin based on the location
+##' maximizing a score function.
+##' @details This function is the univariate version of
+##' `maxScoreSplit` and so is considerably simpler. It assumes the
+##' variable to be split is named `x` in the bin, and the other
+##' variable is to remain unsplit.
+##' @param bin a bin to be split with elements `x`, `y`, `depth`,
+##' `bnds` (list with elements `x` and `y`), `expn`, `n`
+##' @param scorer function which accepts a numeric vector of potential
+##' split coordinates and the bounds of `bin` and returns a numeric
+##' vector of scores for each
+##' @param pickMax function which accepts a list of scores and returns
+##' the element of the largest score according to some rule
+##' @param ... optional additional arguments to `scorer`
+##' @return A list of two bins resulting from the split of `bin` at
+##' the maximum split location along x
+##' @examples
+##' @author Chris Salahub
+uniMaxScoreSplit <- function(bin, scorer = diff, pickMax = which.max,
                              ...) {
   xsort <- order(bin$x)
   xscore <- scorer(c(bin$bnds$x[1], bin$x[xsort], bin$bnds$x[2]),
