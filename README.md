@@ -1,3 +1,22 @@
-# Recursive binary splits of rank data to measure statistical dependence
+# Measuring statistical dependence using recursive binary splits
 
-The code required to run the recursive binning algorithm to create the bins used to measure dependence.
+This repository contains all of the code required to run a recursive
+binning algorithm to measure dependence. The two main folder exist for
+slightly different purposes.
+
+## marbR
+
+The marbR folder contains an implementation of the algorithm to
+**m**easure **a**ssociation by **r**ecursive **b**inning in **R**. The
+package includes two demos and one real data set summarizing S&P 500
+return data. Additionally, data providing null realizations of the
+splitting algorithm under random, chi-maximizing, and mutual
+information-maximizing splits is provided in three data sets for
+convenience.
+
+## R
+
+This folder contains some extraneous data and a script used to
+undertake the explorations in my thesis. The script, **experiments.R**
+contains sections which mirror the demos in marbR, as these
+experiments served as excellent motivation for demo content.
