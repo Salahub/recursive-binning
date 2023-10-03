@@ -17,6 +17,6 @@ convenience.
 ## R
 
 This folder contains some extraneous data and a script used to
-undertake the explorations in my thesis. The script, **experiments.R**
+undertake the explorations in my thesis. The script, **experiments.R**,
 contains sections which mirror the demos in marbR, as these
 experiments served as excellent motivation for demo content.
