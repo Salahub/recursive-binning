@@ -5,7 +5,7 @@ binning algorithm to measure dependence.
 
 ## marbR
 
-The marbR folder contains an implementation of the algorithm to
+The marbR directory contains an implementation of the algorithm to
 **m**easure **a**ssociation by **r**ecursive **b**inning in **R**. The
 package includes two demos and one real data set summarizing S&P 500
 return data. Additionally, data providing null realizations of the
@@ -15,7 +15,7 @@ convenience.
 
 ## R
 
-This folder contains some extraneous data and a script used to
+This directory contains some extraneous data and a script used to
 undertake the explorations in my thesis. The script, **experiments.R**,
 contains sections which mirror the demos in marbR, as these
 experiments served as excellent motivation for demo content.
