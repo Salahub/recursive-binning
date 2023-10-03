@@ -11,7 +11,9 @@ package includes two demos and one real data set summarizing S&P 500
 return data. Additionally, data providing null realizations of the
 splitting algorithm under random, chi-maximizing, and mutual
 information-maximizing splits is provided in three data sets for
-convenience.
+convenience. The package can be downloaded via the command
+`install_github("Salahub/recursive-binning", subdir="marbR")` using
+`install_github` from the `devtools` package in R.
 
 ## Scripts
 
