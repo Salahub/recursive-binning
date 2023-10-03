@@ -1,9 +1,16 @@
+## PACKAGES ##########################################################
 ## recursive binning package
 library(marbR)
 
 
-## FUNCTIONS #########################################################
 
+## CONSTANTS/RUN PARAMETERS ##########################################
+writeout <- FALSE # should simulations be run and output written?
+depthPal <- hcl.colors(9, "Dark 2") # colours by depth
+
+
+
+## FUNCTIONS #########################################################
 ## add marginal histograms to a scatterplot
 addMarHists <- function(x, y, xcuts, ycuts) {
     bds <- par()$usr
@@ -60,6 +67,7 @@ dropBinPoints <- function(bins) {
         bn$x <- NULL; bn$y <- NULL; bn
     })
 }
+
 
 
 ## SIMPLE EXAMPLES ###################################################
@@ -198,6 +206,7 @@ plotBinning(lineBin.chi[[3]], pch = 19, cex = 0.5, add = TRUE,
 dev.off()
 
 
+
 ## INVESTIGATING THE NULL DISTRIBUTION ###############################
 set.seed(506391)
 n <- 1e4 # the sample size
@@ -218,53 +227,57 @@ chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
 miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
 rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
 
-## iterate through the data and recursively bin
-for (ii in 1:nsim) { # each simulation
-    for (dep in depths) { # each depth
-        depInd <- match(dep, depths) # get storage list index
-        ## split using chi scores
-        chtr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
-                       stopper = stopFn, splitter = chiSplit)
-        ## compute and store results
-        depthSeq.chi[,depInd,ii] <-
-            c(chi = binChi(chtr)$stat,
-              mi = binMI(chtr)$stat,
-              nbin = length(chtr),
-              maxDep = max(sapply(chtr,function(bn) bn$depth)))
-        ## repeat this for splitting based on the mutual information
-        mitr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
-                       stopper = stopFn, splitter = miSplit)
-        depthSeq.mi[,depInd,ii] <- # store results
-            c(chi = binChi(mitr)$stat,
-              mi = binMI(mitr)$stat,
-              nbin = length(mitr),
-              maxDep = max(sapply(mitr, function(bn) bn$depth)))
-        ## finally, random splits
-        rntr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
-                       stopper = stopFn, splitter = rndSplit)
-        depthSeq.rnd[,depInd,ii] <-
-            c(chi = binChi(rntr)$stat,
-              mi = binMI(rntr)$stat,
-              nbin = length(rntr),
-              maxDep = max(sapply(rntr, function(bn) bn$depth)))
+## section which simulates null distribution
+if (writeout) { # run simulation and write it out
+    ## iterate through the data and recursively bin
+    for (ii in 1:nsim) { # each simulation
+        for (dep in depths) { # each depth
+            depInd <- match(dep, depths) # get storage list index
+            ## split using chi scores
+            chtr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
+                           stopper = stopFn, splitter = chiSplit)
+            ## compute and store results
+            depthSeq.chi[,depInd,ii] <-
+                c(chi = binChi(chtr)$stat,
+                  mi = binMI(chtr)$stat,
+                  nbin = length(chtr),
+                  maxDep = max(sapply(chtr,function(bn) bn$depth)))
+            ## repeat this for splitting based on the mut. inf.
+            mitr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
+                           stopper = stopFn, splitter = miSplit)
+            depthSeq.mi[,depInd,ii] <- # store results
+                c(chi = binChi(mitr)$stat,
+                  mi = binMI(mitr)$stat,
+                  nbin = length(mitr),
+                  maxDep = max(sapply(mitr, function(bn) bn$depth)))
+            ## finally, random splits
+            rntr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
+                           stopper = stopFn, splitter = rndSplit)
+            depthSeq.rnd[,depInd,ii] <-
+                c(chi = binChi(rntr)$stat,
+                  mi = binMI(rntr)$stat,
+                  nbin = length(rntr),
+                  maxDep = max(sapply(rntr, function(bn) bn$depth)))
+        }
+        ## report back on progress
+        if (ii %% 50 == 0) cat(paste("\r Done simulated data set:",
+                                     ii))
     }
-    ## report back on progress
-    if (ii %% 50 == 0) cat(paste("\r Done simulated data set:", ii))
+    ## name the data held in each array slice
+    dimnames(depthSeq.chi) <- list(c("chi", "mi", "nbin", "maxDep"))
+    dimnames(depthSeq.mi) <- list(c("chi", "mi", "nbin", "maxDep"))
+    dimnames(depthSeq.rnd) <- list(c("chi", "mi", "nbin", "maxDep"))
+    ## save the data
+    saveRDS(list(depths = depths, chiSplit = depthSeq.chi,
+                 miSplit = depthSeq.mi, randSplit = depthSeq.rnd),
+            file = paste0("null", n, ".Rds"))
 }
-## name the data held in each array slice
-dimnames(depthSeq.chi) <- list(c("chi", "mi", "nbin", "maxDep"))
-dimnames(depthSeq.mi) <- list(c("chi", "mi", "nbin", "maxDep"))
-dimnames(depthSeq.rnd) <- list(c("chi", "mi", "nbin", "maxDep"))
-## save the data
-saveRDS(list(depths = depths, chiSplit = depthSeq.chi,
-             miSplit = depthSeq.mi, randSplit = depthSeq.rnd),
-        file = paste0("SplitsRandomDatan", n, ".Rds"))
 
 ## plot the paths: statistic by number of bins and depth for the three
 ## different splitting rules (Figs 4.6, 4.7, 4.8)
-depthPal <- hcl.colors(9, "Dark 2")
 ## read in the simulation rather than run it every time
-data <- readRDS("SplitsRandomDatan10000.Rds")
+data(null10000)
+data <- get("null10000")
 depths <- data$depths
 for (spltr in c("chiSplit", "miSplit", "randSplit")) {
     png(paste0(spltr, "ChiDepth.png"), width = 4, height = 4,
@@ -299,8 +312,9 @@ for (spltr in c("chiSplit", "miSplit", "randSplit")) {
 ## 4.12)
 size <- 1.8
 for (n in c(1e2, 1e3, 1e4)) {
-    ## read in corresponding data
-    data <- readRDS(paste0("SplitsRandomDatan", n, ".Rds"))
+    ## load corresponding data
+    data <- data(list = paste0("null", n))
+    data <- get(paste0("null", n))
     depths <- data$depths
     if (n == 1e2) {
         mar <- c(2.1, 2.1, 0.1, 0.1)
@@ -347,7 +361,8 @@ for (n in c(1e2, 1e3, 1e4)) {
 library(quantreg)
 qnts <- c(0.95, 0.99, 0.999)
 ## choose the data with a sample size of 1000
-data <- readRDS("SplitsRandomDatan10000.Rds")
+data(null10000)
+data <- get("null10000")
 depths <- data$depths
 depthSeq.chi <- data$chiSplit
 depthSeq.mi <- data$miSplit
@@ -403,7 +418,6 @@ dev.off()
 
 
 ## SIMULATED DATA PATTERNS ###########################################
-
 ## patterns from Newton (2009) provided in a list of functions
 patFns <- list(
     wave = function(n) {
@@ -471,27 +485,25 @@ simData <- replicate(nsim, generatePatterns(n))
 ## plot the first data realization (Fig 4.12)
 m <- 1
 pal <- c(RColorBrewer::brewer.pal(6, "Set2"), "black")
-png(file="measurePatterns.png", height=m, width=6*m, units = "in",
+png(file="measurePatterns.png", height = m, width = 6*m, units = "in",
     res = 480)
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
-for(i in 1:7)
- {
-     plot(simData[, "x", i, 1], simData[, "y", i, 1], xlab="", ylab="",
-          axes = F, pch = 19, cex = 0.2, col = pal[i])
- }
+for(i in 1:7) {
+    plot(simData[, "x", i, 1], simData[, "y", i, 1], xlab = "",
+         ylab = "", axes = F, pch = 19, cex = 0.2, col = pal[i])
+}
 dev.off()
 
 ## convert this data into pairwise ranks and plot it (Fig 4.13)
 simXr <- apply(simData[, "x", , ], c(2, 3), rank)
 simYr <- apply(simData[, "y", , ], c(2, 3), rank)
-png(file="measurePatternsRank.png", height=m, width=6*m, units = "in",
-    res = 480)
+png(file="measurePatternsRank.png", height = m, width = 6*m,
+    units = "in", res = 480)
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
-for(i in 1:7)
- {
-     plot(simXr[, i, 1], simYr[, i, 1], xlab="", ylab="",
+for(i in 1:7) {
+     plot(simXr[, i, 1], simYr[, i, 1], xlab = "", ylab = "",
           axes= F, pch = 19, cex = 0.2, col = pal[i])
- }
+}
 dev.off()
 
 ## try the binning algorithm on these data
@@ -578,7 +590,8 @@ rndNbin <- deNest(testRndChi, getnBin)
 
 ## plot the paths of every pattern under different splitting regimes
 ## compared to the null
-data <- readRDS(paste0("SplitsRandomDatan1000.Rds")) # read in null
+data(null1000) # read in null
+data <- get("null1000")
 depths <- data$depths
 depthSeq.chi <- data$chiSplit
 depthSeq.mi <- data$miSplit
@@ -729,14 +742,15 @@ for(i in 1:7) {
 dev.off()
 
 
+
 ## REAL DATA EXAMPLE #################################################
 ## S&P500 data: "SP500" demo in "zenplots" package, code from Marius
 ## Hofert, produces a set of pseudo-observations that are uniform
 ## these are loaded here and converted to ranks
-spData <- readRDS("sp500pseudo.Rds")
-spRanks <- apply(spData, 2, rank, ties.method = "random")
+data(sp500pseudo)
+spRanks <- apply(sp500pseudo, 2, rank, ties.method = "random")
 rownames(spRanks) <- NULL
-spPairs <- combn(ncol(spData), 2) # all possible pairs
+spPairs <- combn(ncol(spRanks), 2) # all possible pairs
 ## next, we iterate through all pairs and bin to a maximum depth of 6
 ## define the criteria to used
 crits <- makeCriteria(depth >= 6, expn <= 10, n == 0)
