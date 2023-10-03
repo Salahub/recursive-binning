@@ -1,8 +1,7 @@
 # Measuring statistical dependence using recursive binary splits
 
 This repository contains all of the code required to run a recursive
-binning algorithm to measure dependence. The two main folder exist for
-slightly different purposes.
+binning algorithm to measure dependence.
 
 ## marbR
 
