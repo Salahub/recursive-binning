@@ -13,9 +13,12 @@ splitting algorithm under random, chi-maximizing, and mutual
 information-maximizing splits is provided in three data sets for
 convenience.
 
-## R
+## Scripts
 
 This directory contains some extraneous data and a script used to
-undertake the explorations in my thesis. The script, **experiments.R**,
-contains sections which mirror the demos in marbR, as these
-experiments served as excellent motivation for demo content.
+undertake the explorations in my thesis. Two scripts are present along
+with some examples of null data. **experiments.R** contains sections
+which mirror the demos in marbR and the theses, as these experiments 
+served as excellent motivation for demo content. **sp500process.R**
+has code modified from Hofert and Oldford (2018) to extract and
+process S&P 500 data.
