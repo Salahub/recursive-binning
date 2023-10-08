@@ -1,0 +1,3 @@
+simulatedPatterns	Shows the basic use of recursive binning on some simulated data patterns from Newton's 2009 introduction in the Annals of Statistics 3(4) 1233:1235
+sp500			A demonstration of how recursive binning can used to measure pairwise relationships in a large data set
+
