@@ -1,6 +1,6 @@
 ## PACKAGES ##########################################################
 ## recursive binning package
-library(marbR)
+library(AssocBin)
 
 
 
@@ -88,11 +88,11 @@ miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
 rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
 
 ## random data plot (Fig 4.1(a))
-png("randomData.png", width = 3, height = 3, units = "in", res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+png("randomData.png", width = 2, height = 2, units = "in", res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-points(randx, randy, pch = 19, cex = 0.5,
+points(randx, randy, pch = 19, cex = 0.25,
        col = adjustcolor("gray50", 0.5))
 dev.off()
 
@@ -106,28 +106,28 @@ for (ii in seq_along(dep)) {
 }
 
 ## the early progression of splitting (Figs 4.2(a), 4.3(a))
-png("randomSplit1.png", width = 3, height = 3, units = "in", res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+png("randomSplit1.png", width = 2, height = 2, units = "in", res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-plotBinning(randBin.chi[[1]], pch = 19, cex = 0.5, add = TRUE,
+plotBinning(randBin.chi[[1]], pch = 19, cex = 0.25, add = TRUE,
             col = adjustcolor("gray50", 0.5))
 dev.off()
-png("randomSplit2.png", width = 3, height = 3, units = "in", res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+png("randomSplit2.png", width = 2, height = 2, units = "in", res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-plotBinning(randBin.chi[[2]], pch = 19, cex = 0.5, add = TRUE,
+plotBinning(randBin.chi[[2]], pch = 19, cex = 0.25, add = TRUE,
             col = adjustcolor("gray50", 0.5))
 dev.off()
 
 ## plot bins coloured by depth (Fig 4.4(a))
-png("randomSplitDepth.png", width = 3, height = 3, units = "in",
+png("randomSplitDepth.png", width = 2, height = 2, units = "in",
     res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-plotBinning(randBin.chi[[3]], pch = 19, cex = 0.5, add = TRUE,
+plotBinning(randBin.chi[[3]], pch = 19, cex = 0.25, add = TRUE,
             fill = depthFill(randBin.chi[[3]]),
             col = adjustcolor("black", 0.5))
 dev.off()
@@ -146,37 +146,37 @@ for (ii in seq_along(dep)) {
 }
 
 ## plot the line data (Fig 4.1(b))
-png("lineData.png", width = 3, height = 3, units = "in", res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+png("lineData.png", width = 2, height = 2, units = "in", res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-points(linex, liney, pch = 19, cex = 0.5,
+points(linex, liney, pch = 19, cex = 0.25,
        col = adjustcolor("gray50", 0.5))
 dev.off()
 
 ## the early progression of splitting (Figs 4.2(b), 4.3(b))
-png("lineSplit1.png", width = 3, height = 3, units = "in", res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+png("lineSplit1.png", width = 2, height = 2, units = "in", res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-plotBinning(lineBin.chi[[1]], pch = 19, cex = 0.5, add = TRUE,
+plotBinning(lineBin.chi[[1]], pch = 19, cex = 0.25, add = TRUE,
             col = adjustcolor("gray50", 0.5))
 dev.off()
-png("lineSplit2.png", width = 3, height = 3, units = "in", res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+png("lineSplit2.png", width = 2, height = 2, units = "in", res = 480)
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-plotBinning(lineBin.chi[[2]], pch = 19, cex = 0.5, add = TRUE,
+plotBinning(lineBin.chi[[2]], pch = 19, cex = 0.25, add = TRUE,
             col = adjustcolor("gray50", 0.5))
 dev.off()
 
 ## plot bins coloured by depth (Fig 4.4(b))
-png("lineSplitDepth.png", width = 3, height = 3, units = "in",
+png("lineSplitDepth.png", width = 2, height = 2, units = "in",
     res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-plotBinning(lineBin.chi[[3]], pch = 19, cex = 0.5, add = TRUE,
+plotBinning(lineBin.chi[[3]], pch = 19, cex = 0.25, add = TRUE,
             fill = depthFill(lineBin.chi[[3]]),
             col = adjustcolor("black", 0.5))
 dev.off()
@@ -186,21 +186,21 @@ dev.off()
 maxRes <- max(abs(c(binChi(lineBin.chi[[3]])$residuals,
                     binChi(randBin.chi[[3]])$residuals)))
 ## plot the perason residuals for both (Fig 4.5)
-png("randomSplitResid.png", width = 3, height = 3, units = "in",
+png("randomSplitResid.png", width = 2, height = 2, units = "in",
     res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-plotBinning(randBin.chi[[3]], pch = 19, cex = 0.5, add = TRUE,
+plotBinning(randBin.chi[[3]], pch = 19, cex = 0.25, add = TRUE,
             fill = residualFill(randBin.chi[[3]], maxRes = maxRes),
             col = adjustcolor("black", 0.5))
 dev.off()
-png("lineSplitResid.png", width = 3, height = 3, units = "in",
+png("lineSplitResid.png", width = 2, height = 2, units = "in",
     res = 480)
-narrowPlot(xgrid = seq(0, 1000, by = 250),
-           ygrid = seq(0, 1000, by = 250),
+narrowPlot(xgrid = seq(0, 1000, by = 500),
+           ygrid = seq(0, 1000, by = 500),
            addGrid = FALSE, xlab = "x", ylab = "y")
-plotBinning(lineBin.chi[[3]], pch = 19, cex = 0.5, add = TRUE,
+plotBinning(lineBin.chi[[3]], pch = 19, cex = 0.25, add = TRUE,
             fill = residualFill(lineBin.chi[[3]], maxRes = maxRes),
             col = adjustcolor("black", 0.5))
 dev.off()
@@ -295,8 +295,9 @@ for (spltr in c("chiSplit", "miSplit", "randSplit")) {
                            log(mean(data[[spltr]]["chi",ii,]),10),
                            col = "black", pch = 22,
                            bg = depthPal[ii])
-    for (p in c(0.01)) { # chi quantile
-        lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 2)
+    for (p in c(0.01)) { # chi quantiles
+        lines(log(2:600,10), log(qchisq(1-p, 1:599),10),
+              lty = 2)
     }
     ## position the legend based on the splitting rule
     if (grepl("rand", spltr)) {
@@ -522,7 +523,7 @@ testChiBins <- vector("list", nsim)
 testMiBins <- vector("list", nsim)
 testRndBins <- vector("list", nsim)
 
-## bin each realization
+## bin each realization (takes some time)
 for (jj in 1:nsim) {
     ## each list element is also a list for each
     testChiBins[[jj]] <- vector("list", length(depths))
@@ -600,7 +601,8 @@ depthSeq.rnd <- data$randSplit # null data
 ## plot paths for an individual random split (Figure 4.14(b))
 png("simDataRandPath.png", width = 3, height = 3, units = "in",
     res = 480)
-narrowPlot(xgrid = seq(0, 160, by = 40), xlab = "Number of bins",
+narrowPlot(xgrid = seq(0, 160, by = 40),
+           xlab = "Number of bins",
            ygrid = seq(0, 1600, by = 400),
            ylab = expression(chi^2~statistic))
 for (ii in 1:1e4) { # add the null lines
@@ -625,12 +627,12 @@ narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = "Number of bins",
            ygrid = seq(0, 1600, by = 400),
            ylab = expression(chi^2~statistic))
-for (ii in 1:1e4) {
+for (ii in 1:1e4) { # null lines
     lines(depthSeq.chi["nbin",,ii],
           depthSeq.chi["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-for (jj in 1:7) {
+for (jj in 1:7) { # observed path
     lines(chiNbin[[1]][jj,], chiPaths[[1]][jj,], col = pal[jj])
     points(chiNbin[[1]][jj,], chiPaths[[1]][jj,], col = pal[jj],
            pch = 19, cex = 0.5)
@@ -644,16 +646,25 @@ narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = "Number of bins",
            ygrid = seq(0, 1200, by = 300), ylim = c(0, 1300),
            ylab = expression(chi^2~statistic))
-for (ii in 1:1e4) {
+for (ii in 1:1e4) { # null lines
     lines(depthSeq.rnd["nbin",,ii],
           depthSeq.rnd["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-for (jj in 1:7) {
-    for (ii in 1:100) {
+for (jj in 1:7) { # observed paths
+    for (ii in 1:nsim) {
         lines(rndNbin[[ii]][jj,], rndPaths[[ii]][jj,],
               col = adjustcolor(pal[jj], 0.2))
     }
+}
+## get median lines
+medianNbin <- apply(simplify2array(rndNbin), c(1,2), median)
+medianPaths <-  apply(simplify2array(rndPaths), c(1,2), median)
+for (jj in 1:7) { # add mean lines
+    lines(medianNbin[jj,], medianPaths[jj,], col = "gray50",
+          lwd = 3)
+    lines(medianNbin[jj,], medianPaths[jj,], col = pal[jj],
+          lwd = 2)
 }
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
@@ -675,6 +686,15 @@ for (jj in 1:7) {
         lines(chiNbin[[ii]][jj,], chiPaths[[ii]][jj,],
               col = adjustcolor(pal[jj], 0.2))
     }
+}
+## get median lines
+medianNbin <- apply(simplify2array(chiNbin), c(1,2), median)
+medianPaths <-  apply(simplify2array(chiPaths), c(1,2), median)
+for (jj in 1:7) { # add mean lines
+    lines(medianNbin[jj,], medianPaths[jj,], col = "gray50",
+          lwd = 3)
+    lines(medianNbin[jj,], medianPaths[jj,], col = pal[jj],
+          lwd = 2)
 }
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
