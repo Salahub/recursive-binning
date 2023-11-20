@@ -17,7 +17,7 @@ provides the value of each statistic for each maximum depth over
 10,000 replicates.
 }
 \usage{
-null10000
+data(null10000)
 }
 \description{
 These data sets are statistic values for maximized chi, maximized

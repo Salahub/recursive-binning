@@ -19,6 +19,8 @@
 ##' depth from the first element of the list. The final dimension
 ##' provides the value of each statistic for each maximum depth over
 ##' 10,000 replicates.
+##'
+##' @usage data(null100)
 "null100"
 
 ##' Null replicates of different binning methods
@@ -42,6 +44,8 @@
 ##' depth from the first element of the list. The final dimension
 ##' provides the value of each statistic for each maximum depth over
 ##' 10,000 replicates.
+##'
+##' @usage data(null1000)
 "null1000"
 
 ##' Null replicates of different binning methods
@@ -65,6 +69,8 @@
 ##' depth from the first element of the list. The final dimension
 ##' provides the value of each statistic for each maximum depth over
 ##' 10,000 replicates.
+##'
+##' @usage data(null10000)
 "null10000"
 
 ##' De-Garched S&P 500 returns
@@ -77,7 +83,6 @@
 ##' A matrix with 755 rows and 461 columns, the rows correspond to
 ##' dates between 2007 and 2009 and the columns correspond to the
 ##' different S&P 500 constituent stocks.
+##'
+##' @usage data(sp500pseudo)
 "sp500pseudo"
-
-
-

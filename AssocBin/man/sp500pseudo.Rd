@@ -10,7 +10,7 @@ dates between 2007 and 2009 and the columns correspond to the
 different S&P 500 constituent stocks.
 }
 \usage{
-sp500pseudo
+data(sp500pseudo)
 }
 \description{
 This data uses code from the 'zenplots' package to process S&P 500
