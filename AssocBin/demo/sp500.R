@@ -1,6 +1,6 @@
 ## PACKAGES ##########################################################
 ## recursive binning package
-library(marbR)
+library(AssocBin)
 library(quantreg)
 
 

@@ -716,6 +716,8 @@ for (depth in 2:10) {
                     cex = 0.1, add = TRUE,
                     col = adjustcolor("grey", 0.8),
                     fill = residualFill(testChiBins[[1]][[depth]][[i]],
+                                        colrng = c("gray75", "floralwhite",
+                                                   pal[i]),
                                         maxRes = maxRes))
     }
     dev.off()
@@ -741,25 +743,28 @@ for (depth in 2:10) {
     dev.off()
 }
 
-## view the random bins at their maximum depth (Fig 4.17)
+## and the random bins for every depth (Figure 4.17 for depth of 10)
 ## again, standardize the residuals
 maxRes <- max(sapply(unlist(testRndChi[[10]],
                             recursive = FALSE),
                      getMaxRes))
-depth <- 10
-png(file = "simDataBinsRand.png", height = m, width = 6*m,
-    units = "in", res = 480)
-par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
-for(i in 1:7) {
-    plot(NA, ylim = c(1, n), xlim = c(1, n),
-         axes = F, xlab = "", ylab = "", main = "")
-    plotBinning(testRndBins[[10]][[depth]][[i]],
-                pch = 19, cex = 0.1, add = TRUE,
-                col = adjustcolor("grey", 0.8),
-                fill = residualFill(testRndBins[[10]][[depth]][[i]],
-                                    maxRes = maxRes))
+for (depth in 2:10) {
+    png(file = paste0("simDataBinsRand", depth, ".png"), height = m,
+        width= 6*m, units = "in", res = 480)
+    par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+    par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+    for(i in 1:7) {
+        plot(NA, ylim = c(1, n), xlim = c(1, n),
+             axes = F, xlab = "", ylab = "", main = "")
+        plotBinning(testRndBins[[10]][[depth]][[i]],
+                    pch = 19, cex = 0.1, add = TRUE,
+                    col = adjustcolor("grey", 0.8),
+                    fill = residualFill(testRndBins[[10]][[depth]][[i]],
+                                        maxRes = maxRes))
+    }
+    dev.off()
 }
-dev.off()
+
 
 
 
