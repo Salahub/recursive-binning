@@ -1,8 +1,8 @@
 Package: AssocBin
-Version: 1.0-0
+Version: 0.1-0
 Encoding: UTF-8
 Title: Measuring association with recursive binning
-Description: An implementation of recursive binary partitioning with functions that support the measurement of dependence in pairwise variables and visualization of final binnings.
+Description: An implementation of recursive binary partitioning with functions that support the measurement of dependence in pairwise variables and visualization of final binnings. The package demos provide a good overview of the functionality.
 Authors@R: c(person(given = "Chris", family = "Salahub", role = c("aut", "cre"), email = "chris.salahub@uwaterloo.ca"))
 Author: Chris Salahub [aut, cre]
 Maintainer: Chris Salahub <chris.salahub@uwaterloo.ca>
