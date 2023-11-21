@@ -1,0 +1,141 @@
+---
+title: "An Introduction to `AssocBin`"
+author: "Chris Salahub"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{An Introduction to AssocBin}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The `AssocBin` package implements the core algorithm and several helpers to measure the association between two variables using a recursive binary partitioning (or binning) of the data. At each step, the algorithm is provided with a list of bins that have edges, contained points, and other features and then splits those bins which fail some stopping checks. Though it is not forced by any function contained, it is assumed the user will provide the algorithm with *ranked* variables along each margin, as every helper function assumes this is the case. The core logic of the test rests on the observation that variable ranks will have a joint uniform density only under independence.
+
+This vignette will demonstrate how to set up, run, and process the results from this core algorithm using some of the defined helpers. A more complete description can be found in the associated pre-print, https://arxiv.org/abs/2311.08561. We begin by loading the package.
+
+```{r}
+library(AssocBin)
+```
+
+Now we can move on to some simple examples to establish how the algorithm works. We start by generating some independent data and taking the ranks.
+
+```{r}
+set.seed(9023831)
+n <- 100
+randx <- rnorm(n)
+randy <- rnorm(n)
+plot(randx, randy)
+```
+
+```{r}
+rankx <- rank(randx, ties.method = "random")
+ranky <- rank(randy, ties.method = "random")
+plot(rankx, ranky)
+```
+
+With rank data in hand, we can work on setting up the algorithm. This requires (minimally) three steps:
+
+1. Defining the stop criteria
+2. Defining a stopping function
+3. Defining a splitting function
+
+`AssocBin` has been built in a modular way so any of these can be custom-defined and swapped into the algorithm by a user, but helpers are provided for the suggested use case. Let's look at how the stop criteria are defined:
+
+```{r}
+criteria <- makeCriteria(expn <= 10, n == 0, depth >= d)
+str(criteria)
+```
+
+The `makeCriteria` function captures its arguments and appends them into a character separated by `|`. This creates a single logical statement which is evaluated within each bin (treated as an environment) to determine whether than bin's named elements satisfy the stop criteria. The wrapper that performs this evaluation is `stopper`, which is set up by defining a closure using the criteria:
+
+```{r}
+stopper
+stopFn <- function(bns) stopper(bns, criteria)
+```
+
+In this way, many criteria can be quickly checked and the `makeCriteria` function can be adapted to changes in the named elements of a bin. Note that `d` is not defined yet. This is deliberate choice that allows us to use R's lexical scoping to set it dynamically and modify the depth criteria on the fly.
+
+Next, we set up the splitting logic. The helper provided to support different splitting logic is the `maxScoreSplit` function, which accepts a bin, score function, and numeric value specifying the minimum expected number of observations (proportional to the area) allowed for bins to put a floor on the minimum bin size. It uses the score function to evaluate splits at every observation in the bin and chooses the one which maximizes the score subject to the minimum size constraint. `chiScores` computes $\chi^2$ statistic-like scores based on
+$$\frac{(o - e)^2}{e}$$
+where $e$ is the expected number of points in a bin and $o$ is the observed number. `miScores` instead takes inspiration from the mutual information in
+$$\frac{o}{n} \log \frac{o}{e}.$$
+Finally, `randScores` supports random splitting by sampling random uniform values in place of computing a score for each potential split. To set up their use, all can be placed in appropriate closures.
+```{r}
+chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
+miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
+rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
+```
+
+With all the necessary preliminaries set up, we can apply the algorithm to our data. This is done by using the `binner` function with the appropriate arguments.
+
+```{r}
+d <- 5
+randBin <- binner(x = rankx, y = ranky, stopper = stopFn, splitter = chiSplit)
+```
+
+We can visualize the result using the helper `plotBinning`:
+
+```{r}
+plotBinning(randBin, pch = 19, cex = 1,
+            col = adjustcolor("gray50", 0.5))
+```
+
+This plot is augmented by filling the displayed bins. The `fill` argument to `plotBinning` accepts a vector of colour values, but two useful cases are shading by residual and shading by depth. These cases are completed by `residualFill`, which computes the Pearson residual
+$$\text{sign}(o - e)\sqrt{\frac{(o - e)^2}{e}}$$
+and uses a divergent palette to shade the bins. Trying both for our simple data:
+
+```{r}
+## first fill by depth
+plotBinning(randBin, pch = 19, cex = 1,
+            fill = depthFill(randBin),
+            col = adjustcolor("gray50", 0.5))
+```
+```{r}
+## next fill by residual
+plotBinning(randBin, pch = 19, cex = 1,
+            fill = residualFill(randBin, colrng = c("steelblue", "white", "firebrick")),
+            col = adjustcolor("gray50", 0.5))
+```
+
+Both of these can be modified to change the palette used and the residual fill can be modified based on a value for maximum saturation. The residual fill is much more interesting when applied to a larger sample of data which is not random and uniform.
+
+```{r}
+depx <- rnorm(10*n)
+depy <- depx + rnorm(10*n, sd = 0.4)
+plot(depx, depy)
+```
+
+```{r}
+d <- 10 # change maximum depth due to larger sample size
+depx.rank <- rank(depx)
+depy.rank <- rank(depy)
+depBins <- binner(depx.rank, depy.rank, stopper = stopFn, splitter = chiSplit)
+plotBinning(depBins, pch = 19, cex = 1, col = adjustcolor("gray50", 0.5))
+```
+
+```{r}
+plotBinning(depBins, pch = 19, cex = 1, col = adjustcolor("gray50", 0.5),
+            fill = residualFill(depBins))
+```
+
+The Pearson residuals, which use red to display areas of unusually high density and blue for areas of unusually low density, effectively highlight the pattern of the data and the regions which depart the most from an assumption of uniformity (and therefore independence). Even under random splitting they provide some idea of the structure in the data (though the bins aren't as regular).
+
+```{r}
+set.seed(591241)
+depBins.rand <- binner(depx.rank, depy.rank, stopper = stopFn, splitter = rndSplit)
+plotBinning(depBins.rand, pch = 19, cex = 1, col = adjustcolor("gray50", 0.5),
+            fill = residualFill(depBins.rand))
+```
+
+Once a binning has been completed, we can compute the $\chi^2$ statistic on the bins using `binChi`.
+
+```{r}
+binChi(randBin)$stat
+binChi(depBins)$stat
+binChi(depBins.rand)$stat
+```
+
+As might be expected, the statistic for the strongly dependent data is much larger than for the uniform data and the maximizing splits result in a larger statistic value than the random splits. These statistics can then be used to rank different associations or to generate a p-value. For more examples of the method in use, try `demo(simulatedPatterns)` (which is fast) or `demo(sp500)` (which takes a very long time to run due to the size of the dataset).

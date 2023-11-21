@@ -8,9 +8,10 @@ Author: Chris Salahub [aut, cre]
 Maintainer: Chris Salahub <chris.salahub@uwaterloo.ca>
 Depends: R (>= 4.3.0)
 Imports:
-Suggests:
+Suggests: knitr, rmarkdown
 Enhances:
 License: GPL (>= 3) | file LICENCE
 NeedsCompilation: no
 Repository: CRAN
+VignetteBuilder: knitr
 RoxygenNote: 7.2.3
