@@ -1,3 +1,6 @@
+importFrom("grDevices", "colorRampPalette")
+importFrom("graphics", "points", "rect")
+importFrom("stats", "runif")
 export(binner)
 export(plotBinning)
 export(depthFill)
