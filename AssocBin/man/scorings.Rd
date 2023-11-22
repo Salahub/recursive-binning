@@ -47,6 +47,18 @@ a score of zero.
 \item \code{randScores()}: A random score for random splitting
 
 }}
+\examples{
+vals <- c(2, 5, 12, 16, 19)
+## restricting the minExp changes output
+chiScores(vals, 4, minExp = 0)
+chiScores(vals, 4, minExp = 2)
+## same for the miScores
+miScores(vals, 4, minExp = 0)
+miScores(vals, 4, minExp = 2)
+## random scoring produces different output every time
+randScores(vals, 4, minExp = 0)
+randScores(vals, 4, minExp = 0)
+}
 \author{
 Chris Salahub
 }

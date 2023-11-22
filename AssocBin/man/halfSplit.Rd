@@ -24,6 +24,13 @@ splits can only occur at observation coordinates.
 Given a bin and a margin, this function splits the bin so
 half the points are above the new split point and half are below.
 }
+\examples{
+bin <- list(x = 1:10, y = sample(1:10),
+            bnds = list(x = c(0, 10), y = c(0, 10)),
+            expn = 10, n = 10, depth = 0)
+halfSplit(bin)
+halfSplit(bin, margin = "y")
+}
 \author{
 Chris Salahub
 }

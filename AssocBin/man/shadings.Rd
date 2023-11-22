@@ -56,6 +56,17 @@ residual function applied to each bin.
 \item \code{residualFill()}: Fill by residual values
 
 }}
+\examples{
+##' bin <- list(x = 1:10, y = sample(1:10),
+            bnds = list(x = c(0, 10), y = c(0, 10)),
+            expn = 10, n = 10, depth = 0)
+bin2 <- halfSplit(bin, "x")
+bin3 <- unlist(lapply(halfSplit, maxScoreSplit,
+                      scorer = chiScores),
+               recursive = FALSE)
+plotBinning(bin3, fill = depthFill(bin3)) # all the same depth
+plotBinning(bin3, fill = residualFill(bin3)) # diff resids
+}
 \author{
 Chris Salahub
 }

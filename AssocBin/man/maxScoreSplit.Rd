@@ -37,6 +37,15 @@ tie breaking function, and a maximum selection function to split
 a bin at the observation coordinate which maximizes the score
 function.
 }
+\examples{
+bin <- list(x = 1:10, y = sample(1:10),
+            bnds = list(x = c(0, 10), y = c(0, 10)),
+            expn = 10, n = 10, depth = 0)
+maxScoreSplit(bin, chiScores)
+maxScoreSplit(bin, miScores) # pretty similar for both
+maxScoreSplit(bin, randScores)
+maxScoreSplit(bin, randScores) # different every time
+}
 \author{
 Chris Salahub
 }

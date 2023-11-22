@@ -23,6 +23,9 @@ behaviour of recursive binning. It accepts an arbitrary number
 of arguments, each a logical statement, and appends them all into
 a string separated by the pipe character.
 }
+\examples{
+makeCriteria(depth >= 5, n < 1)
+}
 \author{
 Chris Salahub
 }

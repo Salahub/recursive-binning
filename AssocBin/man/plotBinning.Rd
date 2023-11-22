@@ -37,6 +37,16 @@ colours to visualize the sample space of pairwise data.
 custom shading to communicate large residuals, the depth of bins,
 or highlight particular bins
 }
+\examples{
+bin <- list(x = 1:10, y = sample(1:10),
+            bnds = list(x = c(0, 10), y = c(0, 10)),
+            expn = 10, n = 10, depth = 0)
+bin2 <- halfSplit(bin, "x")
+bin3 <- unlist(lapply(halfSplit, maxScoreSplit,
+                      scorer = chiScores),
+               recursive = FALSE)
+plotBinning(test)
+}
 \author{
 Chris Salahub
 }
