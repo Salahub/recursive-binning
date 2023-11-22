@@ -23,6 +23,15 @@
 ##' @return A list of lists each with elements `x`, `y`, `bnds`,
 ##' `expn`, and `n`.
 ##' @examples
+##' ## necessary set up
+##' crits <- makeCriteria(depth >= 4, n < 10, expn <= 5)
+##' stopFn <- function(bns) stopper(bns, crits)
+##' spltFn <- function(bn) maxScoreSplit(bn, chiScores)
+##' ## generate data
+##' x <- sample(1:100)
+##' y <- sample(1:100)
+##' ## run binner
+##' bins <- binner(x, y, stopper = stopFn, splitter = spltFn)
 ##' @author Chris Salahub
 binner <- function(x, y, stopper, splitter, init = halfSplit) {
     ## initialize bin with all the data contained

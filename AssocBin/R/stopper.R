@@ -9,6 +9,7 @@
 ##' logicals
 ##' @return A string which appends all expressions together.
 ##' @examples
+##' makeCriteria(depth >= 5, n < 1)
 ##' @author Chris Salahub
 makeCriteria <- function(...) {
     cl <- match.call() # capturing inputs
@@ -28,6 +29,13 @@ makeCriteria <- function(...) {
 ##' to be evaluated within each bin of `binList`
 ##' @return A logical vector of the same length as `binList`.
 ##' @examples
+##' crits <- makeCriteria(depth >= 5, n < 1)
+##' binList1 <- list(list(x = c(1,2), y = c(3,1), depth = 1, n = 2),
+##'                 list(x = c(3,4), y = c(2,4), depth = 1, n = 2))
+##' binList2 <- list(list(x = c(1,2), y = c(3,1), depth = 6, n = 2),
+##'                 list(x = c(), y = c(), depth = 1, n = 0))
+##' stopper(binList, crits)
+##' stopper(binList2, crits)
 ##' @author Chris Salahub
 stopper <- function(binList, criteria) {
     sapply(binList,

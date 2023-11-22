@@ -13,6 +13,15 @@
 ##' @return A list of two bins resulting from the split of `bin` at
 ##' `bds`.
 ##' @examples
+##' bin <- list(x = 1:10, y = sample(1:10),
+##'             bnds = list(x = c(0, 10), y = c(0, 10)),
+##'             expn = 10, n = 10, depth = 0)
+##'
+##' ## split on x
+##' splitX(bin, 5, above = 6:10, below = 1:5)
+##' ## split on y
+##' splitY(bin, 5, above = which(bin$y > 5),
+##'        below = which(bin$y <= 5))
 ##' @author Chris Salahub
 ##' @describeIn marginalsplitters Splitting on x
 splitX <- function(bin, bd, above, below) {
@@ -56,6 +65,11 @@ splitY <- function(bin, bd, above, below) {
 ##' @return A list of two bins resulting from the split of `bin` in
 ##' half along the specified margin
 ##' @examples
+##' bin <- list(x = 1:10, y = sample(1:10),
+##'             bnds = list(x = c(0, 10), y = c(0, 10)),
+##'             expn = 10, n = 10, depth = 0)
+##' halfSplit(bin)
+##' halfSplit(bin, margin = "y")
 ##' @author Chris Salahub
 halfSplit <- function(bin, margin = "x") {
     if (margin == "x") {
@@ -90,6 +104,12 @@ halfSplit <- function(bin, margin = "x") {
 ##' @return A list of two bins resulting from the split of `bin` in
 ##' half along the margin corresponding to the larger score.
 ##' @examples
+##' bin <- list(x = 1:10, y = sample(1:10),
+##'             bnds = list(x = c(0, 10), y = c(0, 10)),
+##'             expn = 10, n = 10, depth = 0)
+##' halfCutTie(bin, 1, 2) # splits on y
+##' halfCutTie(bin, 2, 1) # splits on x
+##' halfCutTie(bin, 1, 1) # ties are random
 ##' @author Chris Salahub
 halfCutTie <- function(bin, xscore, yscore) {
     u <- as.numeric(yscore > xscore) # prefer to split on max score
@@ -130,6 +150,13 @@ halfCutTie <- function(bin, xscore, yscore) {
 ##' @return A list of two bins resulting from the split of `bin`
 ##' along the corresponding margin at the maximum location
 ##' @examples
+##' bin <- list(x = 1:10, y = sample(1:10),
+##'             bnds = list(x = c(0, 10), y = c(0, 10)),
+##'             expn = 10, n = 10, depth = 0)
+##' maxScoreSplit(bin, chiScores)
+##' maxScoreSplit(bin, miScores) # pretty similar for both
+##' maxScoreSplit(bin, randScores)
+##' maxScoreSplit(bin, randScores) # different every time
 ##' @author Chris Salahub
 maxScoreSplit <- function(bin, scorer, ties = halfCutTie,
                           pickMax = which.max, ...) {
@@ -178,6 +205,12 @@ maxScoreSplit <- function(bin, scorer, ties = halfCutTie,
 ##' @return A list of two bins resulting from the split of `bin` at
 ##' the maximum split location along x
 ##' @examples
+##' bin <- list(x = 1:10, y = sample(1:10),
+##'             bnds = list(x = c(0, 10), y = c(0, 10)),
+##'             expn = 10, n = 10, depth = 0)
+##' bin2 <- halfSplit(bin, "x")
+##' uniMaxScoreSplit(bin2[[1]])
+##' uniMaxScoreSplit(bin2[[1]], scorer = randScores)
 ##' @author Chris Salahub
 uniMaxScoreSplit <- function(bin, scorer = diff, pickMax = which.max,
                              ...) {

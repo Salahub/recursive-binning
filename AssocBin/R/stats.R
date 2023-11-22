@@ -20,6 +20,18 @@
 ##' individual statistic values (possibly transformed) and the
 ##' aggegrated statistic value.
 ##' @examples
+##' binList1 <- list(list(x = c(1,2), y = c(3,1), depth = 1, n = 2,
+##'                       expn = 2),
+##'                 list(x = c(3,4), y = c(2,4), depth = 1, n = 2,
+##'                      expn = 2))
+##' binList2 <- list(list(x = c(1,2), y = c(3,1), depth = 6, n = 2,
+##'                       expn = 4),
+##'                 list(x = c(), y = c(), depth = 1, n = 0, expn = 1))
+##' binChi(binList1)
+##' binChi(binList2)
+##' binMI(binList1)
+##' binMi(binList2)
+##' binAbsDif(binList2)
 ##' @author Chris Salahub
 ##' @describeIn binstatistics Chi-squared statistic
 binChi <- function(bins, agg = sum) {
