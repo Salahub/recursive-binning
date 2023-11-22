@@ -113,11 +113,11 @@ d <- 10 # change maximum depth due to larger sample size
 depx.rank <- rank(depx)
 depy.rank <- rank(depy)
 depBins <- binner(depx.rank, depy.rank, stopper = stopFn, splitter = chiSplit)
-plotBinning(depBins, pch = 19, cex = 1, col = adjustcolor("gray50", 0.5))
+plotBinning(depBins, pch = ".", cex = 1)
 ```
 
 ```{r}
-plotBinning(depBins, pch = 19, cex = 1, col = adjustcolor("gray50", 0.5),
+plotBinning(depBins, pch = ".", cex = 1,
             fill = residualFill(depBins))
 ```
 
@@ -126,7 +126,7 @@ The Pearson residuals, which use red to display areas of unusually high density 
 ```{r}
 set.seed(591241)
 depBins.rand <- binner(depx.rank, depy.rank, stopper = stopFn, splitter = rndSplit)
-plotBinning(depBins.rand, pch = 19, cex = 1, col = adjustcolor("gray50", 0.5),
+plotBinning(depBins.rand, pch = ".", cex = 1, 
             fill = residualFill(depBins.rand))
 ```
 

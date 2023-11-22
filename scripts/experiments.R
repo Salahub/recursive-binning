@@ -276,7 +276,7 @@ if (writeout) { # run simulation and write it out
 ## plot the paths: statistic by number of bins and depth for the three
 ## different splitting rules (Figs 4.6, 4.7, 4.8)
 ## read in the simulation rather than run it every time
-data(null10000)
+load("null10000.rda")
 data <- get("null10000")
 depths <- data$depths
 for (spltr in c("chiSplit", "miSplit", "randSplit")) {
@@ -314,7 +314,7 @@ for (spltr in c("chiSplit", "miSplit", "randSplit")) {
 size <- 1.8
 for (n in c(1e2, 1e3, 1e4)) {
     ## load corresponding data
-    data <- data(list = paste0("null", n))
+    data <- load(paste0("null", n, ".rda"))
     data <- get(paste0("null", n))
     depths <- data$depths
     if (n == 1e2) {
@@ -362,7 +362,7 @@ for (n in c(1e2, 1e3, 1e4)) {
 library(quantreg)
 qnts <- c(0.95, 0.99, 0.999)
 ## choose the data with a sample size of 1000
-data(null10000)
+load("null10000.rda")
 data <- get("null10000")
 depths <- data$depths
 depthSeq.chi <- data$chiSplit
@@ -591,7 +591,7 @@ rndNbin <- deNest(testRndChi, getnBin)
 
 ## plot the paths of every pattern under different splitting regimes
 ## compared to the null
-data(null1000) # read in null
+load("null1000.rda") # read in null
 data <- get("null1000")
 depths <- data$depths
 depthSeq.chi <- data$chiSplit
@@ -772,7 +772,7 @@ for (depth in 2:10) {
 ## S&P500 data: "SP500" demo in "zenplots" package, code from Marius
 ## Hofert, produces a set of pseudo-observations that are uniform
 ## these are loaded here and converted to ranks
-data(sp500pseudo)
+data(ssp500pseudo)
 spRanks <- apply(sp500pseudo, 2, rank, ties.method = "random")
 rownames(spRanks) <- NULL
 spPairs <- combn(ncol(spRanks), 2) # all possible pairs

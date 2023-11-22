@@ -3,21 +3,12 @@
 library(AssocBin)
 
 
-
-## CONSTANTS/RUN PARAMETERS ##########################################
-writeout <- FALSE # should simulations be run and output written?
-depthPal <- hcl.colors(9, "Dark 2") # colours by depth
-
-
-
 ## FUNCTIONS #########################################################
 ## custom plotting function with narrow margins
 narrowPlot <- function(xgrid, ygrid, main = "", xlab = "", ylab = "",
                        xticks = xgrid, yticks = ygrid,
-                       mars = c(2.1, 2.1, 1.1, 1.1),
                        xlim = range(xgrid), ylim = range(ygrid),
                        addGrid = TRUE, ...) {
-    par(mar = mars) # set narrow margins
     plot(NA, ylim = ylim, xlim = xlim, xaxt = 'n', xlab = "",
          yaxt = 'n', ylab = "", main = "", ...)
     ## add labels
@@ -38,13 +29,18 @@ narrowPlot <- function(xgrid, ygrid, main = "", xlab = "", ylab = "",
     mtext(text = yticks, at = ygrid, side = 2, cex = 0.8)
 }
 
-## reduce size of binning in storage by dropping points
-dropBinPoints <- function(bins) {
-    lapply(bins, function(bn) {
-        bn$x <- NULL; bn$y <- NULL; bn
+## wrapper to apply function to a nested list and return an array
+deNest <- function(nstdLst, fn) {
+    lapply(nstdLst, function(olst) {
+        sapply(olst, function(lst) {
+            sapply(lst, fn)
+        })
     })
 }
-
+## the internal functions to work with deNest
+getStat <- function(x) x$stat
+getnBin <- function(x) length(x$residuals)
+getMaxRes <- function(x) max(abs(x$residuals))
 
 
 ## SIMULATED DATA PATTERNS ###########################################
@@ -114,8 +110,8 @@ simData <- replicate(nsim, generatePatterns(n))
 
 ## plot the first data realization
 m <- 1
-pal <- c(RColorBrewer::brewer.pal(6, "Set2"), "black")
-par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+pal <- c(hcl.colors(6, "Set2"), "black")
+oldPar <- par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7) {
     plot(simData[, "x", i, 1], simData[, "y", i, 1], xlab = "",
          ylab = "", axes = F, pch = 19, cex = 0.2, col = pal[i])
@@ -138,18 +134,15 @@ crits <- makeCriteria(depth >= ii, expn <= 10, n == 0)
 stopFn <- function(bns) stopper(bns, crits)
 ## and splitting functions
 chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
-miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
 rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
 ## allocate storage for every split method
 testChiBins <- vector("list", nsim)
-testMiBins <- vector("list", nsim)
 testRndBins <- vector("list", nsim)
 
 ## bin each realization (takes a few minutes)
 for (jj in 1:nsim) {
     ## each list element is also a list for each
     testChiBins[[jj]] <- vector("list", length(depths))
-    testMiBins[[jj]] <- vector("list", length(depths))
     testRndBins[[jj]] <- vector("list", length(depths))
     for (ii in seq_along(depths)) { # iterate through depths
         ## chi bins for each pattern
@@ -157,12 +150,7 @@ for (jj in 1:nsim) {
             binner(simXr[, kk, jj], simYr[, kk, jj],
                    stopper = stopFn, splitter = chiSplit)
         })
-        ## mi bins for each pattern
-        testMiBins[[jj]][[ii]] <- lapply(1:7, function(kk) {
-            binner(simXr[, kk, jj], simYr[, kk, jj],
-                   stopper = stopFn, splitter = miSplit)
-        })
-        ## finally, random bins for each pattern
+        ## random bins for each pattern
         testRndBins[[jj]][[ii]] <- lapply(1:7, function(kk) {
             binner(simXr[, kk, jj], simYr[, kk, jj],
                    stopper = stopFn, splitter = rndSplit)
@@ -171,12 +159,7 @@ for (jj in 1:nsim) {
 }
 
 ## compute the chi square statistics for each split method
-testChiChi <- lapply(testChiBins, # nested list  makes it ugly
-                     function(lst) {
-                         lapply(lst,
-                                function(el) lapply(el, binChi))
-                     })
-testMiChi <- lapply(testMiBins, ## same thing for mi...
+testChiChi <- lapply(testChiBins, # nested list makes it ugly
                      function(lst) {
                          lapply(lst,
                                 function(el) lapply(el, binChi))
@@ -187,47 +170,56 @@ testRndChi <- lapply(testRndBins, ## ... and random splitting
                                 function(el) lapply(el, binChi))
                      })
 
-## for ease of plotting, convert these tests to statistic values,
-## final bin counts
-## define some helpers to make this cleaner...
-## wrapper to apply function to a nested list and return an array
-deNest <- function(nstdLst, fn) {
-    lapply(nstdLst, function(olst) {
-        sapply(olst, function(lst) {
-            sapply(lst, fn)
-        })
-    })
-}
-## the internal functions to work with deNest
-getStat <- function(x) x$stat
-getnBin <- function(x) length(x$residuals)
-getMaxRes <- function(x) max(abs(x$residuals))
-
-## apply this to everything else
+## deNest these to get the relevant statistics
 chiPaths <- deNest(testChiChi, getStat)
 chiNbin <- deNest(testChiChi, getnBin)
-miPaths <- deNest(testMiChi, getStat)
-miNbin <- deNest(testMiChi, getnBin)
 rndPaths <- deNest(testRndChi, getStat)
 rndNbin <- deNest(testRndChi, getnBin)
 
 ## plot the paths of every pattern under different splitting regimes
 ## compared to the null
-data(null1000) # read in null
-data <- get("null1000")
-depths <- data$depths
-depthSeq.chi <- data$chiSplit
-depthSeq.mi <- data$miSplit
-depthSeq.rnd <- data$randSplit # null data
+nNull <- 500
+nullChiBins <- vector(mode = "list", nsim)
+nullRndBins <- vector(mode = "list", nsim)
+for (jj in 1:nNull) {
+    ## each list element is also a list for each
+    nullChiBins[[jj]] <- vector("list", length(depths))
+    nullRndBins[[jj]] <- vector("list", length(depths))
+    for (ii in seq_along(depths)) { # iterate through depths
+        randx <- sample(1:n)
+        randy <- sample(1:n)
+        ## chi bins on random noise
+        nullChiBins[[jj]][[ii]] <- binner(randx, randy,
+                                          stopper = stopFn,
+                                          splitter = chiSplit)
+        ## random bins for each pattern
+        nullRndBins[[jj]][[ii]] <- binner(randx, randy,
+                                          stopper = stopFn,
+                                          splitter = rndSplit)
+        }
+    }
+## compute the chi square statistics for each split method
+nullChiChi <- lapply(nullChiBins,
+                     function(lst) {
+                         lapply(lst, binChi)
+                     })
+nullRndChi <- lapply(nullRndBins,
+                     function(lst) {
+                         lapply(lst, binChi)
+                     })
+## deNest these to get the relevant statistics
+nullChiPaths <- sapply(nullChiChi, function(lst) sapply(lst, getStat))
+nullChiNbin <- sapply(nullChiChi, function(lst) sapply(lst, getnBin))
+nullRndPaths <- sapply(nullRndChi, function(lst) sapply(lst, getStat))
+nullRndNbin <- sapply(nullRndChi, function(lst) sapply(lst, getnBin))
 
-par(mfrow = c(1,1))
 ## plot paths for an individual random split
+par(mfrow = c(1,1), mar = c(2.1, 2.1, 1.1, 1.1))
 narrowPlot(xgrid = seq(0, 160, by = 40), xlab = "Number of bins",
            ygrid = seq(0, 1600, by = 400),
            ylab = expression(chi^2~statistic))
-for (ii in 1:1e4) { # add the null lines
-    lines(depthSeq.rnd["nbin",,ii],
-          depthSeq.rnd["chi",,ii],
+for (ii in 1:nNull) { # add the null lines
+    lines(nullRndNbin[ ,ii], nullRndPaths[ ,ii],
           col = adjustcolor("gray", 0.1))
 }
 ## add these as lines to the plot of null lines
@@ -244,9 +236,8 @@ narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = "Number of bins",
            ygrid = seq(0, 1600, by = 400),
            ylab = expression(chi^2~statistic))
-for (ii in 1:1e4) {
-    lines(depthSeq.chi["nbin",,ii],
-          depthSeq.chi["chi",,ii],
+for (ii in 1:nNull) {
+    lines(nullChiNbin[ ,ii], nullChiPaths[ ,ii],
           col = adjustcolor("gray", 0.1))
 }
 for (jj in 1:7) {
@@ -260,9 +251,8 @@ narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = "Number of bins",
            ygrid = seq(0, 1200, by = 300), ylim = c(0, 1300),
            ylab = expression(chi^2~statistic))
-for (ii in 1:1e4) {
-    lines(depthSeq.rnd["nbin",,ii],
-          depthSeq.rnd["chi",,ii],
+for (ii in 1:nNull) { # add the null lines
+    lines(nullRndNbin[ ,ii], nullRndPaths[ ,ii],
           col = adjustcolor("gray", 0.1))
 }
 for (jj in 1:7) {
@@ -278,9 +268,8 @@ narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = "Number of bins",
            ygrid = seq(0, 1200, by = 300), ylim = c(0, 1300),
            ylab = expression(chi^2~statistic))
-for (ii in 1:1e4) {
-    lines(depthSeq.chi["nbin",,ii],
-          depthSeq.chi["chi",,ii],
+for (ii in 1:nNull) {
+    lines(nullChiNbin[ ,ii], nullChiPaths[ ,ii],
           col = adjustcolor("gray", 0.1))
 }
 for (jj in 1:7) {
@@ -297,8 +286,8 @@ maxRes <- max(sapply(unlist(testChiChi[[1]],
                             recursive = FALSE),
                      getMaxRes))
 ## for every depth, display the binning for each pattern
-for (depth in 2:10) {
-    par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+par(mfrow=c(7,7), mar=c(1,1,1,1)/2)
+for (depth in 4:10) {
     for(i in 1:7) {
         plot(NA, ylim = c(1, n), xlim = c(1, n), # remove axes
              axes = F, xlab = "", ylab = "", main = "")
@@ -310,29 +299,12 @@ for (depth in 2:10) {
     }
 }
 
-## do the same thing for the bins from MI splitting
-maxRes <- max(sapply(unlist(testMiChi[[1]],
-                            recursive = FALSE),
-                     getMaxRes))
-for (depth in 2:10) {
-    par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
-    for(i in 1:7) {
-        plot(NA, ylim = c(1, n), xlim = c(1, n),
-             axes = F, xlab = "", ylab = "", main = "")
-        plotBinning(testMiBins[[1]][[depth]][[i]], pch = 19,
-                    cex = 0.1, add = TRUE,
-                    col = adjustcolor("grey", 0.8),
-                    fill = residualFill(testMiBins[[1]][[depth]][[i]],
-                                        maxRes = maxRes))
-    }
-}
-
-## finally, repeat this for the random splitting
+## repeat this for the random splitting
 maxRes <- max(sapply(unlist(testRndChi[[10]],
                             recursive = FALSE),
                      getMaxRes))
-for (depth in 2:10) {
-    par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+par(mfrow=c(7,7), mar=c(1,1,1,1)/2)
+for (depth in 4:10) {
     for(i in 1:7) {
         plot(NA, ylim = c(1, n), xlim = c(1, n),
              axes = F, xlab = "", ylab = "", main = "")
@@ -343,3 +315,4 @@ for (depth in 2:10) {
                                         maxRes = maxRes))
     }
 }
+par(oldPar)
