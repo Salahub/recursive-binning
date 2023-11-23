@@ -30,7 +30,7 @@ binList1 <- list(list(x = c(1,2), y = c(3,1), depth = 1, n = 2),
                 list(x = c(3,4), y = c(2,4), depth = 1, n = 2))
 binList2 <- list(list(x = c(1,2), y = c(3,1), depth = 6, n = 2),
                 list(x = c(), y = c(), depth = 1, n = 0))
-stopper(binList, crits)
+stopper(binList1, crits)
 stopper(binList2, crits)
 }
 \author{

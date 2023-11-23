@@ -42,10 +42,9 @@ bin <- list(x = 1:10, y = sample(1:10),
             bnds = list(x = c(0, 10), y = c(0, 10)),
             expn = 10, n = 10, depth = 0)
 bin2 <- halfSplit(bin, "x")
-bin3 <- unlist(lapply(halfSplit, maxScoreSplit,
-                      scorer = chiScores),
+bin3 <- unlist(lapply(bin2, maxScoreSplit, scorer = chiScores),
                recursive = FALSE)
-plotBinning(test)
+plotBinning(bin3)
 }
 \author{
 Chris Salahub

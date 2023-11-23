@@ -30,7 +30,7 @@
 ##' binChi(binList1)
 ##' binChi(binList2)
 ##' binMI(binList1)
-##' binMi(binList2)
+##' binMI(binList2)
 ##' binAbsDif(binList2)
 ##' @author Chris Salahub
 ##' @describeIn binstatistics Chi-squared statistic

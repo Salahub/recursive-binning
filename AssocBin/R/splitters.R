@@ -12,16 +12,6 @@
 ##' @param below indices of `x` and `y` points in the bin below `bd`
 ##' @return A list of two bins resulting from the split of `bin` at
 ##' `bds`.
-##' @examples
-##' bin <- list(x = 1:10, y = sample(1:10),
-##'             bnds = list(x = c(0, 10), y = c(0, 10)),
-##'             expn = 10, n = 10, depth = 0)
-##'
-##' ## split on x
-##' splitX(bin, 5, above = 6:10, below = 1:5)
-##' ## split on y
-##' splitY(bin, 5, above = which(bin$y > 5),
-##'        below = which(bin$y <= 5))
 ##' @author Chris Salahub
 ##' @describeIn marginalsplitters Splitting on x
 splitX <- function(bin, bd, above, below) {
@@ -204,13 +194,6 @@ maxScoreSplit <- function(bin, scorer, ties = halfCutTie,
 ##' @param ... optional additional arguments to `scorer`
 ##' @return A list of two bins resulting from the split of `bin` at
 ##' the maximum split location along x
-##' @examples
-##' bin <- list(x = 1:10, y = sample(1:10),
-##'             bnds = list(x = c(0, 10), y = c(0, 10)),
-##'             expn = 10, n = 10, depth = 0)
-##' bin2 <- halfSplit(bin, "x")
-##' uniMaxScoreSplit(bin2[[1]])
-##' uniMaxScoreSplit(bin2[[1]], scorer = randScores)
 ##' @author Chris Salahub
 uniMaxScoreSplit <- function(bin, scorer = diff, pickMax = which.max,
                              ...) {

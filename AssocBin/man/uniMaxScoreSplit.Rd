@@ -33,14 +33,6 @@ This function is the univariate version of
 variable to be split is named `x` in the bin, and the other
 variable is to remain unsplit.
 }
-\examples{
-bin <- list(x = 1:10, y = sample(1:10),
-            bnds = list(x = c(0, 10), y = c(0, 10)),
-            expn = 10, n = 10, depth = 0)
-bin2 <- halfSplit(bin, "x")
-uniMaxScoreSplit(bin2[[1]])
-uniMaxScoreSplit(bin2[[1]], scorer = randScores)
-}
 \author{
 Chris Salahub
 }

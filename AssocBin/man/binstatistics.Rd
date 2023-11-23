@@ -63,7 +63,7 @@ binList2 <- list(list(x = c(1,2), y = c(3,1), depth = 6, n = 2,
 binChi(binList1)
 binChi(binList2)
 binMI(binList1)
-binMi(binList2)
+binMI(binList2)
 binAbsDif(binList2)
 }
 \author{

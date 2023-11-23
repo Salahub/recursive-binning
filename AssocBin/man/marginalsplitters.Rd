@@ -39,17 +39,6 @@ core functionality.
 \item \code{splitY()}: Splitting on y
 
 }}
-\examples{
-bin <- list(x = 1:10, y = sample(1:10),
-            bnds = list(x = c(0, 10), y = c(0, 10)),
-            expn = 10, n = 10, depth = 0)
-
-## split on x
-splitX(bin, 5, above = 6:10, below = 1:5)
-## split on y
-splitY(bin, 5, above = which(bin$y > 5),
-       below = which(bin$y <= 5))
-}
 \author{
 Chris Salahub
 }
