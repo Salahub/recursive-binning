@@ -177,6 +177,53 @@ maxScoreSplit <- function(bin, scorer, ties = halfCutTie,
   }
 }
 
+
+##' @title Random uniform splitting
+##' @description Split bins randomly and uniformly
+##' @details This function samples a coordinate uniformly along a
+##' random margin and splits a bin at that coordinate. In contrast to
+##' maxScoreSplit with randScores, this can introduce splits at
+##' locations other than the points.
+##' @param bin a bin to be split with elements `x`, `y`, `depth`,
+##' `bnds` (list with elements `x` and `y`), `expn`, `n`
+##' @param minExp the minimal expected point constraint
+##' @param ... optional additional arguments (for compatibility)
+##' @return A list of two bins resulting from the split of `bin`
+##' at a random location on a random margin
+##' @examples
+##' bin <- list(x = 1:10, y = sample(1:10),
+##'             bnds = list(x = c(0, 10), y = c(0, 10)),
+##'             expn = 10, n = 10, depth = 0)
+##' rUnifSplit(bin, minExp = 2)
+##' @author Chris Salahub
+rUnifSplit <- function (bin, minExp = 0, ...) {
+    xsort <- order(bin$x)
+    ysort <- order(bin$y)
+    expn <- bin$expn
+    prop <- minExp/expn
+    xrng <- diff(bin$bnds$x)
+    yrng <- diff(bin$bnds$y)
+    xmax <- runif(1, min = bin$bnds$x[1] + prop*xrng,
+                  max = bin$bnd$x[2] - prop*xrng)
+    ymax <- runif(1, min = bin$bnds$y[1] + prop*yrng,
+                  max = bin$bnd$y[2] - prop*yrng)
+    u <- runif(1)
+    if (u >= 0.5) {
+        xsplts <- bin$x[xsort]
+        newbnd <- xmax
+        below <- xsort[xsort <= xmax]
+        above <- xsort[xsort > xmax]
+        splitX(bin, bd = newbnd, above = above, below = below)
+    }
+    else {
+        ysplts <- bin$y[ysort]
+        newbnd <- ymax
+        below <- ysort[ysort <= ymax]
+        above <- ysort[ysort > ymax]
+        splitY(bin, bd = newbnd, above = above, below = below)
+    }
+}
+
 ##' @title Univariate score maximizing splitting
 ##' @description A function which splits a bin based on the location
 ##' maximizing a score function.
