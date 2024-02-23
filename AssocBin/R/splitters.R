@@ -197,29 +197,27 @@ maxScoreSplit <- function(bin, scorer, ties = halfCutTie,
 ##' rUnifSplit(bin, minExp = 2)
 ##' @author Chris Salahub
 rUnifSplit <- function (bin, minExp = 0, ...) {
-    xsort <- order(bin$x)
-    ysort <- order(bin$y)
+    #xsort <- order(bin$x)
+    #ysort <- order(bin$y)
     expn <- bin$expn
     prop <- minExp/expn
     xrng <- diff(bin$bnds$x)
     yrng <- diff(bin$bnds$y)
     xmax <- runif(1, min = bin$bnds$x[1] + prop*xrng,
-                  max = bin$bnd$x[2] - prop*xrng)
+                  max = bin$bnds$x[2] - prop*xrng)
     ymax <- runif(1, min = bin$bnds$y[1] + prop*yrng,
-                  max = bin$bnd$y[2] - prop*yrng)
+                  max = bin$bnds$y[2] - prop*yrng)
     u <- runif(1)
     if (u >= 0.5) {
-        xsplts <- bin$x[xsort]
         newbnd <- xmax
-        below <- xsort[xsort <= xmax]
-        above <- xsort[xsort > xmax]
+        below <- which(bin$x <= xmax)
+        above <- which(bin$x > xmax)
         splitX(bin, bd = newbnd, above = above, below = below)
     }
     else {
-        ysplts <- bin$y[ysort]
         newbnd <- ymax
-        below <- ysort[ysort <= ymax]
-        above <- ysort[ysort > ymax]
+        below <- which(bin$y <= ymax)
+        above <- which(bin$y > ymax)
         splitY(bin, bd = newbnd, above = above, below = below)
     }
 }

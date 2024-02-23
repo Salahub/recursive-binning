@@ -219,6 +219,7 @@ simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
 depthSeq.chi <- array(NA, dim = c(4, length(depths), nsim))
 depthSeq.mi <- array(NA, dim = c(4, length(depths), nsim))
 depthSeq.rnd <- array(NA, dim = c(4, length(depths), nsim))
+depthSeq.runif <- array(NA, dim = c(4, length(depths), nsim))
 ## set criteria/stop function
 crits <- makeCriteria(depth >= dep, expn <= 10, n == 0)
 stopFn <- function(bns) stopper(bns, crits)
@@ -226,6 +227,7 @@ stopFn <- function(bns) stopper(bns, crits)
 chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
 miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
 rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
+runfSplit <- function(bn) rUnifSplit(bn, minExp = 5)
 
 ## section which simulates null distribution
 if (writeout) { # run simulation and write it out
@@ -250,10 +252,18 @@ if (writeout) { # run simulation and write it out
                   mi = binMI(mitr)$stat,
                   nbin = length(mitr),
                   maxDep = max(sapply(mitr, function(bn) bn$depth)))
-            ## finally, random splits
+            ## random splits
             rntr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
                            stopper = stopFn, splitter = rndSplit)
             depthSeq.rnd[,depInd,ii] <-
+                c(chi = binChi(rntr)$stat,
+                  mi = binMI(rntr)$stat,
+                  nbin = length(rntr),
+                  maxDep = max(sapply(rntr, function(bn) bn$depth)))
+            ## finally, random uniform splits
+            rntr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
+                           stopper = stopFn, splitter = runfSplit)
+            depthSeq.runif[,depInd,ii] <-
                 c(chi = binChi(rntr)$stat,
                   mi = binMI(rntr)$stat,
                   nbin = length(rntr),
@@ -267,19 +277,21 @@ if (writeout) { # run simulation and write it out
     dimnames(depthSeq.chi) <- list(c("chi", "mi", "nbin", "maxDep"))
     dimnames(depthSeq.mi) <- list(c("chi", "mi", "nbin", "maxDep"))
     dimnames(depthSeq.rnd) <- list(c("chi", "mi", "nbin", "maxDep"))
+    dimnames(depthSeq.runif) <- list(c("chi", "mi", "nbin", "maxDep"))
     ## save the data
     saveRDS(list(depths = depths, chiSplit = depthSeq.chi,
-                 miSplit = depthSeq.mi, randSplit = depthSeq.rnd),
+                 miSplit = depthSeq.mi, randSplit = depthSeq.rnd,
+                 runifSplit = depthSeq.runif),
             file = paste0("null", n, ".Rds"))
 }
 
 ## plot the paths: statistic by number of bins and depth for the three
 ## different splitting rules (Figs 4.6, 4.7, 4.8)
 ## read in the simulation rather than run it every time
-load("null10000.rda")
-data <- get("null10000")
+#load("null10000.rda")
+data <- readRDS("null10000.Rds")
 depths <- data$depths
-for (spltr in c("chiSplit", "miSplit", "randSplit")) {
+for (spltr in c("chiSplit", "miSplit", "randSplit", "runifSplit")) {
     png(paste0(spltr, "ChiDepth.png"), width = 4, height = 4,
                units = "in", res = 480)
     narrowPlot(xgrid = seq(0, 3, by = 0.5), # plot region
@@ -300,7 +312,7 @@ for (spltr in c("chiSplit", "miSplit", "randSplit")) {
               lty = 2)
     }
     ## position the legend based on the splitting rule
-    if (grepl("rand", spltr)) {
+    if (grepl("rand", "runif", spltr)) {
         legpos <- "topleft"
     } else legpos <- "bottomright"
     legend(x = legpos, legend = 2:10, title = "Max depth",
@@ -314,8 +326,8 @@ for (spltr in c("chiSplit", "miSplit", "randSplit")) {
 size <- 1.8
 for (n in c(1e2, 1e3, 1e4)) {
     ## load corresponding data
-    data <- load(paste0("null", n, ".rda"))
-    data <- get(paste0("null", n))
+    #data <- load(paste0("null", n, ".rda"))
+    data <- readRDS(paste0("null", n, ".Rds"))
     depths <- data$depths
     if (n == 1e2) {
         mar <- c(2.1, 2.1, 0.1, 0.1)
@@ -327,12 +339,14 @@ for (n in c(1e2, 1e3, 1e4)) {
         mar <- c(2.1, 1.1, 0.1, 3.1)
         wid <- size + 0.4
     }
-    for (spltr in c("chiSplit", "miSplit", "randSplit")) {
+    for (spltr in c("chiSplit", "miSplit", "randSplit",
+                    "runifSplit")) {
         png(paste0(spltr, "ChiDepth", n, ".png"), width = wid,
             height = size, units = "in", res = 480)
-        narrowPlot(xgrid = seq(0, 3, by = 1), ygrid = seq(-1, 4, by = 1),
-                   xlab = expression(log[10]~"(Number of bins)"),
-                   ylab = expression(log[10]~{"("~chi^2~statistic~")"}),
+        narrowPlot(xgrid = seq(0, 3, by = 1),
+                   ygrid = seq(-1, 4, by = 1),
+                   xlab = expression(log[10]~"("~n[bin]~")"),
+                   ylab = expression(log[10]~{"("~X^2~")"}),
                    mars = mar)
         points(log(data[[spltr]]["nbin",,],10),
                log(data[[spltr]]["chi",,],10),
