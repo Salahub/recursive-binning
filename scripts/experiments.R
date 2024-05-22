@@ -293,20 +293,24 @@ data <- readRDS("null10000.Rds")
 depths <- data$depths
 for (spltr in c("chiSplit", "miSplit", "randSplit", "runifSplit")) {
     png(paste0(spltr, "ChiDepth.png"), width = 4, height = 4,
-               units = "in", res = 480)
+               units = "in", res = 480, bg = "transparent")
     narrowPlot(xgrid = seq(0, 3, by = 0.5), # plot region
-               xlab = expression(log[10]~"(Number of bins)"),
-               ygrid = seq(-1, 4, by = 1),
-               ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
+               xlab = expression(log[10]~"K"),
+               ygrid = seq(-1, 4, by = 1), bg = "transparent",
+               ylab = expression(log[10]~{"("~X^2~")"}))
     points(log(data[[spltr]]["nbin",,],10), # points
            log(data[[spltr]]["chi",,],10),
            col = adjustcolor(depthPal, 0.1),
            pch = 20)
     ## mean points
-    for (ii in 1:9) points(log(mean(data[[spltr]]["nbin",ii,]),10),
-                           log(mean(data[[spltr]]["chi",ii,]),10),
-                           col = "black", pch = 22,
-                           bg = depthPal[ii])
+    for (ii in 1:9) {
+        points(log(mean(data[[spltr]]["nbin",ii,]),10),
+               log(mean(data[[spltr]]["chi",ii,]),10),
+               pch = 3, cex = 0.5, lwd = 1.2, col = "black")
+        points(log(mean(data[[spltr]]["nbin",ii,]),10),
+               log(mean(data[[spltr]]["chi",ii,]),10),
+               pch = 3, cex = 0.5, lwd = 0.8, col = depthPal[ii])
+    }
     for (p in c(0.01)) { # chi quantiles
         lines(log(2:600,10), log(qchisq(1-p, 1:599),10),
               lty = 2)
@@ -316,7 +320,7 @@ for (spltr in c("chiSplit", "miSplit", "randSplit", "runifSplit")) {
         legpos <- "topleft"
     } else legpos <- "bottomright"
     legend(x = legpos, legend = 2:10, title = "Max depth",
-           bg = "white", cex = 0.8,
+           bg = "transparent", cex = 0.8,
            fill = adjustcolor(depthPal, 0.6))
     dev.off()
 }
@@ -342,28 +346,32 @@ for (n in c(1e2, 1e3, 1e4)) {
     for (spltr in c("chiSplit", "miSplit", "randSplit",
                     "runifSplit")) {
         png(paste0(spltr, "ChiDepth", n, ".png"), width = wid,
-            height = size, units = "in", res = 480)
-        narrowPlot(xgrid = seq(0, 3, by = 1),
+            height = size, units = "in", res = 480, bg = "transparent")
+        narrowPlot(xgrid = seq(0, 3, by = 1), bg = "transparent",
                    ygrid = seq(-1, 4, by = 1),
-                   xlab = expression(log[10]~"("~n[bin]~")"),
+                   xlab = expression(log[10]~"K"),
                    ylab = expression(log[10]~{"("~X^2~")"}),
                    mars = mar)
         points(log(data[[spltr]]["nbin",,],10),
                log(data[[spltr]]["chi",,],10),
                col = adjustcolor(depthPal, 0.1),
                cex = 0.5, pch = 20)
-        for (ii in 1:9) points(log(mean(data[[spltr]]["nbin",ii,]),10),
-                               log(mean(data[[spltr]]["chi",ii,]),10),
-                               col = "black", pch = 22, cex = 0.5,
-                               bg = depthPal[ii])
+        for (ii in 1:9) {
+            points(log(mean(data[[spltr]]["nbin",ii,]),10),
+                   log(mean(data[[spltr]]["chi",ii,]),10),
+                   pch = 3, cex = 0.5, lwd = 1.2, col = "black")
+            points(log(mean(data[[spltr]]["nbin",ii,]),10),
+                   log(mean(data[[spltr]]["chi",ii,]),10),
+                   pch = 3, cex = 0.5, lwd = 0.8, col = depthPal[ii])
+        }
         for (p in c(0.01)) {
             lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 2)
         }
         if (n == 1e4) {
             bnds <- par()$usr
             legend(x = bnds[2], y = bnds[4], legend = 2:10,
-                   title = "Max depth", bg = "white",
-                   cex = 0.6, xpd = NA,
+                   title = "Max depth", # bg = "white",
+                   cex = 0.6, xpd = NA, bg = "transparent",
                    fill = adjustcolor(depthPal, 0.6))
         }
         dev.off()
@@ -435,10 +443,26 @@ dev.off()
 ## SIMULATED DATA PATTERNS ###########################################
 ## patterns from Newton (2009) provided in a list of functions
 patFns <- list(
+    cross = function(n) {
+        x <- seq(-1, 1, length = n)
+        y <- (x^2 + runif(n)/2)*(sample(c(-1,1), size=n, replace = T))
+        cbind(x = x, y = y)
+    },
     wave = function(n) {
         x <- seq(-1, 1, length=n)
         u <- x + runif(n)/3; v <- 4*((x^2 - 1/2)^2 + runif(n)/500)
         cbind(x = u, y = v)
+    },
+    ring = function(n) {
+        x <- seq(-1, 1, length = n)
+        u <- sin(x*pi) + rnorm(n)/8
+        v <- cos(x*pi) + rnorm(n)/8
+        cbind(x = u, y = v)
+    },
+    valley = function(n) {
+        x <- seq(-1,1, length=n )
+        y <- (x ^2 + runif(n))/2
+        cbind(x = x, y = y)
     },
     rotatedSquare = function(n) {
         x <- runif(n, min = -1, max = 1)
@@ -459,22 +483,6 @@ patFns <- list(
         tmp <- cbind(x, y) %*% rr
         colnames(tmp) <- c("x",  "y")
         tmp
-    },
-    valley = function(n) {
-        x <- seq(-1,1, length=n )
-        y <- (x ^2 + runif(n))/2
-        cbind(x = x, y = y)
-    },
-    cross = function(n) {
-        x <- seq(-1, 1, length = n)
-        y <- (x^2 + runif(n)/2)*(sample(c(-1,1), size=n, replace = T))
-        cbind(x = x, y = y)
-    },
-    ring = function(n) {
-        x <- seq(-1, 1, length = n)
-        u <- sin(x*pi) + rnorm(n)/8
-        v <- cos(x*pi) + rnorm(n)/8
-        cbind(x = u, y = v)
     },
     noise = function(n) {
         dx <- rnorm(n)/3
@@ -501,11 +509,12 @@ simData <- replicate(nsim, generatePatterns(n))
 m <- 1
 pal <- c(RColorBrewer::brewer.pal(6, "Set2"), "black")
 png(file="measurePatterns.png", height = m, width = 6*m, units = "in",
-    res = 480)
+    res = 480, bg = "transparent")
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7) {
     plot(simData[, "x", i, 1], simData[, "y", i, 1], xlab = "",
-         ylab = "", axes = F, pch = 19, cex = 0.2, col = pal[i])
+         ylab = "", axes = F, pch = 19, cex = 0.2, col = pal[i],
+         bg = "transparent")
 }
 dev.off()
 
@@ -513,11 +522,12 @@ dev.off()
 simXr <- apply(simData[, "x", , ], c(2, 3), rank)
 simYr <- apply(simData[, "y", , ], c(2, 3), rank)
 png(file="measurePatternsRank.png", height = m, width = 6*m,
-    units = "in", res = 480)
+    units = "in", res = 480, bg = "transparent")
 par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7) {
      plot(simXr[, i, 1], simYr[, i, 1], xlab = "", ylab = "",
-          axes= F, pch = 19, cex = 0.2, col = pal[i])
+          axes= F, pch = 19, cex = 0.2, col = pal[i],
+          bg = "transparent")
 }
 dev.off()
 
@@ -614,11 +624,11 @@ depthSeq.rnd <- data$randSplit # null data
 
 ## plot paths for an individual random split (Figure 4.14(b))
 png("simDataRandPath.png", width = 3, height = 3, units = "in",
-    res = 480)
+    res = 480, bg = "transparent")
 narrowPlot(xgrid = seq(0, 160, by = 40),
-           xlab = "Number of bins",
+           xlab = expression(K),
            ygrid = seq(0, 1600, by = 400),
-           ylab = expression(chi^2~statistic))
+           ylab = expression(X^2), bg = "transparent")
 for (ii in 1:1e4) { # add the null lines
     lines(depthSeq.rnd["nbin",,ii],
           depthSeq.rnd["chi",,ii],
@@ -636,11 +646,11 @@ dev.off()
 
 ## make the same plot for paths from chi splitting (Figure 4.14(a))
 png("simDataMaxChiPath.png", width = 3, height = 3, units = "in",
-    res = 480)
+    res = 480, bg = "transparent")
 narrowPlot(xgrid = seq(0, 160, by = 40),
-           xlab = "Number of bins",
+           xlab = expression(K),
            ygrid = seq(0, 1600, by = 400),
-           ylab = expression(chi^2~statistic))
+           ylab = expression(X^2), bg = "transparent")
 for (ii in 1:1e4) { # null lines
     lines(depthSeq.chi["nbin",,ii],
           depthSeq.chi["chi",,ii],
@@ -654,12 +664,12 @@ for (jj in 1:7) { # observed path
 dev.off()
 
 ## for the random split repetitions, plot every one (Fig 4.15(b))
-png("simDataRandAll.png", width = 3, height = 3, units = "in",
-    res = 480)
+png("simDataRandAll.png", width = 5, height = 3, units = "in",
+    res = 480, bg = "transparent")
 narrowPlot(xgrid = seq(0, 160, by = 40),
-           xlab = "Number of bins",
-           ygrid = seq(0, 1200, by = 300), ylim = c(0, 1300),
-           ylab = expression(chi^2~statistic))
+           xlab = expression(K),
+           ygrid = seq(0, 1600, by = 400),
+           ylab = expression(X^2), bg = "transparent")
 for (ii in 1:1e4) { # null lines
     lines(depthSeq.rnd["nbin",,ii],
           depthSeq.rnd["chi",,ii],
@@ -684,12 +694,12 @@ lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
 
 ## do the same for the chi splits (Fig 4.15(a))
-png("simDataMaxChiAll.png", width = 3, height = 3, units = "in",
-    res = 480)
-narrowPlot(xgrid = seq(0, 160, by = 40),
-           xlab = "Number of bins",
-           ygrid = seq(0, 1200, by = 300), ylim = c(0, 1300),
-           ylab = expression(chi^2~statistic))
+png("simDataMaxChiAll.png", width = 5, height = 3, units = "in",
+    res = 480, bg = "transparent")
+narrowPlot(xgrid = seq(0, 160, by = 40), bg = "transparent",
+           xlab = expression(K),
+           ygrid = seq(0, 1600, by = 400),
+           ylab = expression(X^2))
 for (ii in 1:1e4) {
     lines(depthSeq.chi["nbin",,ii],
           depthSeq.chi["chi",,ii],
@@ -730,8 +740,8 @@ for (depth in 2:10) {
                     cex = 0.1, add = TRUE,
                     col = adjustcolor("grey", 0.8),
                     fill = residualFill(testChiBins[[1]][[depth]][[i]],
-                                        colrng = c("gray75", "floralwhite",
-                                                   pal[i]),
+                                        colrng = c("steelblue", "white",
+                                                   "firebrick"),
                                         maxRes = maxRes))
     }
     dev.off()
@@ -781,12 +791,11 @@ for (depth in 2:10) {
 
 
 
-
 ## REAL DATA EXAMPLE #################################################
 ## S&P500 data: "SP500" demo in "zenplots" package, code from Marius
 ## Hofert, produces a set of pseudo-observations that are uniform
 ## these are loaded here and converted to ranks
-data(ssp500pseudo)
+data(sp500pseudo)
 spRanks <- apply(sp500pseudo, 2, rank, ties.method = "random")
 rownames(spRanks) <- NULL
 spPairs <- combn(ncol(spRanks), 2) # all possible pairs
@@ -803,11 +812,12 @@ spBins <- vector("list", ncol(spPairs))
 msgInd <- ((1:ncol(spPairs)) %% 1000) == 0
 ## iterate through all pairs
 ## ~ 57 mins
+set.seed(85912024)
 system.time({for (ii in seq_len(ncol(spPairs))) { ## ~57 mins
     pair <- spPairs[, ii] # indices of pairs
     spBins[[ii]] <- binner(spRanks[, pair[1]], spRanks[, pair[2]],
                            stopper = stopFn,
-                           splitter = chiSplit)
+                           splitter = rndSplit)
     if (msgInd[ii]) {
         cat("\r Completed ", ii, " pairs")
     }
@@ -815,10 +825,16 @@ system.time({for (ii in seq_len(ncol(spPairs))) { ## ~57 mins
 ## drop points for smaller storage size
 spBinsNP <- lapply(spBins, dropBinPoints)
 ## save binnings
-saveRDS(spBinsNP, file = paste0("sp500bins", "NoPts.Rds"))
+saveRDS(spBinsNP, file = paste0("sp500binsRnd", "NoPts.Rds"))
 
-## load pre-processed data
-spBinsNP <- readRDS("sp500binsNoPts.Rds")
+## plot observed statistics on the S&P500 data for the random or
+## maximized splits
+random <- TRUE
+if (random) { ## load pre-processed data
+    spBinsNP <- readRDS("sp500binsRndNoPts.Rds")
+} else {
+    spBinsNP <- readRDS("sp500binsNoPts.Rds")
+}
 ## get chi statistics across the bins
 spChis <- lapply(spBinsNP, function(bns) binChi(bns))
 spChiStats <- sapply(spChis, function(x) x$stat)
@@ -826,92 +842,168 @@ spChiResid <- sapply(spChis, function(x) x$residuals)
 spChiNbin <- sapply(spChiResid, length)
 ## order by most interesting
 spOrd <- order(spChiStats, decreasing = TRUE)
-spMaxRes <- max(abs(unlist(spChiResid)))
+spMaxRes <- 17.35 # hard coded: largest residual across both
 
-## plot the distribution of the final statistic
-library(quantreg)
-## quantiles
-qnts <- c(0.95, 0.99, 0.999)
-## add the null density
-nulls <- readRDS("SplitsRandomDatan1000.Rds")
-## splitting the null statistics by number of bins allows us to more
-## easily compute the empirical quantiles of the sp500 data
-splitNulls <- split(c(nulls$chiSplit["chi",c(5,6),]),
-                    c(nulls$chiSplit["nbin",c(5,6),]))
-binVals <- as.numeric(names(splitNulls))
-## compute the empirical p-values by comparing each of the observed
-## statistics to the corresponding split bin of the null distribution
-empP <- sapply(seq_along(spChiStats),
-               function(ii) {
-                   nb <- as.character(spChiNbin[ii])
-                   sum(spChiStats[ii] >
-                       splitNulls[[nb]])/length(splitNulls[[nb]])
-               })
-## convert these to a hue for plotting of points
-spRGB <- colorRamp(c("steelblue", "firebrick"),
-                   bias = 10)(empP^2)/255
-spCol <- rgb(spRGB[,1], spRGB[,2], spRGB[,3])
-## perform quantile regression for the null data as well
-modQnt <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
-             data = data.frame(nbin = c(nulls$chiSplit["nbin",,]),
-                               chi = c(nulls$chiSplit["chi",,])))
-predQnt <- predict(modQnt,
-                   newdata = data.frame(nbin = binVals))
-
-## plot the sp500 point cloud alongside the null
-png("sp500vsNullPoints.png", width = 3.5, height = 3.5, units = "in",
-    res = 480)
-narrowPlot(xgrid = seq(1, 2, by = 0.25),
-           ygrid = seq(1, 3, by = 0.5), ylim = c(1, 3.2),
-           xlab = expression(log[10]~"(Number of bins)"),
-           ylab = expression(log[10]~{"("~chi^2~statistic~")"}))
-points(log(nulls$chiSplit["nbin", c(5, 6),], 10),
-       log(nulls$chiSplit["chi", c(5, 6),], 10), cex = 1,
-       pch = 20, col = adjustcolor("steelblue", 0.03))
-points(log(spChiNbin, 10), log(spChiStats, 10),
-       col = adjustcolor("firebrick", 0.03),
-       pch = 20)
-for (ii in 1:3) {
-    lines(log(binVals[-c(1,2)], 10),
-          log(predQnt[-c(1,2),ii], 10), lty = ii)
-    yadj <- 1 - 0.5*(ii - 1)
-    text(labels = paste0(100*qnts[ii], "%"),
-         x = log(binVals[3], 10), y = log(predQnt[3, ii], 10),
-         adj = c(1, yadj), cex = 0.6)
+## plot the statistic quantiles
+qnts <- c(0.95, 0.99, 0.999) # chosen quantiles
+if (random) {
+    nullP <- pchisq(spChiStats, spChiNbin - 1)
+    spRGB <- colorRamp(c("steelblue", "firebrick"),
+                       bias = 10)(nullP^2)/255
+} else {
+    library(quantreg)
+    ## the null density
+    nulls <- readRDS("SplitsRandomDatan1000.Rds")
+    ## splitting the null statistics by number of bins allows us to more
+    ## easily compute the empirical quantiles of the sp500 data
+    splitNulls <- split(c(nulls$chiSplit["chi",c(5,6),]),
+                        c(nulls$chiSplit["nbin",c(5,6),]))
+    binVals <- as.numeric(names(splitNulls))
+    ## compute the empirical p-values by comparing each of the observed
+    ## statistics to the corresponding split bin of the null distribution
+    empP <- sapply(seq_along(spChiStats),
+                   function(ii) {
+                       nb <- as.character(spChiNbin[ii])
+                       sum(spChiStats[ii] >
+                           splitNulls[[nb]])/length(splitNulls[[nb]])
+                   })
+    ## convert these to a hue for plotting of points
+    spRGB <- colorRamp(c("steelblue", "firebrick"),
+                       bias = 10)(empP^2)/255
+    ## perform quantile regression for the null data as well
+    modQnt <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
+                 data = data.frame(nbin = c(nulls$chiSplit["nbin",,]),
+                                   chi = c(nulls$chiSplit["chi",,])))
+    predQnt <- predict(modQnt,
+                       newdata = data.frame(nbin = binVals))
 }
-legend(x = "bottomright", cex = 0.8, legend = c("Null", "S&P500"),
-       pch = 20, col = c("steelblue", "firebrick"))
-dev.off()
+## convert p-values to a colour
+spCol <- rgb(spRGB[,1], spRGB[,2], spRGB[,3])
 
 ## plot the sp500 point cloud coloured by empirical p-value with the
 ## quantile regression lines alongside
-png("sp500empPColour.png", width = 3.5, height = 3.5, units = "in",
+if (random) {
+    nme <- "sp500empPColourRnd.png"
+} else {
+    nme <- "sp500empPColour.png"
+}
+png(nme, width = 3.5, height = 3.5, units = "in",
     res = 480)
-narrowPlot(xgrid = seq(1, 2, by = 0.25),
-           ygrid = seq(1.5, 3, by = 0.5), ylim = c(1.4, 3.2),
-           xlab = expression(log[10]~"(Number of bins)"),
-           ylab = expression(log[10]~{"("~chi^2~statistic~")"}),
+narrowPlot(xgrid = seq(1, 2, by = 0.5),
+           ygrid = seq(1, 3, by = 1), ylim = c(1, 3.2),
+           xlab = expression(log[10]~"("~n[bin]~")"),
+           ylab = expression(log[10]~{"("~X^2~")"}),
            mars = c(2.1, 2.1, 2.1, 2.1))
 points(log(spChiNbin, 10), log(spChiStats, 10), cex = 0.5,
        col = adjustcolor(spCol, 0.2), pch = 20)
 for (ii in 1:3) {
-    lines(log(binVals[-c(1,2)], 10),
-          log(predQnt[-c(1,2),ii], 10), lty = ii)
     yadj <- 1 - 0.5*(ii - 1)
-    text(labels = paste0(100*qnts[ii], "%"),
-         x = log(binVals[3], 10), y = log(predQnt[3, ii], 10),
-         adj = c(1, yadj), cex = 0.6)
+    if (random) {
+        lines(log(seq(10^1.15, 10^2, 1), 10),
+              log(qchisq(qnts[ii], df = seq(10^1.15, 10^2, 1) - 1), 10),
+              lty = ii)
+        text(labels = paste0(100*qnts[ii], "%"),
+             x = 1.15, y = log(qchisq(qnts[ii], df = 10^1.15-1), 10),
+             adj = c(1, yadj), cex = 0.6)
+    } else{
+        lines(log(binVals[-c(1,2)], 10),
+              log(predQnt[-c(1,2),ii], 10), lty = ii)
+        text(labels = paste0(100*qnts[ii], "%"),
+             x = log(binVals[3], 10), y = log(predQnt[3, ii], 10),
+             adj = c(1, yadj), cex = 0.6)
+    }
 }
 addMarHists(log(spChiNbin, 10), log(spChiStats, 10),
             xcuts = seq(1, 2, by = 0.03125),
-            ycuts = seq(1.5, 3, by = 0.0625))
+            ycuts = seq(1, 3, by = 0.0625))
 dev.off()
 
-## use this to plot the top pairs and their binnings
-png("sp500top36.png", width = 5, height = 5, units = "in",
+## compare the values between the two
+spChiStatsBoth <- readRDS("sp500Stats.Rds")
+spChiPBoth <- readRDS("sp500Pvals.Rds")
+spChiStatRanks <- apply(spChiStatsBoth, 2, rank,
+                        ties.method = "random")
+rejCol <- c("black", "firebrick")[((spChiPBoth[, "max"] > 0.95) !=
+                                   (spChiPBoth[, "rand"] > 0.95)) + 1]
+
+## plot it all
+png("spRandvsMaxRanks.png", width = 3.5, height = 3.5, units = "in",
     res = 480)
-par(mfrow = c(6, 6), mar = c(0.1, 0.55, 1.1, 0.55))
-for (prInd in spOrd[1:36]) {
+narrowPlot(xgrid = seq(0, 100000, by = 50000),
+           ygrid = seq(0, 100000, by = 50000),
+           ylim = c(0, 106030), xlim = c(0, 106030),
+           xlab = expression({"Random"~X^2~"rank"}),
+           ylab = expression({"Max"~X^2~"rank"}),
+           mars = c(2.1, 2.1, 2.1, 2.1))
+points(spChiStatRanks[, "rand"], spChiStatRanks[, "max"],
+       pch = ".", col = adjustcolor("black", 0.3))
+points(spChiStatRanks[c(22451, 65548), "rand"],
+       spChiStatRanks[c(22451, 65548), "max"],
+       pch = 1, col = "firebrick")
+text(labels = c("SNA:PH", "MCO:AEE"), x = spChiStatRanks[c(22451, 65548), "rand"],
+     y = spChiStatRanks[c(22451, 65548), "max"], adj = c(-0.1,0.5),
+     cex = 0.6)
+                                        #col = rejCol)
+dev.off()
+
+## which pairs maximize the difference in either direction?
+rankDiffs <- spChiStatRanks[, "max"] - spChiStatRanks[, "rand"]
+rankDiffOrd <- order(rankDiffs, decreasing = TRUE)
+topMax <- rankDiffOrd[1]
+topRand <- rankDiffOrd[length(rankDiffOrd)]
+## plot these two
+png("spBiggestDiffs.png", width = 3.5, height = 3.5, units = "in",
+    res = 480)
+par(mfrow = c(2, 2), mar = c(0.1, 0.55, 1.1, 0.55))
+for (prInd in c(topMax, topRand)) {
+    pr <- spPairs[, prInd] # pair indices
+    tempBin <- binner(spRanks[, pr[1]], spRanks[, pr[2]],
+                      stopper = stopFn, splitter = chiSplit)
+    bns <- list("Max" = tempBin, "Random" = spBinsNP[[prInd]])
+    for (ii in seq_along(bns)) {
+        plot(NA, xlim = c(1, (nrow(spRanks))),
+             ylim = c(1, (nrow(spRanks))), axes = "F",
+             xlab = colnames(spRanks)[pr[1]],
+             ylab = colnames(spRanks)[pr[2]],
+             main = "")
+        mtext(paste0(paste(colnames(spRanks)[pr], collapse = ":"),
+                     " (", names(bns)[ii], ")"),
+              cex = 0.6)
+        plotBinning(bns[[ii]], pch = NA,
+                    fill = residualFill(bns[[ii]],
+                                        maxRes = spMaxRes,
+                                        colrng = c("steelblue",
+                                                   "white",
+                                                   "firebrick")),
+                    add = TRUE)
+        points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".",
+               col = adjustcolor("gray50"))
+    }
+}
+dev.off()
+
+## these seem to have some association... is the low rank in the
+## random case a fluke? look at the most egregious difference
+testStat <- numeric(200)
+for (ii in seq_along(testStat)) {
+    tempBin <- binner(spRanks[, spPairs[1, 22451]],
+                      spRanks[, spPairs[2, 22451]],
+                      stopper = stopFn,
+                      splitter = rndSplit)
+    testStat[ii] <- binChi(tempBin)$stat
+}
+
+
+## use this to plot the top pairs and their binnings
+if (random) {
+    nme <- "sp500top16Rnd.png"
+} else {
+    nme <- "sp500top16.png"
+}
+png(nme, width = 3.5, height = 3.5, units = "in",
+    res = 480)
+par(mfrow = c(4, 4), mar = c(0.1, 0.55, 1.1, 0.55))
+for (prInd in spOrd[1:16]) {
     pr <- spPairs[, prInd] # pair indices
     plot(NA, xlim = c(1, (nrow(spRanks))),
          ylim = c(1, (nrow(spRanks))), axes = "F",
@@ -920,9 +1012,15 @@ for (prInd in spOrd[1:36]) {
          main = "")
     mtext(paste(colnames(spRanks)[pr], collapse = ":"),
           cex = 0.6)
-    plotBinning(spBinsNP[[prInd]],
-                fill = residualFill(spBinsNP[[prInd]],
-                                    maxRes = spMaxRes),
+    tempBin <- binner(spRanks[, pr[1]], spRanks[, pr[2]],
+                      stopper = stopFn,
+                      splitter = chiSplit)
+    plotBinning(tempBin, pch = NA,
+                fill = residualFill(tempBin,
+                                    maxRes = spMaxRes,
+                                    colrng = c("steelblue",
+                                               "white",
+                                               "firebrick")),
                 add = TRUE)
     points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".",
            col = adjustcolor("gray50"))
