@@ -443,15 +443,15 @@ dev.off()
 ## SIMULATED DATA PATTERNS ###########################################
 ## patterns from Newton (2009) provided in a list of functions
 patFns <- list(
-    cross = function(n) {
-        x <- seq(-1, 1, length = n)
-        y <- (x^2 + runif(n)/2)*(sample(c(-1,1), size=n, replace = T))
-        cbind(x = x, y = y)
-    },
     wave = function(n) {
         x <- seq(-1, 1, length=n)
         u <- x + runif(n)/3; v <- 4*((x^2 - 1/2)^2 + runif(n)/500)
         cbind(x = u, y = v)
+    },
+    cross = function(n) {
+        x <- seq(-1, 1, length = n)
+        y <- (x^2 + runif(n)/2)*(sample(c(-1,1), size=n, replace = T))
+        cbind(x = x, y = y)
     },
     ring = function(n) {
         x <- seq(-1, 1, length = n)
@@ -464,20 +464,20 @@ patFns <- list(
         y <- (x ^2 + runif(n))/2
         cbind(x = x, y = y)
     },
-    rotatedSquare = function(n) {
+    circle = function(n) {
         x <- runif(n, min = -1, max = 1)
         y <- runif(n, min = -1, max = 1)
-        theta <--pi/8
+        theta <- -pi/4
         rr <- rbind(c(cos(theta), -sin(theta)),
                     c(sin(theta), cos(theta)))
         tmp <- cbind(x, y) %*% rr
         colnames(tmp) <- c("x",  "y")
         tmp
     },
-    circle = function(n) {
+    rotatedSquare = function(n) {
         x <- runif(n, min = -1, max = 1)
         y <- runif(n, min = -1, max = 1)
-        theta <- -pi/4
+        theta <--pi/8
         rr <- rbind(c(cos(theta), -sin(theta)),
                     c(sin(theta), cos(theta)))
         tmp <- cbind(x, y) %*% rr
