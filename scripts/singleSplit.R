@@ -185,7 +185,8 @@ randBinner <- function(x, y, stopper, minExp = 5, maxK = 5) {
 
 ## SCRIPT ##########################################################
 n <- 1e4
-Ks <- seq(4, 400, by = 2)
+res <- 2
+Ks <- seq(4, 400, by = res)
 nsim <- 100
 
 ## set criteria
@@ -202,7 +203,7 @@ samples <- replicate(nsim*length(Ks),
 singleSplitBins <- vector(mode = "list", length = length(Ks)*nsim)
 for (k in Ks) {
     for (ii in 1:nsim) {
-        ind <- (k/2 - 2)*nsim + ii
+        ind <- (k/res - Ks[1]/res)*nsim + ii
         dat <- samples[[ind]]
         binning <- randBinner(dat$x, dat$y, stopper = stopFun,
                               minExp = 5, maxK = k)
@@ -223,3 +224,13 @@ plot(log(nbin, 10), log(stats, 10), ylim = c(-1,3.5), pch = 19,
 lines(log(seq(1, 400, by = 1), 10), lwd = 2,
       log(qchisq(0.99, df = seq(1, 400, by = 1)), 10),
       col = "firebrick", lty = 2)
+## on original scale
+plot(nbin, stats, pch = 19, col = adjustcolor("black", 0.2),
+     cex = 0.5, main = "Splitting one bin at a time")
+lines(1:400, qchisq(0.99, df = 1:400), col = "firebrick",
+      lty = 2)
+## a qq plot
+k <- 400
+inds <- (k/res - Ks[1]/res)*nsim + 1:nsim
+qqplot(x = stats[inds], y = qchisq(ppoints(nsim), df = k))
+abline(a = 0, b = 1)
