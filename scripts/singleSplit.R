@@ -81,24 +81,26 @@ randomSplit <- function(bin, bound, N) {
 ## assume we have a list of areas in decreasing order, choose a bin
 ## to split assuming splits must be strictly greater than the bound
 ## provided
-chooseBin <- function(areas, bound) {
-    n <- length(areas)
-    cands <- numeric(n) # set storage
-    ii <- 1 # set indicator
-    parsum <- 0
-    while (areas[ii] >= 2*bound & ii <= n) {
-        cands[ii] <- 1
-        parsum <- parsum + areas[ii]
-        ii <- ii + 1
-    }
-    u <- runif(1)
-    jj <- 0
-    part <- 0
-    while (u > part/parsum) {
-        jj <- jj + 1
-        part <- part + areas[jj]
-    }
-    return(jj)
+chooseBin <- function(areas) {
+    sample(seq_along(areas), size = 1, prob = areas)
+    ## cute but not efficient for R
+    #n <- length(areas)
+    #cands <- numeric(n) # set storage
+    #ii <- 1 # set indicator
+    #parsum <- 0
+    #while (areas[ii] >= 2*bound & ii <= n) {
+    #    cands[ii] <- 1
+    #    parsum <- parsum + areas[ii]
+    #    ii <- ii + 1
+    #}
+    #u <- runif(1)
+    #jj <- 0
+    #part <- 0
+    #while (u > part/parsum) {
+    #    jj <- jj + 1
+    #    part <- part + areas[jj]
+    #}
+    #return(jj)
 }
 
 ## place an area in a sorted list
@@ -150,7 +152,7 @@ randBinner <- function(x, y, stopper, minExp = 5, maxK = 5) {
     stopStatus <- stopper(binList) # initialize logical vector
 
     while (any(!stopStatus) & K < maxK) { # check the stop criteria
-        chosen <- chooseBin(areas[!stopStatus], minExp)
+        chosen <- chooseBin(areas[!stopStatus])
         newBins <- randomSplit(binList[!stopStatus][[chosen]],
                                minExp, N)
         if (identical(names(newBins), "STOP")) { # no valid splits
@@ -159,16 +161,65 @@ randBinner <- function(x, y, stopper, minExp = 5, maxK = 5) {
             areas <- areas[-chosen] # remove split bin
             binList <- binList[-chosen]
             stopStatus <- stopStatus[-chosen]
-            for (bin in newBins) { # place new bins
-                ind <- placeBin(areas, bin$expn)
-                areas <- placeAtIndex(areas, bin$expn, ind)
-                binList <- placeAtIndex(binList, list(bin), ind)
-                stopStatus <- placeAtIndex(stopStatus,
-                                           stopper(list(bin)), ind)
-            }
+            ord <- order(c(newBins[[1]]$expn, newBins[[2]]$expn,
+                           areas))
+            areas <- c(newBins[[1]]$expn, newBins[[2]]$expn,
+                       areas)[ord]
+            binList <- c(newBins, binList)[ord]
+            stopStatus <- c(stopper(newBins), stopStatus)[ord]
+            ## cute: but inefficient(?)
+            ##for (bin in newBins) { # place new bins
+            ##    ind <- placeBin(areas, bin$expn)
+            ##    areas <- placeAtIndex(areas, bin$expn, ind)
+            ##    binList <- placeAtIndex(binList, list(bin), ind)
+            ##    stopStatus <- placeAtIndex(stopStatus,
+            ##                               stopper(list(bin)), ind)
+            ##}
             K <- K + 1
         }
     }
 
     binList # return the final list of bins
 }
+
+
+## SCRIPT ##########################################################
+n <- 1e4
+Ks <- seq(4, 400, by = 2)
+nsim <- 100
+
+## set criteria
+stopCrits <- makeCriteria(expn <= 10, n < 1, depth == 10)
+stopFun <- function(bns) stopper(bns, stopCrits)
+
+## sample data
+set.seed(24052024)
+samples <- replicate(nsim*length(Ks),
+                     list(x = sample(1:n), y = sample(1:n)),
+                     simplify = FALSE)
+
+## go through Ks and split
+singleSplitBins <- vector(mode = "list", length = length(Ks)*nsim)
+for (k in Ks) {
+    for (ii in 1:nsim) {
+        ind <- (k/2 - 2)*nsim + ii
+        dat <- samples[[ind]]
+        binning <- randBinner(dat$x, dat$y, stopper = stopFun,
+                              minExp = 5, maxK = k)
+        singleSplitBins[[ind]] <- binning
+    }
+    if ((k %% 50) == 0) cat("\r Done to", k)
+}
+
+## get stats
+library(AssocBin)
+## collect info
+nbin <- sapply(singleSplitBins, length)
+tests <- lapply(singleSplitBins, binChi)
+stats <- sapply(tests, function(x) x$stat)
+plot(log(nbin, 10), log(stats, 10), ylim = c(-1,3.5), pch = 19,
+     col = adjustcolor("black", 0.2), cex = 0.5,
+     main = "Splitting one bin at a time")
+lines(log(seq(1, 400, by = 1), 10), lwd = 2,
+      log(qchisq(0.99, df = seq(1, 400, by = 1)), 10),
+      col = "firebrick", lty = 2)

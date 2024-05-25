@@ -459,7 +459,7 @@ patFns <- list(
         v <- cos(x*pi) + rnorm(n)/8
         cbind(x = u, y = v)
     },
-    valley = function(n) {
+    saddle = function(n) {
         x <- seq(-1,1, length=n )
         y <- (x ^2 + runif(n))/2
         cbind(x = x, y = y)
@@ -474,7 +474,7 @@ patFns <- list(
         colnames(tmp) <- c("x",  "y")
         tmp
     },
-    rotatedSquare = function(n) {
+    rotSquare = function(n) {
         x <- runif(n, min = -1, max = 1)
         y <- runif(n, min = -1, max = 1)
         theta <--pi/8
@@ -507,29 +507,29 @@ simData <- replicate(nsim, generatePatterns(n))
 
 ## plot the first data realization (Fig 4.12)
 m <- 1
-pal <- c(RColorBrewer::brewer.pal(6, "Set2"), "black")
-png(file="measurePatterns.png", height = m, width = 6*m, units = "in",
-    res = 480, bg = "transparent")
-par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+pal <- c(RColorBrewer::brewer.pal(6, "Pastel2"), "gray50")
 for(i in 1:7) {
+    png(file=paste0("patterns-", names(patFns)[i], ".png"), height = m,
+        width = m, units = "in", res = 480, bg = "transparent")
+    par(mar=c(1,1,1,1)/2)
     plot(simData[, "x", i, 1], simData[, "y", i, 1], xlab = "",
          ylab = "", axes = F, pch = 19, cex = 0.2, col = pal[i],
          bg = "transparent")
+    dev.off()
 }
-dev.off()
 
 ## convert this data into pairwise ranks and plot it (Fig 4.13)
 simXr <- apply(simData[, "x", , ], c(2, 3), rank)
 simYr <- apply(simData[, "y", , ], c(2, 3), rank)
-png(file="measurePatternsRank.png", height = m, width = 6*m,
-    units = "in", res = 480, bg = "transparent")
-par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
 for(i in 1:7) {
+    png(file=paste0("ranks-", names(patFns)[i], ".png"), height = m,
+        width = m, units = "in", res = 480, bg = "transparent")
+    par(mar=c(1,1,1,1)/2)
      plot(simXr[, i, 1], simYr[, i, 1], xlab = "", ylab = "",
           axes= F, pch = 19, cex = 0.2, col = pal[i],
           bg = "transparent")
+    dev.off()
 }
-dev.off()
 
 ## try the binning algorithm on these data
 ## define a range of depths
@@ -685,7 +685,7 @@ for (jj in 1:7) { # observed paths
 medianNbin <- apply(simplify2array(rndNbin), c(1,2), median)
 medianPaths <-  apply(simplify2array(rndPaths), c(1,2), median)
 for (jj in 1:7) { # add mean lines
-    lines(medianNbin[jj,], medianPaths[jj,], col = "gray50",
+    lines(medianNbin[jj,], medianPaths[jj,], col = "gray30",
           lwd = 3)
     lines(medianNbin[jj,], medianPaths[jj,], col = pal[jj],
           lwd = 2)
@@ -715,13 +715,24 @@ for (jj in 1:7) {
 medianNbin <- apply(simplify2array(chiNbin), c(1,2), median)
 medianPaths <-  apply(simplify2array(chiPaths), c(1,2), median)
 for (jj in 1:7) { # add mean lines
-    lines(medianNbin[jj,], medianPaths[jj,], col = "gray50",
+    lines(medianNbin[jj,], medianPaths[jj,], col = "gray30",
           lwd = 3)
     lines(medianNbin[jj,], medianPaths[jj,], col = pal[jj],
           lwd = 2)
 }
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
+
+## plotting bins for every depth: first remind of patterns
+for(i in 1:7) {
+    png(file=paste0("red-", names(patFns)[i], ".png"), height = m,
+        width = m, units = "in", res = 480, bg = "transparent")
+    par(mar=c(1,1,1,1)/2)
+    plot(simXr[, i, 1], simYr[, i, 1], xlab = "", ylab = "",
+          axes= F, pch = 19, cex = 0.2, col = "firebrick",
+         bg = "transparent")
+    dev.off()
+}
 
 ## next, check the bins for every depth (Fig 4.16)
 ## start by getting the maximum residual to make the shading constant
@@ -731,14 +742,15 @@ maxRes <- max(sapply(unlist(testChiChi[[1]],
 ## for every depth, display the binning for each pattern
 for (depth in 2:10) {
     png(file = paste0("simDataBins", depth, ".png"), height = m,
-        width= 6*m, units = "in", res = 480)
+        width= 6*m, units = "in", res = 480, bg = "transparent")
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
     for(i in 1:7) {
         plot(NA, ylim = c(1, n), xlim = c(1, n), # remove axes
-             axes = F, xlab = "", ylab = "", main = "")
+             axes = F, xlab = "", ylab = "", main = "",
+             bg = "transparent")
         plotBinning(testChiBins[[1]][[depth]][[i]], pch = 19,
                     cex = 0.1, add = TRUE,
-                    col = adjustcolor("grey", 0.8),
+                    col = NA,
                     fill = residualFill(testChiBins[[1]][[depth]][[i]],
                                         colrng = c("steelblue", "white",
                                                    "firebrick"),
@@ -753,11 +765,12 @@ maxRes <- max(sapply(unlist(testMiChi[[1]],
                      getMaxRes))
 for (depth in 2:10) {
     png(file = paste0("simDataBins", depth, "MI.png"), height = m,
-        width= 6*m, units = "in", res = 480)
+        width= 6*m, units = "in", res = 480, bg = "transparent")
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
     for(i in 1:7) {
         plot(NA, ylim = c(1, n), xlim = c(1, n),
-             axes = F, xlab = "", ylab = "", main = "")
+             axes = F, xlab = "", ylab = "", main = "",
+             bg = "transparent")
         plotBinning(testMiBins[[1]][[depth]][[i]], pch = 19,
                     cex = 0.1, add = TRUE,
                     col = adjustcolor("grey", 0.8),
@@ -774,21 +787,20 @@ maxRes <- max(sapply(unlist(testRndChi[[10]],
                      getMaxRes))
 for (depth in 2:10) {
     png(file = paste0("simDataBinsRand", depth, ".png"), height = m,
-        width= 6*m, units = "in", res = 480)
-    par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+        width= 6*m, units = "in", res = 480, bg = "transparent")
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
     for(i in 1:7) {
         plot(NA, ylim = c(1, n), xlim = c(1, n),
-             axes = F, xlab = "", ylab = "", main = "")
+             axes = F, xlab = "", ylab = "", main = "",
+             bg = "transparent")
         plotBinning(testRndBins[[10]][[depth]][[i]],
                     pch = 19, cex = 0.1, add = TRUE,
-                    col = adjustcolor("grey", 0.8),
+                    col = NA,
                     fill = residualFill(testRndBins[[10]][[depth]][[i]],
                                         maxRes = maxRes))
     }
     dev.off()
 }
-
 
 
 ## REAL DATA EXAMPLE #################################################
