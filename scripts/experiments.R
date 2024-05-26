@@ -804,7 +804,7 @@ for (depth in 2:10) {
 
 
 ## REAL DATA EXAMPLE #################################################
-## S&P500 data: "SP500" demo in "zenplots" package, code from Marius
+## "SP500" demo in "zenplots" package, code from Marius
 ## Hofert, produces a set of pseudo-observations that are uniform
 ## these are loaded here and converted to ranks
 data(sp500pseudo)
@@ -841,7 +841,7 @@ saveRDS(spBinsNP, file = paste0("sp500binsRnd", "NoPts.Rds"))
 
 ## plot observed statistics on the S&P500 data for the random or
 ## maximized splits
-random <- TRUE
+random <- FALSE
 if (random) { ## load pre-processed data
     spBinsNP <- readRDS("sp500binsRndNoPts.Rds")
 } else {
@@ -1084,3 +1084,53 @@ for (prInd in spOrd[seq(length(spOrd)-35, by = 1,
            col = adjustcolor("gray50"))
 }
 dev.off()
+
+## a twist: try this on unprocessed S&P500 data
+spRaw <- readRDS("sp500raw.Rds")
+spRawRanks <- apply(spRaw, 2, rank, ties.method = "random")
+rownames(spRawRanks) <- NULL
+spPairs <- combn(ncol(spRawRanks), 2)
+## set up recursive binning
+crits <- makeCriteria(depth >= 6, expn <= 10, n == 0)
+stopFn <- function(bns) stopper(bns, crits)
+## and potential splitting functions
+chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
+rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
+## set up storage, messages
+spBins <- vector("list", ncol(spPairs))
+msgInd <- ((1:ncol(spPairs)) %% 1000) == 0
+## iterate through all pairs
+## ~ 57 mins
+set.seed(8190525)
+system.time({for (ii in seq_len(ncol(spPairs))) { ## ~57 mins
+    pair <- spPairs[, ii] # indices of pairs
+    spBins[[ii]] <- binner(spRawRanks[, pair[1]],
+                           spRawRanks[, pair[2]],
+                           stopper = stopFn,
+                           splitter = chiSplit)
+    if (msgInd[ii]) {
+        cat("\r Completed ", ii, " pairs")
+    }
+             }})
+## drop points for smaller storage size
+spBinsNP <- lapply(spBins, dropBinPoints)
+## save binnings
+saveRDS(spBinsNP, file = paste0("sp500binsChi-raw", "NoPts.Rds"))
+
+## plot observed statistics on the S&P500 data for the random or
+## maximized splits
+random <- FALSE
+if (random) { ## load pre-processed data
+    spBinsNPRaw <- readRDS("sp500binsRnd-rawNoPts.Rds")
+} else {
+    spBinsNPRaw <- readRDS("sp500binsChi-rawNoPts.Rds")
+}
+## get chi statistics across the bins
+spChisRaw <- lapply(spBinsNPRaw, function(bns) binChi(bns))
+spChiStatsRaw <- sapply(spChisRaw, function(x) x$stat)
+spChiResidRaw <- sapply(spChisRaw, function(x) x$residuals)
+spChiNbinRaw <- sapply(spChiResidRaw, length)
+## order by interestingness
+spOrdRaw <- order(spChiStatsRaw, decreasing = TRUE)
+## try plotting this
+plot(spOrdRaw, spOrd, pch = ".")
