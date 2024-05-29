@@ -13,6 +13,8 @@
 ##' current plot area?
 ##' @param xlab string, the label to be placed on the x axis
 ##' @param ylab string, the label to be placed on the y axis
+##' @param border argument to be passed to `rect` internally giving
+##' the border colour
 ##' @param ... optional additional arguments to be passed to `plot`,
 ##' `points`
 ##' @return A list of lists each with elements `x`, `y`, `bnds`,
@@ -27,7 +29,7 @@
 ##' plotBinning(bin3)
 ##' @author Chris Salahub
 plotBinning <- function(bins, fill, add = FALSE, xlab = "x",
-                        ylab = "y", ...) {
+                        ylab = "y", border = "black", ...) {
     if (missing(fill)) fill <- rep(NA, length(bins)) # custom fill option
     nbins <- length(bins)
     xbnds <- sapply(bins, function(bn) bn$bnds$x)
@@ -38,7 +40,7 @@ plotBinning <- function(bins, fill, add = FALSE, xlab = "x",
     }
     for (ii in seq_along(bins)) {
         rect(xbnds[1,ii], ybnds[1,ii], xbnds[2,ii], ybnds[2,ii],
-             col = fill[ii])
+             col = fill[ii], border = border)
         points(bins[[ii]]$x, bins[[ii]]$y, ...) # disable with pch = ""
     }
 }

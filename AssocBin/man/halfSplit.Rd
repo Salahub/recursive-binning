@@ -4,7 +4,7 @@
 \alias{halfSplit}
 \title{Halve at an observed point}
 \usage{
-halfSplit(bin, margin = "x")
+halfSplit(bin, margin = sample(c("x", "y"), 1))
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,

@@ -4,7 +4,14 @@
 \alias{maxScoreSplit}
 \title{Bivariate score maximizing splitting}
 \usage{
-maxScoreSplit(bin, scorer, ties = halfCutTie, pickMax = which.max, ...)
+maxScoreSplit(
+  bin,
+  scorer,
+  ties = halfCutTie,
+  pickMax = which.max,
+  splitLongSide = FALSE,
+  ...
+)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -19,6 +26,9 @@ generate the same score}
 
 \item{pickMax}{function which accepts a list of scores and returns
 the element of the largest score according to some rule}
+
+\item{splitLongSide}{logical value, should we force splitting on
+the longer side regardless of scores?}
 
 \item{...}{optional additional arguments to `scorer`}
 }

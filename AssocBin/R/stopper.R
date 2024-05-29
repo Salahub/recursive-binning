@@ -15,7 +15,7 @@ makeCriteria <- function(...) {
     cl <- match.call() # capturing inputs
     crits <- as.list(cl) # change to a list
     ## remove self reference, collapse into single OR
-    paste(sapply(crits[-1], deparse), collapse = " | ")
+    paste(c(sapply(crits[-1], deparse), "stopped"), collapse = " | ")
 }
 
 ##' @title Check bins against stop criteria

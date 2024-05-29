@@ -4,7 +4,7 @@
 \alias{halfCutTie}
 \title{Halve continuously to break ties}
 \usage{
-halfCutTie(bin, xscore, yscore)
+halfCutTie(bin, xscore, yscore, wider, splitLongSide = FALSE)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -15,6 +15,11 @@ x}
 
 \item{yscore}{numeric value giving the score for all splits along
 y}
+
+\item{wider}{logical; is the bin wider than it is tall?}
+
+\item{splitLongSide}{logical value, should we force splitting on
+the longer side regardless of scores?}
 }
 \value{
 A list of two bins resulting from the split of `bin` in
@@ -33,9 +38,9 @@ forming, a common problem with the `halfSplit` function
 bin <- list(x = 1:10, y = sample(1:10),
             bnds = list(x = c(0, 10), y = c(0, 10)),
             expn = 10, n = 10, depth = 0)
-halfCutTie(bin, 1, 2) # splits on y
-halfCutTie(bin, 2, 1) # splits on x
-halfCutTie(bin, 1, 1) # ties are random
+halfCutTie(bin, 1, 2, wider = FALSE) # splits on y
+halfCutTie(bin, 2, 1, wider = FALSE) # splits on x
+halfCutTie(bin, 1, 1, wider = FALSE) # ties are random
 }
 \author{
 Chris Salahub

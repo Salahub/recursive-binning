@@ -4,7 +4,15 @@
 \alias{plotBinning}
 \title{Plot a binning using shaded rectangles}
 \usage{
-plotBinning(bins, fill, add = FALSE, xlab = "x", ylab = "y", ...)
+plotBinning(
+  bins,
+  fill,
+  add = FALSE,
+  xlab = "x",
+  ylab = "y",
+  border = "black",
+  ...
+)
 }
 \arguments{
 \item{bins}{list of lists each with a named elements `x`, `y`, and
@@ -20,6 +28,9 @@ current plot area?}
 \item{xlab}{string, the label to be placed on the x axis}
 
 \item{ylab}{string, the label to be placed on the y axis}
+
+\item{border}{argument to be passed to `rect` internally giving
+the border colour}
 
 \item{...}{optional additional arguments to be passed to `plot`,
 `points`}
