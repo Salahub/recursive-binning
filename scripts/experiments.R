@@ -735,14 +735,19 @@ for(i in 1:7) {
 }
 
 ## next, check the bins for every depth (Fig 4.16)
+## some settings
+borders <- NA
+if (is.na(borders)) suffix <- "NoBrdrs" else suffix <- ""
+
 ## start by getting the maximum residual to make the shading constant
 maxRes <- max(sapply(unlist(testChiChi[[1]],
                             recursive = FALSE),
                      getMaxRes))
 ## for every depth, display the binning for each pattern
 for (depth in 2:10) {
-    png(file = paste0("simDataBins", depth, ".png"), height = m,
-        width= 6*m, units = "in", res = 480, bg = "transparent")
+    png(file = paste0("simDataBins", depth, suffix, ".png"),
+        height = m, width= 6*m, units = "in", res = 480,
+        bg = "transparent")
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
     for(i in 1:7) {
         plot(NA, ylim = c(1, n), xlim = c(1, n), # remove axes
@@ -750,7 +755,7 @@ for (depth in 2:10) {
              bg = "transparent")
         plotBinning(testChiBins[[1]][[depth]][[i]], pch = 19,
                     cex = 0.1, add = TRUE,
-                    col = NA,
+                    col = NA, border = borders,
                     fill = residualFill(testChiBins[[1]][[depth]][[i]],
                                         colrng = c("steelblue", "white",
                                                    "firebrick"),
@@ -786,8 +791,9 @@ maxRes <- max(sapply(unlist(testRndChi[[10]],
                             recursive = FALSE),
                      getMaxRes))
 for (depth in 2:10) {
-    png(file = paste0("simDataBinsRand", depth, ".png"), height = m,
-        width= 6*m, units = "in", res = 480, bg = "transparent")
+    png(file = paste0("simDataBinsRand", depth, suffix, ".png"),
+        height = m, width= 6*m, units = "in", res = 480,
+        bg = "transparent")
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
     for(i in 1:7) {
         plot(NA, ylim = c(1, n), xlim = c(1, n),
@@ -795,7 +801,7 @@ for (depth in 2:10) {
              bg = "transparent")
         plotBinning(testRndBins[[10]][[depth]][[i]],
                     pch = 19, cex = 0.1, add = TRUE,
-                    col = NA,
+                    col = NA, border = borders,
                     fill = residualFill(testRndBins[[10]][[depth]][[i]],
                                         maxRes = maxRes))
     }
