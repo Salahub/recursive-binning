@@ -6,18 +6,20 @@
 \alias{randScores}
 \title{Scoring functions to choose splits}
 \usage{
-chiScores(vals, expn, minExp = 0)
+chiScores(bounds, nbelow, n)
 
-miScores(vals, expn, minExp = 0)
+miScores(bounds, nbelow, n)
 
-randScores(vals, expn, minExp = 0)
+randScores(bounds, nbelow, n)
 }
 \arguments{
-\item{vals}{numeric vector candidate splits and bounds}
+\item{bounds}{numeric vector giving candidate split bounds in
+increasing order}
 
-\item{expn}{the expected number of points in the bin}
+\item{nbelow}{integer vector giving the number of points below
+each candidate split}
 
-\item{minExp}{the minimum number of points allowed in a bin}
+\item{n}{the total number of points in the bin to be split}
 }
 \value{
 A vector of scores.
@@ -29,14 +31,11 @@ splits along a single margin within partition.
 \details{
 Scorings
 
-Each of these functions accepts `vals`, an ordered
+Each of these functions accepts `boundss`, an ordered
 numeric vector containing the candidate splits within a bin and
-the bin bounds all in increasing order. To restrict splitting,
-they also accept `expn` and `minExp`, which provide the expected
-count within the split and minimum value of this count,
-respectively. Any split which produces an expected value less
-than `minExp` (assuming a uniform density within the bin) is given
-a score of zero.
+the bin bounds all in increasing order, and `nbelow` which gives
+the count of points below each split. `n` is used to determine the
+number of points above the split.
 }
 \section{Functions}{
 \itemize{
@@ -49,15 +48,12 @@ a score of zero.
 }}
 \examples{
 vals <- c(2, 5, 12, 16, 19)
-## restricting the minExp changes output
-chiScores(vals, 4, minExp = 0)
-chiScores(vals, 4, minExp = 2)
+chiScores(vals, 1:3, 3)
 ## same for the miScores
-miScores(vals, 4, minExp = 0)
-miScores(vals, 4, minExp = 2)
+miScores(vals, 1:3, 3)
 ## random scoring produces different output every time
-randScores(vals, 4, minExp = 0)
-randScores(vals, 4, minExp = 0)
+randScores(vals, 1:3, 3)
+randScores(vals, 1:3, 3)
 }
 \author{
 Chris Salahub

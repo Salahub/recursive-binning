@@ -32,9 +32,7 @@ maxScoreSplit with randScores, this can introduce splits at
 locations other than the points.
 }
 \examples{
-bin <- list(x = 1:10, y = sample(1:10),
-            bnds = list(x = c(0, 10), y = c(0, 10)),
-            expn = 10, n = 10, depth = 0)
+bin <- makeBin(x = 1:10, y = sample(1:10))
 rUnifSplit(bin, minExp = 2)
 }
 \author{

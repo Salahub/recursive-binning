@@ -50,7 +50,7 @@ exactly how many bins to produce.
 ## necessary set up
 crits <- makeCriteria(depth >= 4, n < 10, expn <= 5)
 stopFn <- function(bns) stopper(bns, crits)
-spltFn <- function(bn) rIntSplit(bn, chiScores)
+spltFn <- function(bn) rIntSplit(bn, minExp = 5)
 ## generate data
 x <- sample(1:100)
 y <- sample(1:100)

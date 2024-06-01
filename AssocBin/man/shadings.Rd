@@ -57,12 +57,10 @@ residual function applied to each bin.
 
 }}
 \examples{
-bin <- list(x = 1:10, y = sample(1:10),
-            bnds = list(x = c(0, 10), y = c(0, 10)),
-            expn = 10, n = 10, depth = 0)
+bin <- makeBin(x = 1:10, y = sample(1:10))
 bin2 <- halfSplit(bin, "x")
 bin3 <- unlist(lapply(bin2, maxScoreSplit,
-                      scorer = chiScores),
+                      scorer = chiScores, minExp = 2),
                recursive = FALSE)
 plotBinning(bin3, fill = depthFill(bin3)) # all the same depth
 plotBinning(bin3, fill = residualFill(bin3)) # diff resids

@@ -35,12 +35,12 @@
 ##' @author Chris Salahub
 binner <- function(x, y, stopper, splitter, init = halfSplit) {
     ## initialize bin with all the data contained
-    bin <- list(x = x, y = y, # x and y points
-                 bnds = list(x = c(0, max(x, na.rm = TRUE)),
-                             y = c(0, max(y, na.rm = TRUE))),
-                 expn = length(x), # default expectation is n
-                n = length(x), depth = 0, # size, depth
-                stopped = FALSE) # premature stopping 
+    bin <- makeBin(x = x, y = y, # x and y points
+                   bnds = list(x = c(0, max(x, na.rm = TRUE)),
+                               y = c(0, max(y, na.rm = TRUE))),
+                   expn = length(x), # default expectation is n
+                   n = length(x), depth = 0, # size, depth
+                   stopped = FALSE) # premature stopping 
     binList <- init(bin) # first split, otherwise score max fails
     stopStatus <- stopper(binList) # initialize logical vector
 
@@ -89,7 +89,7 @@ binner <- function(x, y, stopper, splitter, init = halfSplit) {
 ##' ## necessary set up
 ##' crits <- makeCriteria(depth >= 4, n < 10, expn <= 5)
 ##' stopFn <- function(bns) stopper(bns, crits)
-##' spltFn <- function(bn) rIntSplit(bn, chiScores)
+##' spltFn <- function(bn) rIntSplit(bn, minExp = 5)
 ##' ## generate data
 ##' x <- sample(1:100)
 ##' y <- sample(1:100)
@@ -99,12 +99,12 @@ binner <- function(x, y, stopper, splitter, init = halfSplit) {
 singleBinner <- function(x, y, stopper, splitter, init = halfSplit,
                          maxK = 5) {
     ## initialize bin with all the data contained
-    bin <- list(x = x, y = y, # x and y points
-                 bnds = list(x = c(0, max(x, na.rm = TRUE)),
-                             y = c(0, max(y, na.rm = TRUE))),
-                 expn = length(x), # default expectation is n
-                n = length(x), depth = 0, # size, depth
-                stopped = FALSE) # premature stopping 
+    bin <- makeBin(x = x, y = y, # x and y points
+                   bnds = list(x = c(0, max(x, na.rm = TRUE)),
+                               y = c(0, max(y, na.rm = TRUE))),
+                   expn = length(x), # default expectation is n
+                   n = length(x), depth = 0, # size, depth
+                   stopped = FALSE) # premature stopping 
     N <- length(x)
     binList <- init(bin)
     K <- 2

@@ -35,9 +35,7 @@ splitting in a way which prevents very small or lopsided bins from
 forming, a common problem with the `halfSplit` function
 }
 \examples{
-bin <- list(x = 1:10, y = sample(1:10),
-            bnds = list(x = c(0, 10), y = c(0, 10)),
-            expn = 10, n = 10, depth = 0)
+bin <- makeBin(x = 1:10, y = sample(1:10))
 halfCutTie(bin, 1, 2, wider = FALSE) # splits on y
 halfCutTie(bin, 2, 1, wider = FALSE) # splits on x
 halfCutTie(bin, 1, 1, wider = FALSE) # ties are random

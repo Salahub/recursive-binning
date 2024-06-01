@@ -34,9 +34,7 @@ a bin at the observation coordinate which maximizes the score
 function.
 }
 \examples{
-bin <- list(x = 1:10, y = sample(1:10),
-            bnds = list(x = c(0, 10), y = c(0, 10)),
-            expn = 10, n = 10, depth = 0)
+bin <- makeBin(x = 1:10, y = sample(1:10))
 rIntSplit(bin, minExp = 2)
 }
 \author{
