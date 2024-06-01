@@ -86,6 +86,8 @@ stopFn <- function(bns) stopper(bns, criteria)
 chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
 miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
 rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
+rintSplit <- function(bn) rIntSplit(bn, minExp = 5,
+                                    splitLongSide = TRUE)
 
 ## random data plot (Fig 4.1(a))
 png("randomData.png", width = 2, height = 2, units = "in", res = 480)
@@ -102,7 +104,7 @@ randBin.chi <- vector(mode = "list", length = length(dep))
 for (ii in seq_along(dep)) {
     d <- dep[ii]
     randBin.chi[[ii]] <- binner(randx, randy, stopper = stopFn,
-                                splitter = chiSplit)
+                                splitter = rndSplit)
 }
 
 ## the early progression of splitting (Figs 4.2(a), 4.3(a))
@@ -209,7 +211,7 @@ dev.off()
 
 ## INVESTIGATING THE NULL DISTRIBUTION ###############################
 set.seed(506391)
-n <- 1e4 # the sample size
+n <- 1e2 # the sample size
 nsim <- 1e4 # number of samples
 depths <- 2:10 # range of depths
 simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
@@ -227,7 +229,8 @@ stopFn <- function(bns) stopper(bns, crits)
 chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
 miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
 rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
-runfSplit <- function(bn) rUnifSplit(bn, minExp = 5)
+rsqSplit <- function(bn) rIntSplit(bn, minExp = 5,
+                                   splitLongSide = TRUE)
 
 ## section which simulates null distribution
 if (writeout) { # run simulation and write it out
@@ -262,7 +265,7 @@ if (writeout) { # run simulation and write it out
                   maxDep = max(sapply(rntr, function(bn) bn$depth)))
             ## finally, random uniform splits
             rntr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
-                           stopper = stopFn, splitter = runfSplit)
+                           stopper = stopFn, splitter = rsqSplit)
             depthSeq.runif[,depInd,ii] <-
                 c(chi = binChi(rntr)$stat,
                   mi = binMI(rntr)$stat,
@@ -508,6 +511,7 @@ simData <- replicate(nsim, generatePatterns(n))
 ## plot the first data realization (Fig 4.12)
 m <- 1
 pal <- c(RColorBrewer::brewer.pal(6, "Pastel2"), "gray50")
+names(pal) <- names(patFns)
 for(i in 1:7) {
     png(file=paste0("patterns-", names(patFns)[i], ".png"), height = m,
         width = m, units = "in", res = 480, bg = "transparent")
@@ -538,66 +542,52 @@ depths <- 1:10
 crits <- makeCriteria(depth >= ii, expn <= 10, n == 0)
 ## define the stop function
 stopFn <- function(bns) stopper(bns, crits)
+## a deterministic initialization
+detInit <- function(bn) halfSplit(bn, margin = "x")
 ## and splitting functions
-chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
-miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
-rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
+splitters <- list(
+    chi = function(bn) maxScoreSplit(bn, chiScores, minExp = 5),
+    chiLong = function(bn) maxScoreSplit(bn, chiScores, minExp = 5,
+                                         splitLongSide = TRUE),
+    mi = function(bn) maxScoreSplit(bn, miScores, minExp = 5),
+    rand = function(bn) rIntSplit(bn, minExp = 5),
+    randLong = function(bn) rIntSplit(bn, minExp = 5,
+                                      splitLongSide = TRUE))
 ## allocate storage for every split method
-testChiBins <- vector("list", nsim)
-testMiBins <- vector("list", nsim)
-testRndBins <- vector("list", nsim)
+nelements <- nsim*length(depths)*length(patFns)
+guide <- expand.grid(pat = names(patFns), dep = depths, rep = 1:nsim)
+binnings <- lapply(splitters, function(el) vector("list", nelements))
+names(binnings) <- names(splitters)
 
 ## bin each realization (takes some time)
-for (jj in 1:nsim) {
-    ## each list element is also a list for each
-    testChiBins[[jj]] <- vector("list", length(depths))
-    testMiBins[[jj]] <- vector("list", length(depths))
-    testRndBins[[jj]] <- vector("list", length(depths))
-    for (ii in seq_along(depths)) { # iterate through depths
-        ## chi bins for each pattern
-        testChiBins[[jj]][[ii]] <- lapply(1:7, function(kk) {
-            binner(simXr[, kk, jj], simYr[, kk, jj],
-                   stopper = stopFn, splitter = chiSplit)
-        })
-        ## mi bins for each pattern
-        testMiBins[[jj]][[ii]] <- lapply(1:7, function(kk) {
-            binner(simXr[, kk, jj], simYr[, kk, jj],
-                   stopper = stopFn, splitter = miSplit)
-        })
-        ## finally, random bins for each pattern
-        testRndBins[[jj]][[ii]] <- lapply(1:7, function(kk) {
-            binner(simXr[, kk, jj], simYr[, kk, jj],
-                   stopper = stopFn, splitter = rndSplit)
-        })
-    }
+for (splt in names(splitters)) {
+    for (jj in 1:nsim) {
+        for (ii in seq_along(depths)) {
+            inds <- (jj-1)*length(depths)*length(patFns) +
+                (ii - 1)*length(patFns) + seq_along(patFns)
+            binnings[[splt]][inds] <-
+                lapply(seq_along(patFns),
+                       function(kk) binner(simXr[, kk, jj],
+                                           simYr[, kk, jj],
+                                           stopper = stopFn,
+                                           splitter = splitters[[splt]],
+                                           init = detInit))
+        }
+    }  
 }
 
-## compute the chi square statistics for each split method
-testChiChi <- lapply(testChiBins, # nested list  makes it ugly
-                     function(lst) {
-                         lapply(lst,
-                                function(el) lapply(el, binChi))
-                     })
-testMiChi <- lapply(testMiBins, ## same thing for mi...
-                     function(lst) {
-                         lapply(lst,
-                                function(el) lapply(el, binChi))
-                     })
-testRndChi <- lapply(testRndBins, ## ... and random splitting
-                     function(lst) {
-                         lapply(lst,
-                                function(el) lapply(el, binChi))
-                     })
+## compute the chi square statistics for every binning
+binningChis <- lapply(binnings, # nested list  makes it ugly
+                      function(lst) {
+                          lapply(lst, binChi)
+                      })
 
 ## for ease of plotting, convert these tests to statistic values,
 ## final bin counts
-## define some helpers to make this cleaner...
 ## wrapper to apply function to a nested list and return an array
 deNest <- function(nstdLst, fn) {
     lapply(nstdLst, function(olst) {
-        sapply(olst, function(lst) {
-            sapply(lst, fn)
-        })
+        sapply(olst, fn)
     })
 }
 ## the internal functions to work with deNest
@@ -605,13 +595,10 @@ getStat <- function(x) x$stat
 getnBin <- function(x) length(x$residuals)
 getMaxRes <- function(x) max(abs(x$residuals))
 
-## apply this to everything else
-chiPaths <- deNest(testChiChi, getStat)
-chiNbin <- deNest(testChiChi, getnBin)
-miPaths <- deNest(testMiChi, getStat)
-miNbin <- deNest(testMiChi, getnBin)
-rndPaths <- deNest(testRndChi, getStat)
-rndNbin <- deNest(testRndChi, getnBin)
+## apply these
+paths <- deNest(binningChis, getStat)
+nBins <- deNest(binningChis, getnBin)
+allMaxRes <- deNest(binningChis, getMaxRes)
 
 ## plot the paths of every pattern under different splitting regimes
 ## compared to the null
@@ -623,6 +610,7 @@ depthSeq.mi <- data$miSplit
 depthSeq.rnd <- data$randSplit # null data
 
 ## plot paths for an individual random split (Figure 4.14(b))
+real <- 1 # choose a realization
 png("simDataRandPath.png", width = 3, height = 3, units = "in",
     res = 480, bg = "transparent")
 narrowPlot(xgrid = seq(0, 160, by = 40),
@@ -635,9 +623,10 @@ for (ii in 1:1e4) { # add the null lines
           col = adjustcolor("gray", 0.1))
 }
 ## add these as lines to the plot of null lines
-for (jj in 1:7) {
-    lines(rndNbin[[1]][jj,], rndPaths[[1]][jj,], col = pal[jj])
-    points(rndNbin[[1]][jj,], rndPaths[[1]][jj,], col = pal[jj],
+for (pat in names(patFns)) {
+    inds <- guide$pat == pat & guide$rep == real
+    lines(nBins$rand[inds], paths$rand[inds], col = pal[pat])
+    points(nBins$rand[inds], paths$rand[inds], col = pal[pat],
            pch = 19, cex = 0.5)
 }
 ## add the 95% chi quantile
@@ -656,9 +645,10 @@ for (ii in 1:1e4) { # null lines
           depthSeq.chi["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-for (jj in 1:7) { # observed path
-    lines(chiNbin[[1]][jj,], chiPaths[[1]][jj,], col = pal[jj])
-    points(chiNbin[[1]][jj,], chiPaths[[1]][jj,], col = pal[jj],
+for (pat in names(patFns)) {
+    inds <- guide$pat == pat & guide$rep == real
+    lines(nBins$chi[inds], paths$chi[inds], col = pal[pat])
+    points(nBins$chi[inds], paths$chi[inds], col = pal[pat],
            pch = 19, cex = 0.5)
 }
 dev.off()
@@ -675,20 +665,24 @@ for (ii in 1:1e4) { # null lines
           depthSeq.rnd["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-for (jj in 1:7) { # observed paths
+for (pat in names(patFns)) { # observed paths
     for (ii in 1:nsim) {
-        lines(rndNbin[[ii]][jj,], rndPaths[[ii]][jj,],
-              col = adjustcolor(pal[jj], 0.2))
+        inds <- guide$pat == pat & guide$rep == ii
+        lines(nBins$rand[inds], paths$rand[inds],
+              col = adjustcolor(pal[pat], 0.2))
     }
 }
 ## get median lines
-medianNbin <- apply(simplify2array(rndNbin), c(1,2), median)
-medianPaths <-  apply(simplify2array(rndPaths), c(1,2), median)
-for (jj in 1:7) { # add mean lines
-    lines(medianNbin[jj,], medianPaths[jj,], col = "gray30",
-          lwd = 3)
-    lines(medianNbin[jj,], medianPaths[jj,], col = pal[jj],
-          lwd = 2)
+for (pat in names(patFns)) { # add mean lines
+    medN <- numeric(length(depths))
+    medPath <- numeric(length(depths))
+    for (ii in seq_along(depths)) {
+        inds <- guide$dep == depths[ii] & guide$pat == pat
+        medN[ii] <- median(nBins$rand[inds])
+        medPath[ii] <- median(paths$rand[inds])
+    }
+    lines(medN, medPath, col = "gray30", lwd = 3)
+    lines(medN, medPath, col = pal[pat], lwd = 2)
 }
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
 dev.off()
@@ -705,23 +699,26 @@ for (ii in 1:1e4) {
           depthSeq.chi["chi",,ii],
           col = adjustcolor("gray", 0.1))
 }
-for (jj in 1:7) {
-    for (ii in 1:100) {
-        lines(chiNbin[[ii]][jj,], chiPaths[[ii]][jj,],
-              col = adjustcolor(pal[jj], 0.2))
+for (pat in names(patFns)) { # observed paths
+    for (ii in 1:nsim) {
+        inds <- guide$pat == pat & guide$rep == ii
+        lines(nBins$chi[inds], paths$chi[inds],
+              col = adjustcolor(pal[pat], 1))
     }
 }
 ## get median lines
-medianNbin <- apply(simplify2array(chiNbin), c(1,2), median)
-medianPaths <-  apply(simplify2array(chiPaths), c(1,2), median)
-for (jj in 1:7) { # add mean lines
-    lines(medianNbin[jj,], medianPaths[jj,], col = "gray30",
-          lwd = 3)
-    lines(medianNbin[jj,], medianPaths[jj,], col = pal[jj],
-          lwd = 2)
+for (pat in names(patFns)) { # add mean lines
+    medN <- numeric(length(depths))
+    medPath <- numeric(length(depths))
+    for (ii in seq_along(depths)) {
+        inds <- guide$dep == depths[ii] & guide$pat == pat
+        medN[ii] <- median(nBins$chi[inds])
+        medPath[ii] <- median(paths$chi[inds])
+    }
+    lines(medN, medPath, col = "gray30", lwd = 3)
+    lines(medN, medPath, col = pal[pat], lwd = 2)
 }
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
-dev.off()
 
 ## plotting bins for every depth: first remind of patterns
 for(i in 1:7) {
@@ -736,27 +733,29 @@ for(i in 1:7) {
 
 ## next, check the bins for every depth (Fig 4.16)
 ## some settings
-borders <- NA
+borders <- "black"
 if (is.na(borders)) suffix <- "NoBrdrs" else suffix <- ""
 
 ## start by getting the maximum residual to make the shading constant
-maxRes <- max(sapply(unlist(testChiChi[[1]],
-                            recursive = FALSE),
-                     getMaxRes))
+real <- 1 # choose realization
+inds <- guide$rep == real
+maxRes <- max(allMaxRes$chi[inds])
 ## for every depth, display the binning for each pattern
 for (depth in 2:10) {
     png(file = paste0("simDataBins", depth, suffix, ".png"),
         height = m, width= 6*m, units = "in", res = 480,
         bg = "transparent")
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
-    for(i in 1:7) {
+    for(pat in names(patFns)) {
+        ind <- which(guide$dep == depth & guide$pat == pat &
+            guide$rep == real) # identify bin
         plot(NA, ylim = c(1, n), xlim = c(1, n), # remove axes
              axes = F, xlab = "", ylab = "", main = "",
              bg = "transparent")
-        plotBinning(testChiBins[[1]][[depth]][[i]], pch = 19,
+        plotBinning(binnings$chi[[ind]], pch = 19,
                     cex = 0.1, add = TRUE,
                     col = NA, border = borders,
-                    fill = residualFill(testChiBins[[1]][[depth]][[i]],
+                    fill = residualFill(binnings$chi[[ind]],
                                         colrng = c("steelblue", "white",
                                                    "firebrick"),
                                         maxRes = maxRes))
@@ -765,21 +764,21 @@ for (depth in 2:10) {
 }
 
 ## do the same thing for the bins from MI splitting
-maxRes <- max(sapply(unlist(testMiChi[[1]],
-                            recursive = FALSE),
-                     getMaxRes))
+maxRes <- max(allMaxRes$mi[inds])
 for (depth in 2:10) {
     png(file = paste0("simDataBins", depth, "MI.png"), height = m,
         width= 6*m, units = "in", res = 480, bg = "transparent")
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
-    for(i in 1:7) {
+    for(pat in names(patFns)) {
+        ind <- which(guide$dep == depth & guide$pat == pat &
+                     guide$rep == real) # identify bin
         plot(NA, ylim = c(1, n), xlim = c(1, n),
              axes = F, xlab = "", ylab = "", main = "",
              bg = "transparent")
-        plotBinning(testMiBins[[1]][[depth]][[i]], pch = 19,
+        plotBinning(binnings$mi[[ind]], pch = 19,
                     cex = 0.1, add = TRUE,
                     col = adjustcolor("grey", 0.8),
-                    fill = residualFill(testMiBins[[1]][[depth]][[i]],
+                    fill = residualFill(binnings$mi[[ind]],
                                         maxRes = maxRes))
     }
     dev.off()
@@ -787,22 +786,46 @@ for (depth in 2:10) {
 
 ## and the random bins for every depth (Figure 4.17 for depth of 10)
 ## again, standardize the residuals
-maxRes <- max(sapply(unlist(testRndChi[[10]],
-                            recursive = FALSE),
-                     getMaxRes))
+real <- 10
+inds <- guide$rep == real
+maxRes <- max(allMaxRes$rand[inds])
 for (depth in 2:10) {
     png(file = paste0("simDataBinsRand", depth, suffix, ".png"),
         height = m, width= 6*m, units = "in", res = 480,
         bg = "transparent")
     par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
-    for(i in 1:7) {
+    for(pat in names(patFns)) {
+        ind <- which(guide$dep == depth & guide$pat == pat &
+                     guide$rep == real) # identify bin
         plot(NA, ylim = c(1, n), xlim = c(1, n),
              axes = F, xlab = "", ylab = "", main = "",
              bg = "transparent")
-        plotBinning(testRndBins[[10]][[depth]][[i]],
+        plotBinning(binnings$rand[[ind]],
                     pch = 19, cex = 0.1, add = TRUE,
                     col = NA, border = borders,
-                    fill = residualFill(testRndBins[[10]][[depth]][[i]],
+                    fill = residualFill(binnings$rand[[ind]],
+                                        maxRes = maxRes))
+    }
+    dev.off()
+}
+
+## last the squared random bins
+maxRes <- max(allMaxRes$randLong[inds])
+for (depth in 2:10) {
+    png(file = paste0("simDataBinsRSq", depth, suffix, ".png"),
+        height = m, width= 6*m, units = "in", res = 480,
+        bg = "transparent")
+    par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+    for(pat in names(patFns)) {
+        ind <- which(guide$dep == depth & guide$pat == pat &
+                     guide$rep == real) # identify bin
+        plot(NA, ylim = c(1, n), xlim = c(1, n),
+             axes = F, xlab = "", ylab = "", main = "",
+             bg = "transparent")
+        plotBinning(binnings$randLong[[ind]],
+                    pch = 19, cex = 0.1, add = TRUE,
+                    col = NA, border = borders,
+                    fill = residualFill(binnings$randLong[[ind]],
                                         maxRes = maxRes))
     }
     dev.off()
@@ -866,8 +889,6 @@ spMaxRes <- 17.35 # hard coded: largest residual across both
 qnts <- c(0.95, 0.99, 0.999) # chosen quantiles
 if (random) {
     nullP <- pchisq(spChiStats, spChiNbin - 1)
-    spRGB <- colorRamp(c("steelblue", "firebrick"),
-                       bias = 10)(nullP^2)/255
 } else {
     library(quantreg)
     ## the null density
@@ -885,9 +906,6 @@ if (random) {
                        sum(spChiStats[ii] >
                            splitNulls[[nb]])/length(splitNulls[[nb]])
                    })
-    ## convert these to a hue for plotting of points
-    spRGB <- colorRamp(c("steelblue", "firebrick"),
-                       bias = 10)(empP^2)/255
     ## perform quantile regression for the null data as well
     modQnt <- rq(chi ~ nbin, tau = c(0.95, 0.99, 0.999),
                  data = data.frame(nbin = c(nulls$chiSplit["nbin",,]),
@@ -895,8 +913,6 @@ if (random) {
     predQnt <- predict(modQnt,
                        newdata = data.frame(nbin = binVals))
 }
-## convert p-values to a colour
-spCol <- rgb(spRGB[,1], spRGB[,2], spRGB[,3])
 
 ## plot the sp500 point cloud coloured by empirical p-value with the
 ## quantile regression lines alongside
@@ -913,7 +929,7 @@ narrowPlot(xgrid = seq(1, 2, by = 0.5),
            ylab = expression(log[10]~{"("~X^2~")"}),
            mars = c(2.1, 2.1, 2.1, 2.1))
 points(log(spChiNbin, 10), log(spChiStats, 10), cex = 0.5,
-       col = adjustcolor(spCol, 0.2), pch = 20)
+       col = adjustcolor("firebrick", 0.2), pch = 20)
 for (ii in 1:3) {
     yadj <- 1 - 0.5*(ii - 1)
     if (random) {
@@ -961,7 +977,6 @@ points(spChiStatRanks[c(22451, 65548), "rand"],
 text(labels = c("SNA:PH", "MCO:AEE"), x = spChiStatRanks[c(22451, 65548), "rand"],
      y = spChiStatRanks[c(22451, 65548), "max"], adj = c(-0.1,0.5),
      cex = 0.6)
-                                        #col = rejCol)
 dev.off()
 
 ## which pairs maximize the difference in either direction?
@@ -1045,29 +1060,6 @@ for (prInd in spOrd[1:16]) {
 }
 dev.off()
 
-## do the same for pairs in the middle of the distribution
-png("sp500mid36.png", width = 5, height = 5, units = "in",
-    res = 480)
-par(mfrow = c(6, 6), mar = c(0.1, 0.55, 1.1, 0.55))
-for (prInd in spOrd[seq(length(spOrd)/2 - 17, by = 1,
-                        length.out = 36)]) {
-    pr <- spPairs[, prInd] # pair indices
-    plot(NA, xlim = c(1, (nrow(spRanks))),
-         ylim = c(1, (nrow(spRanks))), axes = "F",
-         xlab = colnames(spRanks)[pr[1]],
-         ylab = colnames(spRanks)[pr[2]],
-         main = "")
-    mtext(paste(colnames(spRanks)[pr], collapse = ":"),
-          cex = 0.6)
-    plotBinning(spBinsNP[[prInd]],
-                fill = residualFill(spBinsNP[[prInd]],
-                                    maxRes = spMaxRes),
-                add = TRUE)
-    points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".",
-           col = adjustcolor("gray50"))
-}
-dev.off()
-
 ## finally view the weakest associations
 png("sp500last36.png", width = 5, height = 5, units = "in",
     res = 480)
@@ -1139,4 +1131,45 @@ spChiNbinRaw <- sapply(spChiResidRaw, length)
 ## order by interestingness
 spOrdRaw <- order(spChiStatsRaw, decreasing = TRUE)
 ## try plotting this
-plot(spOrdRaw, spOrd, pch = ".")
+png("RawVsPseudoRanks.png", width = 4, height = 4, units = "in",
+    res = 480)
+narrowPlot(xgrid = c(0, 5e4, 1e5), ygrid = c(0, 5e4, 1e5),
+           main = "", xlab = "Raw data rank",
+           ylab = "Pseudo-observation rank",
+           xlim = c(0, 1.05e5), ylim = c(0, 1.05e5))
+points(spOrdRaw, spOrd, pch = ".")
+dev.off()
+
+## use this to plot the top pairs and their binnings
+spMaxRes <- max(abs(unlist(spChiResidRaw)))+0.1
+if (random) {
+    nme <- "sp500Rawtop16Rnd.png"
+} else {
+    nme <- "sp500Rawtop16.png"
+}
+png(nme, width = 3.5, height = 3.5, units = "in",
+    res = 480)
+par(mfrow = c(4, 4), mar = c(0.1, 0.55, 1.1, 0.55))
+for (prInd in spOrdRaw[1:16]) {
+    pr <- spPairs[, prInd] # pair indices
+    plot(NA, xlim = c(1, (nrow(spRawRanks))),
+         ylim = c(1, (nrow(spRawRanks))), axes = "F",
+         xlab = colnames(spRanks)[pr[1]],
+         ylab = colnames(spRanks)[pr[2]],
+         main = "")
+    mtext(paste(colnames(spRawRanks)[pr], collapse = ":"),
+          cex = 0.6)
+    tempBin <- binner(spRawRanks[, pr[1]], spRawRanks[, pr[2]],
+                      stopper = stopFn,
+                      splitter = chiSplit)
+    plotBinning(tempBin, pch = NA,
+                fill = residualFill(tempBin,
+                                    maxRes = spMaxRes,
+                                    colrng = c("steelblue",
+                                               "white",
+                                               "firebrick")),
+                add = TRUE)
+    points(spRawRanks[, pr[1]], spRawRanks[, pr[2]], pch = ".",
+           col = adjustcolor("gray50"))
+}
+dev.off()
