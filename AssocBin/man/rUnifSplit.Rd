@@ -4,7 +4,7 @@
 \alias{rUnifSplit}
 \title{Random uniform splitting}
 \usage{
-rUnifSplit(bin, minExp = 0, splitLongSide = FALSE, ...)
+rUnifSplit(bin, minExp = 0, splitLongSide = FALSE)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -15,8 +15,6 @@ in a bin}
 
 \item{splitLongSide}{logical value, should we force splitting on
 the longer side?}
-
-\item{...}{optional additional arguments (for compatibility)}
 }
 \value{
 A list of two bins resulting from the split of `bin`

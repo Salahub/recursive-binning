@@ -9,6 +9,9 @@
 ##' `y`
 ##' @param fill vector of values which can be interpreted as colours
 ##' of the same length as `bins`
+##' @param jitter vector of length two where the first entry is true
+##' if the `x` points should be jittered and the second is true if the
+##' `y` margin should be jittered (both false by default)
 ##' @param add logical, should the plot of bins be added to the
 ##' current plot area?
 ##' @param xlab string, the label to be placed on the x axis
@@ -28,8 +31,9 @@
 ##'                recursive = FALSE)
 ##' plotBinning(bin3)
 ##' @author Chris Salahub
-plotBinning <- function(bins, fill, add = FALSE, xlab = "x",
-                        ylab = "y", border = "black", ...) {
+plotBinning <- function(bins, fill, jitter = c(F, F), add = FALSE,
+                        xlab = "x", ylab = "y", border = "black",
+                        ...) {
     if (missing(fill)) fill <- rep(NA, length(bins)) # custom fill option
     nbins <- length(bins)
     xbnds <- sapply(bins, function(bn) bn$bnds$x)
@@ -41,7 +45,24 @@ plotBinning <- function(bins, fill, add = FALSE, xlab = "x",
     for (ii in seq_along(bins)) {
         rect(xbnds[1,ii], ybnds[1,ii], xbnds[2,ii], ybnds[2,ii],
              col = fill[ii], border = border)
-        points(bins[[ii]]$x, bins[[ii]]$y, ...) # disable with pch = ""
+        if (all(jitter)) {
+            xa <- diff(bins[[ii]]$bnds$x)/2
+            ya <- diff(bins[[ii]]$bnds$y)/2
+            points(jitter(bins[[ii]]$x, amount = xa),
+                   jitter(bins[[ii]]$y, amount = ya),
+                   ...)
+        } else if (jitter[1]) {
+            xa <- diff(bins[[ii]]$bnds$x)/2
+            points(jitter(bins[[ii]]$x, amount = xa),
+                   bins[[ii]]$y, ...)
+        } else if (jitter[2]) {
+            ya <- diff(bins[[ii]]$bnds$y)/2
+            points(bins[[ii]]$x,
+                   jitter(bins[[ii]]$y, amount = ya),
+                   ...)
+        } else {
+            points(bins[[ii]]$x, bins[[ii]]$y, ...)
+        }
     }
 }
 

@@ -4,7 +4,7 @@
 \alias{uniMaxScoreSplit}
 \title{Univariate score maximizing splitting}
 \usage{
-uniMaxScoreSplit(bin, scorer = diff, pickMax = which.max, ...)
+uniMaxScoreSplit(bin, scorer = diff, minExp = 5)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -14,14 +14,12 @@ uniMaxScoreSplit(bin, scorer = diff, pickMax = which.max, ...)
 split coordinates and the bounds of `bin` and returns a numeric
 vector of scores for each}
 
-\item{pickMax}{function which accepts a list of scores and returns
-the element of the largest score according to some rule}
-
-\item{...}{optional additional arguments to `scorer`}
+\item{minExp}{numeric giving the minimum expected count allowed
+in a bin}
 }
 \value{
 A list of two bins resulting from the split of `bin` at
-the maximum split location along x
+the maximum split location along y
 }
 \description{
 A function which splits a bin based on the location

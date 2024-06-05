@@ -4,7 +4,7 @@
 \alias{maxScoreSplit}
 \title{Size-restricted bivariate score maximizing splitting}
 \usage{
-maxScoreSplit(bin, scorer, minExp = 5, splitLongSide = FALSE, ...)
+maxScoreSplit(bin, scorer, minExp = 5, splitLongSide = FALSE)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -19,8 +19,6 @@ bin splits}
 
 \item{splitLongSide}{logical value, should we force splitting on
 the longer side regardless of scores?}
-
-\item{...}{optional additional arguments to `scorer`}
 }
 \value{
 A list of two bins resulting from the split of `bin`

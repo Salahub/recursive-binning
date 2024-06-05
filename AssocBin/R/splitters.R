@@ -141,7 +141,6 @@ halfCutTie <- function(bin, xscore, yscore, wider,
 ##' bin splits
 ##' @param splitLongSide logical value, should we force splitting on
 ##' the longer side regardless of scores?
-##' @param ... optional additional arguments to `scorer`
 ##' @return A list of two bins resulting from the split of `bin`
 ##' along the corresponding margin at the maximum location
 ##' @examples
@@ -152,7 +151,7 @@ halfCutTie <- function(bin, xscore, yscore, wider,
 ##' maxScoreSplit(bin, randScores) # different every time
 ##' @author Chris Salahub
 maxScoreSplit <- function(bin, scorer, minExp = 5,
-                          splitLongSide = FALSE, ...) {
+                          splitLongSide = FALSE) {
     expn <- bin$expn
     prop <- minExp/expn
     deltax <- diff(bin$bnds$x)
@@ -301,14 +300,13 @@ sandboxMaxSplit <- function(bin, scorer, ties = halfCutTie,
 ##' in a bin
 ##' @param splitLongSide logical value, should we force splitting on
 ##' the longer side regardless of scores?
-##' @param ... optional additional arguments (for compatibility)
 ##' @return A list of two bins resulting from the split of `bin`
 ##' along the corresponding margin at the maximum location
 ##' @examples
 ##' bin <- makeBin(x = 1:10, y = sample(1:10))
 ##' rIntSplit(bin, minExp = 2)
 ##' @author Chris Salahub
-rIntSplit <- function(bin, minExp = 5, splitLongSide = FALSE, ...) {
+rIntSplit <- function(bin, minExp = 5, splitLongSide = FALSE) {
   expn <- bin$expn
   prop <- minExp/expn
   deltax <- diff(bin$bnds$x)
@@ -356,14 +354,13 @@ rIntSplit <- function(bin, minExp = 5, splitLongSide = FALSE, ...) {
 ##' in a bin
 ##' @param splitLongSide logical value, should we force splitting on
 ##' the longer side?
-##' @param ... optional additional arguments (for compatibility)
 ##' @return A list of two bins resulting from the split of `bin`
 ##' at a random location on a random margin
 ##' @examples
 ##' bin <- makeBin(x = 1:10, y = sample(1:10))
 ##' rUnifSplit(bin, minExp = 2)
 ##' @author Chris Salahub
-rUnifSplit <- function (bin, minExp = 0, splitLongSide = FALSE, ...) {
+rUnifSplit <- function (bin, minExp = 0, splitLongSide = FALSE) {
     expn <- bin$expn
     prop <- minExp/expn
     xrng <- diff(bin$bnds$x)
@@ -401,21 +398,71 @@ rUnifSplit <- function (bin, minExp = 0, splitLongSide = FALSE, ...) {
 ##' @param scorer function which accepts a numeric vector of potential
 ##' split coordinates and the bounds of `bin` and returns a numeric
 ##' vector of scores for each
-##' @param pickMax function which accepts a list of scores and returns
-##' the element of the largest score according to some rule
-##' @param ... optional additional arguments to `scorer`
+##' @param minExp numeric giving the minimum expected count allowed
+##' in a bin
 ##' @return A list of two bins resulting from the split of `bin` at
-##' the maximum split location along x
+##' the maximum split location along y
 ##' @author Chris Salahub
-uniMaxScoreSplit <- function(bin, scorer = diff, pickMax = which.max,
-                             ...) {
-  xsort <- order(bin$x)
-  xscore <- scorer(c(bin$bnds$x[1], bin$x[xsort], bin$bnds$x[2]),
-                   expn = bin$expn, ...)
-  xmax <- pickMax(xscore)
-  xsplts <- bin$x[xsort]
-  newbnd <- c(xsplts[1]-1, xsplts)[xmax]  # new bin boundary
-  below <- xsort[seq_len(xmax-1)]
-  above <- if (xmax == bin$n+1) integer(0) else xsort[xmax:bin$n]
-  splitX(bin, bd = newbnd, above = above, below = below)
+uniMaxScoreSplit <- function(bin, scorer = diff, minExp = 5) {
+    expn <- bin$expn
+    prop <- minExp/expn
+    deltay <- diff(bin$bnds$y)
+    yfrm <- bin$bnds$y + ceiling(prop*deltay)*c(1, -1)
+    yaug <- c(min(bin$y)-1, bin$y, yfrm) # augment with frame
+    ysort <- order(yaug)
+    ylowFrm <- which(ysort == (length(yaug) - 1))
+    yupFrm <- which(ysort == length(yaug))
+    yinfrm <- ylowFrm:yupFrm
+    ycntblw <- cumsum(c(0, rep(1, bin$n), 0, 0)[ysort])[yinfrm]
+    yscore <- scorer(bounds = c(bin$bnds$y[1],
+                                yaug[ysort][yinfrm],
+                                bin$bnds$y[2]),
+                     nbelow = ycntblw, n = bin$n)
+    ymax <- which.max(yscore)
+    if (all(abs(yscore - yscore[1]) < sqrt(.Machine$double.eps))) {
+        ymax <- ceiling((yupFrm - ylowFrm)/2)
+    }  # halve on ties
+    newbnd <- yaug[ysort][yinfrm[ymax]]
+    yclean <- ysort[-c(yupFrm, ylowFrm)][-1] - 1
+    below <- yclean[seq_len(ycntblw[ymax])]
+    if (newbnd >= bin$y[yclean[bin$n]]) {
+        above <- integer(0)
+    } else above <- yclean[(ycntblw[ymax]+1):bin$n]
+    splitY(bin, bd = newbnd, above = above, below = below)
+}
+
+##' @title Univariate random integer splitting
+##' @description A function which splits a bin along x at a random
+##' integer conforming to limits on minimum bin size.
+##' @details This function serves as a wrapper which manages the
+##' interaction of a score function, marginal splitting functions,
+##' tie breaking function, and a maximum selection function to split
+##' a bin along a single margin at the observation coordinate which
+##' maximizes the score function.
+##' @param bin a bin to be split with elements `x`, `y`, `depth`,
+##' `bnds` (list with elements `x` and `y`), `expn`, `n`
+##' @param minExp numeric giving the minimum expected count allowed
+##' in a bin
+##' @return A list of two bins resulting from the split of `bin`
+##' along the corresponding margin at the maximum location
+##' @examples
+##' bin <- makeBin(x = 1:10, y = sample(1:10))
+##' rIntSplit(bin, minExp = 2)
+##' @author Chris Salahub
+uniRIntSplit <- function(bin, minExp = 5) {
+  expn <- bin$expn
+  prop <- minExp/expn
+  deltay <- diff(bin$bnds$y)
+  lower <- bin$bnds$y[1] + ceiling(prop*deltay)
+  upper <- bin$bnds$y[2] - ceiling(prop*deltay)
+  if (upper <= lower) {
+      bin$stopped <- TRUE
+      list(bin)
+  } else{
+      locs <- seq(from = lower, to = upper, by = 1)
+      spos <- sample(locs, size = 1)
+      above <- which(bin$y > spos)
+      below <- which(bin$y <= spos)
+      splitY(bin, spos, above, below)
+  }
 }

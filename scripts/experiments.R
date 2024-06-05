@@ -211,7 +211,7 @@ dev.off()
 
 ## INVESTIGATING THE NULL DISTRIBUTION ###############################
 set.seed(506391)
-n <- 1e2 # the sample size
+n <- 1e3 # the sample size
 nsim <- 1e4 # number of samples
 depths <- 2:10 # range of depths
 simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
@@ -221,7 +221,7 @@ simDataSets <- replicate(nsim, data.frame(x = sample(1:n),
 depthSeq.chi <- array(NA, dim = c(4, length(depths), nsim))
 depthSeq.mi <- array(NA, dim = c(4, length(depths), nsim))
 depthSeq.rnd <- array(NA, dim = c(4, length(depths), nsim))
-depthSeq.runif <- array(NA, dim = c(4, length(depths), nsim))
+depthSeq.rsq <- array(NA, dim = c(4, length(depths), nsim))
 ## set criteria/stop function
 crits <- makeCriteria(depth >= dep, expn <= 10, n == 0)
 stopFn <- function(bns) stopper(bns, crits)
@@ -266,7 +266,7 @@ if (writeout) { # run simulation and write it out
             ## finally, random uniform splits
             rntr <- binner(simDataSets[[ii]]$x, simDataSets[[ii]]$y,
                            stopper = stopFn, splitter = rsqSplit)
-            depthSeq.runif[,depInd,ii] <-
+            depthSeq.rsq[,depInd,ii] <-
                 c(chi = binChi(rntr)$stat,
                   mi = binMI(rntr)$stat,
                   nbin = length(rntr),
@@ -280,11 +280,11 @@ if (writeout) { # run simulation and write it out
     dimnames(depthSeq.chi) <- list(c("chi", "mi", "nbin", "maxDep"))
     dimnames(depthSeq.mi) <- list(c("chi", "mi", "nbin", "maxDep"))
     dimnames(depthSeq.rnd) <- list(c("chi", "mi", "nbin", "maxDep"))
-    dimnames(depthSeq.runif) <- list(c("chi", "mi", "nbin", "maxDep"))
+    dimnames(depthSeq.rsq) <- list(c("chi", "mi", "nbin", "maxDep"))
     ## save the data
     saveRDS(list(depths = depths, chiSplit = depthSeq.chi,
                  miSplit = depthSeq.mi, randSplit = depthSeq.rnd,
-                 runifSplit = depthSeq.runif),
+                 rsqSplit = depthSeq.rsq),
             file = paste0("null", n, ".Rds"))
 }
 
@@ -294,7 +294,7 @@ if (writeout) { # run simulation and write it out
 #load("null10000.rda")
 data <- readRDS("null10000.Rds")
 depths <- data$depths
-for (spltr in c("chiSplit", "miSplit", "randSplit", "runifSplit")) {
+for (spltr in c("chiSplit", "miSplit", "randSplit", "rsqSplit")) {
     png(paste0(spltr, "ChiDepth.png"), width = 4, height = 4,
                units = "in", res = 480, bg = "transparent")
     narrowPlot(xgrid = seq(0, 3, by = 0.5), # plot region
@@ -319,7 +319,7 @@ for (spltr in c("chiSplit", "miSplit", "randSplit", "runifSplit")) {
               lty = 2)
     }
     ## position the legend based on the splitting rule
-    if (grepl("rand", "runif", spltr)) {
+    if (grepl("rand", "rsq", spltr)) {
         legpos <- "topleft"
     } else legpos <- "bottomright"
     legend(x = legpos, legend = 2:10, title = "Max depth",
@@ -346,8 +346,7 @@ for (n in c(1e2, 1e3, 1e4)) {
         mar <- c(2.1, 1.1, 0.1, 3.1)
         wid <- size + 0.4
     }
-    for (spltr in c("chiSplit", "miSplit", "randSplit",
-                    "runifSplit")) {
+    for (spltr in c("chiSplit", "miSplit", "randSplit", "rsqSplit")) {
         png(paste0(spltr, "ChiDepth", n, ".png"), width = wid,
             height = size, units = "in", res = 480, bg = "transparent")
         narrowPlot(xgrid = seq(0, 3, by = 1), bg = "transparent",
@@ -387,8 +386,7 @@ for (n in c(1e2, 1e3, 1e4)) {
 library(quantreg)
 qnts <- c(0.95, 0.99, 0.999)
 ## choose the data with a sample size of 1000
-load("null10000.rda")
-data <- get("null10000")
+readRDS("null10000.Rds")
 depths <- data$depths
 depthSeq.chi <- data$chiSplit
 depthSeq.mi <- data$miSplit

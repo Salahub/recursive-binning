@@ -20,8 +20,7 @@ elements `x`, `y`, `bnds`, `expn`, and `n` and returns a list
 where each element is a list of two corresponding to a split of
 the bin at that position in the original list}
 
-\item{init}{function like `splitter` applied to the sole first
-bin}
+\item{init}{function like `splitter` applied to the first bin}
 }
 \value{
 A list of lists each with elements `x`, `y`, `bnds`,

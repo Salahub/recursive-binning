@@ -7,6 +7,7 @@
 plotBinning(
   bins,
   fill,
+  jitter = c(F, F),
   add = FALSE,
   xlab = "x",
   ylab = "y",
@@ -21,6 +22,10 @@ plotBinning(
 
 \item{fill}{vector of values which can be interpreted as colours
 of the same length as `bins`}
+
+\item{jitter}{vector of length two where the first entry is true
+if the `x` points should be jittered and the second is true if the
+`y` margin should be jittered (both false by default)}
 
 \item{add}{logical, should the plot of bins be added to the
 current plot area?}
