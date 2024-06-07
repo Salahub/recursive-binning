@@ -1,0 +1,72 @@
+---
+title: "Using AssocBin to map complex data"
+author: "Chris Salahub"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using AssocBin on complex data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The `AssocBin` vignette gives some guidance on how to control the core algorithm at the heart of the `AssocBin` package for applications to a single pair, but the functionality of `AssocBin` does not stop there. The package also includes higher level functionality which can apply recursive binning automatically to a complex data set. This vignette outlines howhttp://127.0.0.1:22179/graphics/681bfdce-bb25-484e-afd9-1fe303480217.png to run, interpret, and customize the `pariwiseAssociation` function that operates this high level functionality.
+
+```{r}
+library(AssocBin)
+```
+
+Let's take a look at the heart disease data from the UCI machine learning data repository (https://archive.ics.uci.edu/dataset/45/heart+disease):
+
+```{r}
+data(heart)
+summary(heart)
+```
+
+This example data has some missing values, with variables like `slope`, `ca`, and `thal` particularly troublesome. Dropping these variables which are mostly missing and considering complete cases only:
+
+```{r}
+heartClean <- heart
+heartClean$thal <- NULL
+heartClean$ca <- NULL
+heartClean$slope <- NULL
+heartClean <- na.omit(heartClean)
+str(heartClean)
+```
+
+This leaves 740 observations over 12 variables to be binned. Running the binning process is very straightforward. First, stop criteria are defined. Next, the wrapper function `pairwiseAssociation` is called.
+
+```{r}
+stopCrits <- makeCriteria(depth >= 6, n < 1, expn <= 10)
+assocs <- pairwiseAssociation(heartClean, stopCriteria = stopCrits, 
+                              returnBinnings = TRUE)
+```
+
+By default, this performs random binning of the data and computes the $\chi^2$ statistic on the resulting bins. It returns the result of the measure applied to each bin, the degrees of freedom for the Fisher $\chi^2$ goodness-of-fit test against uniformity, and the binnings themselves if `returnBinnings` is true.
+
+These can be combined in order to generate $p$-values for each pair based on a $\chi^2$ approximation of the statistic distribution with the degrees of freedom provided.
+
+```{r}
+pvals <- pchisq(sapply(assocs$statistic, function(x) x$stat),
+                df = assocs$df, lower.tail = FALSE)
+```
+
+By ordering the $p$-values in increasing order, we can identify the most interesting variable pairs by taking the first listed indices.
+
+```{r}
+pord <- order(pvals, decreasing = FALSE)
+```
+
+The top few binnings can be inspected (with residuals standardized to ensure the saturation levels can be compared between images).
+
+```{r}
+maxRes <- max(sapply(assocs$statistic, function(x) max(x$residuals)))
+oldPar <- par(mfrow = c(3,2))
+for (ii in 1:6) {
+  plotBinning(assocs$binning[[pord[ii]]],
+              fill = residualFill(assocs$binning[[pord[ii]]],
+                                  maxRes = maxRes))
+}
+```

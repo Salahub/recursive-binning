@@ -1,5 +1,5 @@
 ---
-title: "An Introduction to `AssocBin`"
+title: "An Introduction to AssocBin"
 author: "Chris Salahub"
 output: rmarkdown::html_vignette
 vignette: >

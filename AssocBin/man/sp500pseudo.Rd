@@ -13,8 +13,8 @@ different S&P 500 constituent stocks.
 data(sp500pseudo)
 }
 \description{
-This data uses code from the 'zenplots' package to process S&P 500
-consituent stock returns into uniform pseudo-observations for
-measuring association.
+This data is the result of code from the 'zenplots' package to
+process S&P 500 consituent stock returns into uniform
+pseudo-observations for measuring association.
 }
 \keyword{datasets}
