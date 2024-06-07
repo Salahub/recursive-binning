@@ -63,10 +63,16 @@ The top few binnings can be inspected (with residuals standardized to ensure the
 
 ```{r}
 maxRes <- max(sapply(assocs$statistic, function(x) max(x$residuals)))
-oldPar <- par(mfrow = c(3,2))
+oldPar <- par(mfrow = c(3,2), mar = c(3.1, 3.1, 1.1, 1.1))
 for (ii in 1:6) {
+  nm <- names(assocs$binning)[ii]
+  pr <- strsplit(nm, "\\:")
   plotBinning(assocs$binning[[pord[ii]]],
               fill = residualFill(assocs$binning[[pord[ii]]],
-                                  maxRes = maxRes))
+                                  maxRes = maxRes),
+              xlab = pr[1], ylab = pr[2])
 }
+par(oldPar)
 ```
+
+We can also customize this behaviour by taking 

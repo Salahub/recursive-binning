@@ -77,8 +77,8 @@ pairwiseAssociation <- function(data, stopCriteria,
 
     ## get ranks
     ranks <- data
-    ranks[, types=="factor"] <- apply(data[, types=="factor"], 2, rank,
-                                      ties.method = "average")
+    #ranks[, types=="factor"] <- apply(data[, types=="factor"], 2, rank,
+    #                                  ties.method = "average")
     ranks[, types=="numeric"] <- apply(data[, types=="numeric"], 2, rank,
                                        ties.method = "random")
 

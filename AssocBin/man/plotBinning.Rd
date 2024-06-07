@@ -7,7 +7,6 @@
 plotBinning(
   bins,
   fill,
-  jitter = c(F, F),
   add = FALSE,
   xlab = "x",
   ylab = "y",
@@ -22,10 +21,6 @@ plotBinning(
 
 \item{fill}{vector of values which can be interpreted as colours
 of the same length as `bins`}
-
-\item{jitter}{vector of length two where the first entry is true
-if the `x` points should be jittered and the second is true if the
-`y` margin should be jittered (both false by default)}
 
 \item{add}{logical, should the plot of bins be added to the
 current plot area?}
@@ -51,7 +46,8 @@ colours to visualize the sample space of pairwise data.
 \details{
 `plotBinning` plots each bin within a list of bins with
 custom shading to communicate large residuals, the depth of bins,
-or highlight particular bins
+or highlight particular bins. It automatically jitters points
+within categorical levels to avoid overplotting.
 }
 \examples{
 bin <- list(x = 1:10, y = sample(1:10),
