@@ -1171,3 +1171,90 @@ for (prInd in spOrdRaw[1:16]) {
            col = adjustcolor("gray50"))
 }
 dev.off()
+
+## blood data
+expr <- t(expr)
+expr2 <- expr[, sample(1:ncol(expr), size = 200)]
+exprRanks <- apply(expr2, 2, rank, ties.method = "random")
+rownames(exprRanks) <- NULL
+epairs <- combn(ncol(exprRanks), 2) # all possible pairs
+## next, we iterate through all pairs and bin to a maximum depth of 6
+## define the criteria to used
+crits <- makeCriteria(depth >= 6, expn <= 10, n == 0)
+stopFn <- function(bns) stopper(bns, crits)
+## and potential splitting functions
+chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
+miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
+rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
+## allocate storage
+spBins <- vector("list", ncol(epairs))
+msgInd <- ((1:ncol(epairs)) %% 1000) == 0
+## pairwise work
+set.seed(85912024)
+system.time({for (ii in seq_len(ncol(epairs))) { ## ~57 mins
+  pair <- epairs[, ii] # indices of pairs
+  spBins[[ii]] <- binner(exprRanks[, pair[1]], exprRanks[, pair[2]],
+                         stopper = stopFn,
+                         splitter = chiSplit)
+  if (msgInd[ii]) {
+    cat("\r Completed ", ii, " pairs")
+  }
+}})
+## get chi statistics across the bins
+eChis <- lapply(spBins, function(bns) binChi(bns))
+eChiStats <- sapply(eChis, function(x) x$stat)
+eChiResid <- sapply(eChis, function(x) x$residuals)
+eChiNbin <- sapply(eChiResid, length)
+## get max residual
+eMaxRes <- max(sapply(eChiResid, max)) + 0.01
+## order by most interesting
+eOrd <- order(eChiStats, decreasing = TRUE)
+
+## display certain pairs
+top <- TRUE
+dispInds <- if (top) eOrd[1:16] else eOrd[seq(length(eOrd)-15, by = 1, length.out = 16)]
+par(mfrow = c(4, 4), mar = c(0.1, 0.55, 1.1, 0.55))
+for (prInd in dispInds) {
+  pr <- epairs[, prInd] # pair indices
+  plot(NA, xlim = c(1, (nrow(exprRanks))),
+       ylim = c(1, (nrow(exprRanks))), axes = "F",
+       xlab = colnames(exprRanks)[pr[1]],
+       ylab = colnames(exprRanks)[pr[2]],
+       main = "")
+  mtext(paste(colnames(exprRanks)[pr], collapse = "||"),
+        cex = 0.6)
+  tempBin <- binner(exprRanks[, pr[1]], exprRanks[, pr[2]],
+                    stopper = stopFn,
+                    splitter = chiSplit)
+  plotBinning(tempBin, pch = NA,
+              fill = residualFill(tempBin,
+                                  maxRes = eMaxRes,
+                                  colrng = c("steelblue",
+                                             "white",
+                                             "firebrick")),
+              add = TRUE)
+  points(exprRanks[, pr[1]], exprRanks[, pr[2]], pch = 19,
+         col = adjustcolor("gray50"))
+}
+
+## finally view the weakest associations
+png("sp500last36.png", width = 5, height = 5, units = "in",
+    res = 480)
+par(mfrow = c(6, 6), mar = c(0.1, 0.55, 1.1, 0.55))
+for (prInd in spOrd[seq(length(spOrd)-35, by = 1,
+                        length.out = 36)]) {
+  pr <- spPairs[, prInd] # pair indices
+  plot(NA, xlim = c(1, (nrow(spRanks))),
+       ylim = c(1, (nrow(spRanks))), axes = "F",
+       xlab = colnames(spRanks)[pr[1]],
+       ylab = colnames(spRanks)[pr[2]],
+       main = "")
+  mtext(paste(colnames(spRanks)[pr], collapse = ":"),
+        cex = 0.6)
+  plotBinning(spBinsNP[[prInd]],
+              fill = residualFill(spBinsNP[[prInd]],
+                                  maxRes = spMaxRes),
+              add = TRUE)
+  points(spRanks[, pr[1]], spRanks[, pr[2]], pch = ".",
+         col = adjustcolor("gray50"))
+}
