@@ -4,7 +4,7 @@
 \alias{rIntSplit}
 \title{Random integer splitting}
 \usage{
-rIntSplit(bin, minExp = 5, splitLongSide = FALSE)
+rIntSplit(bin, minExp = 5, squarify = FALSE)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -13,8 +13,8 @@ rIntSplit(bin, minExp = 5, splitLongSide = FALSE)
 \item{minExp}{numeric giving the minimum expected count allowed
 in a bin}
 
-\item{splitLongSide}{logical value, should we force splitting on
-the longer side regardless of scores?}
+\item{squarify}{logical value, should we force splitting on
+the longer side?}
 }
 \value{
 A list of two bins resulting from the split of `bin`

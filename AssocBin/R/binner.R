@@ -19,6 +19,8 @@
 ##' where each element is a list of two corresponding to a split of
 ##' the bin at that position in the original list
 ##' @param init function like `splitter` applied to the first bin
+##' @param dropPoints logical; should points be dropped from final
+##' bins?
 ##' @return A list of lists each with elements `x`, `y`, `bnds`,
 ##' `expn`, `n`, and `stopped`.
 ##' @examples
@@ -32,7 +34,8 @@
 ##' ## run binner
 ##' bins <- binner(x, y, stopper = stopFn, splitter = spltFn)
 ##' @author Chris Salahub
-binner <- function(x, y, stopper, splitter, init = halfSplit) {
+binner <- function(x, y, stopper, splitter, init = halfSplit,
+                   dropPoints = FALSE) {
     ## initialize bin with all the data contained
     bin <- makeBin(x = x, y = y, # x and y points
                    bnds = list(x = c(0, max(x, na.rm = TRUE)),
@@ -49,6 +52,14 @@ binner <- function(x, y, stopper, splitter, init = halfSplit) {
         newBins <- lapply(binList[!stopStatus], splitter) # split bins
         newBins <- unlist(newBins, recursive = FALSE) # simplify
         newStop <- stopper(newBins) # get stop values
+        if (dropPoints) { # drop points in stopped bins
+            newBins[newStop] <- lapply(newBins[newStop],
+                                       function(bn) {
+                                           bn$x <- NULL
+                                           bn$y <- NULL
+                                           bn
+                                       })
+        }
         binList <- c(oldBins, newBins) # update list of bins
         stopStatus <- c(oldStop, newStop) # update stop status
     }
@@ -74,10 +85,12 @@ binner <- function(x, y, stopper, splitter, init = halfSplit) {
 ##' elements `x`, `y`, `bnds`, `expn`, and `n` and returns a list
 ##' where each element is a list of two corresponding to a split of
 ##' the bin at that position in the original list
+##' @param dropPoints logical; should points be dropped from final
+##' bins?
 ##' @return A list of lists each with elements `x`, `y`, `bnds`,
 ##' `expn`, `n`, and `stopped`.
 ##' @author Chris Salahub
-uniBinner <- function(x, y, stopper, splitter) {
+uniBinner <- function(x, y, stopper, splitter, dropPoints = FALSE) {
     xtab <- table(x)
     xbrks <- rbind(cumsum(c(0, xtab[-length(xtab)])),
                    cumsum(xtab))
@@ -100,6 +113,14 @@ uniBinner <- function(x, y, stopper, splitter) {
         newBins <- lapply(binList[!stopStatus], splitter) # split bins
         newBins <- unlist(newBins, recursive = FALSE) # simplify
         newStop <- stopper(newBins) # get stop values
+        if (dropPoints) { # drop points in stopped bins
+            newBins[newStop] <- lapply(newBins[newStop],
+                                       function(bn) {
+                                           bn$x <- NULL
+                                           bn$y <- NULL
+                                           bn
+                                       })
+        }
         binList <- c(oldBins, newBins) # update list of bins
         stopStatus <- c(oldStop, newStop) # update stop status
     }
@@ -115,10 +136,12 @@ uniBinner <- function(x, y, stopper, splitter) {
 ##' performs no splits and does not merge any categories by default.
 ##' @param x factor vector for the first categorical variable
 ##' @param y factor vector for the second categorical variable
+##' @param dropPoints logical; should points be dropped from final
+##' bins?
 ##' @return A list of lists each with elements `x`, `y`, `bnds`,
 ##' `expn`, `n`, and `stopped`.
 ##' @author Chris Salahub
-catBinner <- function(x, y) {
+catBinner <- function(x, y, dropPoints = FALSE) {
     n <- length(x) # computational set up
     xtab <- table(x)
     xbrks <- rbind(cumsum(c(0, xtab[-length(xtab)])),
@@ -142,6 +165,15 @@ catBinner <- function(x, y) {
                      expn = xtab[[ii]]*ytab[[jj]]/length(x),
                      n = sum(inds), depth = 1, stopped = TRUE)
         }
+    }
+
+    if (dropPoints) { # drop points if desired
+        binList <- lapply(binList,
+                          function(bn) {
+                              bn$x <- NULL
+                              bn$y <- NULL
+                              bn
+                          })
     }
 
     binList # return the final list of bins
@@ -169,10 +201,11 @@ catBinner <- function(x, y) {
 ##' elements `x`, `y`, `bnds`, `expn`, and `n` and returns a list
 ##' where each element is a list of two corresponding to a split of
 ##' the bin at that position in the original list
-##' @param init function like `splitter` applied to the sole first
-##' bin
+##' @param init function like `splitter` applied to the first bin
 ##' @param maxK integer giving the number of bins where splitting
 ##' is stopped regardless of stop criteria
+##' @param dropPoints logical; should points be dropped from final
+##' bins?
 ##' @return A list of lists each with elements `x`, `y`, `bnds`,
 ##' `expn`, `n`, and `stopped`.
 ##' @examples
@@ -187,7 +220,7 @@ catBinner <- function(x, y) {
 ##' bins <- singleBinner(x, y, stopper = stopFn, splitter = spltFn)
 ##' @author Chris Salahub
 singleBinner <- function(x, y, stopper, splitter, init = halfSplit,
-                         maxK = 5) {
+                         maxK = 5, dropPoints = FALSE) {
     ## initialize bin with all the data contained
     bin <- makeBin(x = x, y = y, # x and y points
                    bnds = list(x = c(0, max(x, na.rm = TRUE)),
@@ -217,6 +250,15 @@ singleBinner <- function(x, y, stopper, splitter, init = halfSplit,
                    areas)[ord]
         binList <- c(newBins, binList)[ord]
         stopStatus <- c(stopper(newBins), stopStatus)[ord]
+        if (dropPoints) { # drop if desired
+            newBins[stopper(newBins)] <-
+                lapply(newBins[stopper(newBins)],
+                       function(bn) {
+                           bn$x <- NULL
+                           bn$y <- NULL
+                           bn
+                       })      
+        }
         K <- K + 1
     }
 

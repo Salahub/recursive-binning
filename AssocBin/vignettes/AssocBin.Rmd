@@ -100,7 +100,17 @@ plotBinning(randBin, pch = 19, cex = 1,
             col = adjustcolor("gray50", 0.5))
 ```
 
-Both of these can be modified to change the palette used and the residual fill can be modified based on a value for maximum saturation. The residual fill is much more interesting when applied to a larger sample of data which is not random and uniform.
+The default shading highlights bins with Pearson residuals which are significant at the asymptotic 95\% critical values. Pearson residuals less than -1.96 are shaded in blue and those greater than 1.96 are shaded in red. Changing this behaviour to create different shading can be completed by specifying custom colour break points and corresponding colours or by specifying the number of breaks through the `nbr` argument.
+
+```{r}
+## next fill by residual
+plotBinning(randBin, pch = 19, cex = 1,
+            fill = residualFill(randBin, colrng = c("steelblue", "white", "firebrick"),
+                                nbr = 50),
+            col = adjustcolor("gray50", 0.5))
+```
+
+This fill is much more interesting when applied to a larger sample of data which is not random and uniform.
 
 ```{r}
 depx <- rnorm(10*n)

@@ -4,7 +4,7 @@
 \alias{maxScoreSplit}
 \title{Size-restricted bivariate score maximizing splitting}
 \usage{
-maxScoreSplit(bin, scorer, minExp = 5, splitLongSide = FALSE)
+maxScoreSplit(bin, scorer, minExp = 5, squarify = FALSE)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -17,7 +17,7 @@ vector of scores for each}
 \item{minExp}{value giving the smallest expected count allowed for
 bin splits}
 
-\item{splitLongSide}{logical value, should we force splitting on
+\item{squarify}{logical value, should we force splitting on
 the longer side regardless of scores?}
 }
 \value{

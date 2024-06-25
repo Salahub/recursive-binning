@@ -40,8 +40,7 @@ This leaves 740 observations over 12 variables to be binned. Running the binning
 
 ```{r}
 stopCrits <- makeCriteria(depth >= 6, n < 1, expn <= 10)
-assocs <- pairwiseAssociation(heartClean, stopCriteria = stopCrits, 
-                              returnBinnings = TRUE)
+assocs <- inDep(heartClean, stopCriteria = stopCrits)
 ```
 
 By default, this performs random binning of the data and computes the $\chi^2$ statistic on the resulting bins. It returns the result of the measure applied to each bin, the degrees of freedom for the Fisher $\chi^2$ goodness-of-fit test against uniformity, and the binnings themselves if `returnBinnings` is true.
@@ -63,16 +62,46 @@ The top few binnings can be inspected (with residuals standardized to ensure the
 
 ```{r}
 maxRes <- max(sapply(assocs$statistic, function(x) max(x$residuals)))
-oldPar <- par(mfrow = c(3,2), mar = c(3.1, 3.1, 1.1, 1.1))
 for (ii in 1:6) {
-  nm <- names(assocs$binning)[ii]
-  pr <- strsplit(nm, "\\:")
+  nm <- names(assocs$binning)[[pord[ii]]]
+  pr <- strsplit(nm, "\\:")[[1]]
   plotBinning(assocs$binning[[pord[ii]]],
               fill = residualFill(assocs$binning[[pord[ii]]],
                                   maxRes = maxRes),
-              xlab = pr[1], ylab = pr[2])
+              xlab = pr[1], ylab = pr[2], pch = ".")
 }
-par(oldPar)
 ```
 
-We can also customize this behaviour by taking 
+One of the 
+
+We can also customize this behaviour by changing the splitting function called by the function.
+
+```{r}
+maxCatCon <- function(x, y, sFn) {
+  uniBinner(x, y, stopper = sFn, 
+            splitter = function(bn) uniMaxScoreSplit(bn, chiScores))
+}
+maxConCon <- function(x, y, sFn) {
+  binner(x, y, stopper = sFn,
+         splitter = function(bn) maxScoreSplit(bn, chiScores))
+}
+maxPairs <- pairwiseAssociation(data = heartClean, stopCriteria = stopCrits,
+                                dualContinuous = maxConCon,
+                                categoricalContinuous = maxCatCon,
+                                returnBinnings = TRUE)
+```
+
+```{r}
+pvalsMax <- pchisq(sapply(maxPairs$statistic, function(x) x$stat),
+                df = maxPairs$df, lower.tail = FALSE)
+pordMax <- order(pvals, decreasing = FALSE)
+maxRes <- max(sapply(maxPairs$statistic, function(x) max(x$residuals)))
+for (ii in 1:6) {
+  nm <- names(maxPairs$binning)[[pordMax[ii]]]
+  pr <- strsplit(nm, "\\:")[[1]]
+  plotBinning(maxPairs$binning[[pordMax[ii]]],
+              fill = residualFill(maxPairs$binning[[pordMax[ii]]],
+                                  maxRes = maxRes),
+              xlab = pr[1], ylab = pr[2], pch = ".")
+}
+```

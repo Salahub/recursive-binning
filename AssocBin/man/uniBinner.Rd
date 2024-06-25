@@ -4,7 +4,7 @@
 \alias{uniBinner}
 \title{Single margin binning}
 \usage{
-uniBinner(x, y, stopper, splitter)
+uniBinner(x, y, stopper, splitter, dropPoints = FALSE)
 }
 \arguments{
 \item{x}{factor vector for the the first variable}
@@ -19,6 +19,9 @@ whether a split should occur for the bin defined by that list}
 elements `x`, `y`, `bnds`, `expn`, and `n` and returns a list
 where each element is a list of two corresponding to a split of
 the bin at that position in the original list}
+
+\item{dropPoints}{logical; should points be dropped from final
+bins?}
 }
 \value{
 A list of lists each with elements `x`, `y`, `bnds`,

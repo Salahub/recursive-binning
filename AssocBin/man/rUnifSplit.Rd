@@ -4,7 +4,7 @@
 \alias{rUnifSplit}
 \title{Random uniform splitting}
 \usage{
-rUnifSplit(bin, minExp = 0, splitLongSide = FALSE)
+rUnifSplit(bin, minExp = 0, squarify = FALSE)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -13,7 +13,7 @@ rUnifSplit(bin, minExp = 0, splitLongSide = FALSE)
 \item{minExp}{numeric giving the minimum expected count allowed
 in a bin}
 
-\item{splitLongSide}{logical value, should we force splitting on
+\item{squarify}{logical value, should we force splitting on
 the longer side?}
 }
 \value{

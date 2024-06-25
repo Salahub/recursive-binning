@@ -4,7 +4,7 @@
 \alias{uniMaxScoreSplit}
 \title{Univariate score maximizing splitting}
 \usage{
-uniMaxScoreSplit(bin, scorer = diff, minExp = 5)
+uniMaxScoreSplit(bin, scorer, minExp = 5)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,

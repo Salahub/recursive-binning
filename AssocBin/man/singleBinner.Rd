@@ -4,7 +4,15 @@
 \alias{singleBinner}
 \title{Single split recursive binning}
 \usage{
-singleBinner(x, y, stopper, splitter, init = halfSplit, maxK = 5)
+singleBinner(
+  x,
+  y,
+  stopper,
+  splitter,
+  init = halfSplit,
+  maxK = 5,
+  dropPoints = FALSE
+)
 }
 \arguments{
 \item{x}{numeric vector of the first variable to be binned}
@@ -20,11 +28,13 @@ elements `x`, `y`, `bnds`, `expn`, and `n` and returns a list
 where each element is a list of two corresponding to a split of
 the bin at that position in the original list}
 
-\item{init}{function like `splitter` applied to the sole first
-bin}
+\item{init}{function like `splitter` applied to the first bin}
 
 \item{maxK}{integer giving the number of bins where splitting
 is stopped regardless of stop criteria}
+
+\item{dropPoints}{logical; should points be dropped from final
+bins?}
 }
 \value{
 A list of lists each with elements `x`, `y`, `bnds`,

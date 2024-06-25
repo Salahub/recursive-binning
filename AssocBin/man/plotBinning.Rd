@@ -8,8 +8,10 @@ plotBinning(
   bins,
   fill,
   add = FALSE,
+  factor = 0.5,
   xlab = "x",
   ylab = "y",
+  suppressLabs = FALSE,
   border = "black",
   ...
 )
@@ -25,9 +27,15 @@ of the same length as `bins`}
 \item{add}{logical, should the plot of bins be added to the
 current plot area?}
 
+\item{factor}{number between 0 and 1, what factor should be
+applied to jittering of categorical variables?}
+
 \item{xlab}{string, the label to be placed on the x axis}
 
 \item{ylab}{string, the label to be placed on the y axis}
+
+\item{suppressLabs}{logical, should axis labels be suppressed or
+displayed?}
 
 \item{border}{argument to be passed to `rect` internally giving
 the border colour}
@@ -40,8 +48,8 @@ A list of lists each with elements `x`, `y`, `bnds`,
 `expn`, and `n`.
 }
 \description{
-Use a binning and vector of fill
-colours to visualize the sample space of pairwise data.
+Use a binning and vector of fill colours to
+visualize the sample space of pairwise data.
 }
 \details{
 `plotBinning` plots each bin within a list of bins with

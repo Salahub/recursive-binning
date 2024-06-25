@@ -4,7 +4,7 @@
 \alias{binner}
 \title{Many split recursive binning}
 \usage{
-binner(x, y, stopper, splitter, init = halfSplit)
+binner(x, y, stopper, splitter, init = halfSplit, dropPoints = FALSE)
 }
 \arguments{
 \item{x}{numeric vector of the first variable to be binned}
@@ -21,6 +21,9 @@ where each element is a list of two corresponding to a split of
 the bin at that position in the original list}
 
 \item{init}{function like `splitter` applied to the first bin}
+
+\item{dropPoints}{logical; should points be dropped from final
+bins?}
 }
 \value{
 A list of lists each with elements `x`, `y`, `bnds`,

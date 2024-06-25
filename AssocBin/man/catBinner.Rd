@@ -4,12 +4,15 @@
 \alias{catBinner}
 \title{Binning of categorical variable pairs}
 \usage{
-catBinner(x, y)
+catBinner(x, y, dropPoints = FALSE)
 }
 \arguments{
 \item{x}{factor vector for the first categorical variable}
 
 \item{y}{factor vector for the second categorical variable}
+
+\item{dropPoints}{logical; should points be dropped from final
+bins?}
 }
 \value{
 A list of lists each with elements `x`, `y`, `bnds`,

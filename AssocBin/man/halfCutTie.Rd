@@ -4,7 +4,7 @@
 \alias{halfCutTie}
 \title{Halve continuously to break ties}
 \usage{
-halfCutTie(bin, xscore, yscore, wider, splitLongSide = FALSE)
+halfCutTie(bin, xscore, yscore, wider, squarify = FALSE)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -18,7 +18,7 @@ y}
 
 \item{wider}{logical; is the bin wider than it is tall?}
 
-\item{splitLongSide}{logical value, should we force splitting on
+\item{squarify}{logical value, should we force splitting on
 the longer side regardless of scores?}
 }
 \value{
