@@ -10,6 +10,7 @@ vignette: >
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+set.seed(72604204)
 ```
 
 The `AssocBin` vignette gives some guidance on how to control the core algorithm at the heart of the `AssocBin` package for applications to a single pair, but the functionality of `AssocBin` does not stop there. The package also includes higher level functionality which can apply recursive binning automatically to a complex data set. This vignette outlines howhttp://127.0.0.1:22179/graphics/681bfdce-bb25-484e-afd9-1fe303480217.png to run, interpret, and customize the `pariwiseAssociation` function that operates this high level functionality.
@@ -36,72 +37,57 @@ heartClean <- na.omit(heartClean)
 str(heartClean)
 ```
 
-This leaves 740 observations over 12 variables to be binned. Running the binning process is very straightforward. First, stop criteria are defined. Next, the wrapper function `pairwiseAssociation` is called.
+This leaves 740 observations over 12 variables to be binned. Running the binning process is very straightforward. First, stop criteria are defined. Next, the function `inDep` is called. This function performs pairwise binning on all variable pairs in this data set and returns an `inDep` object, which contains these binnings alongside data about them that allow us to assess the relationships between these pairs.
 
 ```{r}
 stopCrits <- makeCriteria(depth >= 6, n < 1, expn <= 10)
 assocs <- inDep(heartClean, stopCriteria = stopCrits)
 ```
 
-By default, this performs random binning of the data and computes the $\chi^2$ statistic on the resulting bins. It returns the result of the measure applied to each bin, the degrees of freedom for the Fisher $\chi^2$ goodness-of-fit test against uniformity, and the binnings themselves if `returnBinnings` is true.
-
-These can be combined in order to generate $p$-values for each pair based on a $\chi^2$ approximation of the statistic distribution with the degrees of freedom provided.
+The resulting object can be explored using `plot` and `summary` methods.
 
 ```{r}
-pvals <- pchisq(sapply(assocs$statistic, function(x) x$stat),
-                df = assocs$df, lower.tail = FALSE)
+summary(assocs)
+```
+```{r, fig.width = 5, fig.height = 8}
+plot(assocs) # by default this displays the 5 strongest relationships
+```
+```{r, fig.width = 5, fig.height = 8}
+## by specifying which indices should be displayed, others can be plotted
+## the binnings are returned in increasing order of p-value, so the indices
+## chosen give the rank of the strength a particular pair's relationship
+plot(assocs, which = 6:10) # like the next 5 strongest
+plot(assocs, which = 62:66) # or the 5 weakest relationships
 ```
 
-By ordering the $p$-values in increasing order, we can identify the most interesting variable pairs by taking the first listed indices.
+In the first two columns, points are jittered within categorical variable levels to reduce overplotting. The different categories are separated by dashed lines for visual clarity. Space is added in the first column for additional separation of groups, but this is condensed in the second column to reflect the appearance of the point configuration under ranks with random tie-breaking.
+
+The shadings in the final column of each of these plots highlight the cells with individually significant Pearson residuals under the null hypothesis. Asymptotically, the Pearson residuals are normally distributed, and so values above the 0.975 standard normal or below the 0.025 standard normal quantile are shaded. The cells below the lower quantile (with significantly fewer observations than expected) are shaded blue while those above (with significantly more observations than expected) are shaded red.
+
+The $p$-values reported are computed assuming the $\chi^2$ statistics for each pair are $\chi^2_{df}$-distributed with $df$ given by the number of cells less the number of constraints in estimation. By default, binning is therefore done at random to ensure this approximation is accurate. When other splitting methods are used these default $p$-values are no longer accurate. Of course, such splitting methods may still be desirable for better plotting qualities and so we can customize the bins by changing the splitting logic.
 
 ```{r}
-pord <- order(pvals, decreasing = FALSE)
+maxCatCon <- function(bn) uniMaxScoreSplit(bn, chiScores)
+maxConCon <- function(bn) maxScoreSplit(bn, chiScores)
+maxPairs <- inDep(data = heartClean, stopCriteria = stopCrits, 
+                  catCon = maxCatCon, conCon = maxCatCon)
+summary(maxPairs)
 ```
 
-The top few binnings can be inspected (with residuals standardized to ensure the saturation levels can be compared between images).
+The drastic change in the significance levels in the summary demonstrates how maximized $\chi^2$ splitting, for example, leads to inflated significance of pairs compared to the more accurate random splitting.
 
-```{r}
-maxRes <- max(sapply(assocs$statistic, function(x) max(x$residuals)))
-for (ii in 1:6) {
-  nm <- names(assocs$binning)[[pord[ii]]]
-  pr <- strsplit(nm, "\\:")[[1]]
-  plotBinning(assocs$binning[[pord[ii]]],
-              fill = residualFill(assocs$binning[[pord[ii]]],
-                                  maxRes = maxRes),
-              xlab = pr[1], ylab = pr[2], pch = ".")
-}
+```{r, fig.width = 5, fig.height = 8}
+plot(maxPairs)
+plot(maxPairs, which = 6:10)
 ```
 
-One of the 
+Despite this change, both methods agree on the most significant relationships in the data. For each pair, we can get a sense of its importance by comparing its rank under both random and maximized binning in a single plot.
 
-We can also customize this behaviour by changing the splitting function called by the function.
-
-```{r}
-maxCatCon <- function(x, y, sFn) {
-  uniBinner(x, y, stopper = sFn, 
-            splitter = function(bn) uniMaxScoreSplit(bn, chiScores))
-}
-maxConCon <- function(x, y, sFn) {
-  binner(x, y, stopper = sFn,
-         splitter = function(bn) maxScoreSplit(bn, chiScores))
-}
-maxPairs <- pairwiseAssociation(data = heartClean, stopCriteria = stopCrits,
-                                dualContinuous = maxConCon,
-                                categoricalContinuous = maxCatCon,
-                                returnBinnings = TRUE)
+```{r, fig.width = 5, fig.height = 5}
+randOrd <- match(assocs$pairs, assocs$pairs)
+maxOrd <- match(assocs$pairs, maxPairs$pairs)
+plot(randOrd, maxOrd, xlab = "Random rank", ylab = "Max chi rank", 
+     main = "Rankings of pair significance between methods")
 ```
 
-```{r}
-pvalsMax <- pchisq(sapply(maxPairs$statistic, function(x) x$stat),
-                df = maxPairs$df, lower.tail = FALSE)
-pordMax <- order(pvals, decreasing = FALSE)
-maxRes <- max(sapply(maxPairs$statistic, function(x) max(x$residuals)))
-for (ii in 1:6) {
-  nm <- names(maxPairs$binning)[[pordMax[ii]]]
-  pr <- strsplit(nm, "\\:")[[1]]
-  plotBinning(maxPairs$binning[[pordMax[ii]]],
-              fill = residualFill(maxPairs$binning[[pordMax[ii]]],
-                                  maxRes = maxRes),
-              xlab = pr[1], ylab = pr[2], pch = ".")
-}
-```
+Both methods agree on the most important relationships in the data, but tend to disagree about the less strongly related variables. Note that this plot was produced by matching the pairs ranked by $p$-values, which are only accurate for random binning.

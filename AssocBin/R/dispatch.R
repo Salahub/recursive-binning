@@ -178,26 +178,36 @@ plot.inDep <- function(inDep, which = 1:5, ...) {
         if (typs[[ii]][1] == "factor") { # jitter factors
             x <- as.factor(x) # ensure type
             xtbl <- table(x)
-            xa <- cumsum(c(0, xtbl[-length(xtbl)]))/2 + cumsum(xtbl)/2
+            xbr <- c(0, xtbl)
+            xa <- cumsum(xbr[-length(xbr)])/2 + cumsum(xbr[-1])/2
             pltx <- xa[as.numeric(x)] +
                 runif(length(x), min = -xtbl[as.numeric(x)]/2.2,
                       max = xtbl[as.numeric(x)]/2.2)
-        } else pltx <- x
+        } else {
+            pltx <- x
+            xbr <- NA
+        }
         if (typs[[ii]][2] == "factor") {
             y <- as.factor(y)
             ytbl <- table(y)
-            ya <- cumsum(c(0, ytbl[-length(ytbl)]))/2 + cumsum(ytbl)/2
+            ybr <- c(0, ytbl)
+            ya <- cumsum(ybr[-length(ybr)])/2 + cumsum(ybr[-1])/2
             plty <- ya[as.numeric(y)] +
                 runif(length(y), min = -ytbl[as.numeric(y)]/2.2,
                       max = ytbl[as.numeric(y)]/2.2)
 
-        } else plty <- y
+        } else {
+            plty <- y
+            ybr <- NA
+        }
         ## create three plot areas
         plot(x = pltx, y = plty, xaxt = "n", yaxt = "n", ...)
+        abline(h = cumsum(ybr), v = cumsum(xbr), lty = 2)
         mtext("Raw", side = 3, line = 0, cex = 0.6)
         plot(x = rank(pltx, ties.method = "random"),
              y = rank(plty, ties.method = "random"),
              xaxt = "n", yaxt = "n", ...)
+        abline(h = cumsum(ybr), v = cumsum(xbr), lty = 2)
         mtext("Ranks", side = 3, line = 0, cex = 0.6)
         mtext(side = 3, line = 1,
               text = paste0("Pair: ",
