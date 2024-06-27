@@ -15,8 +15,24 @@
 ##' @param conCon splitting function to apply to pairs of continuous
 ##' variables
 ##' @param dropPoints logical; should returned bins contain points?
-##' @return A list of lists each with elements `x`, `y`, `bnds`,
-##' `expn`, `n`, and `stopped`.
+##' @return An `inDep` object, with slots `data`, `types`, `pairs`,
+##' `binnings`, `residuals`, `statistics`, `dfs`, and `pvalues` that
+##' stores the results of using recursive binning with the specified
+##' splitting logic to test independence on a data set. `data` gives
+##' the name of the data object in the global environment which was
+##' split, `types` is a character vector giving the data types of each
+##' pair, `pairs` is a character vector of the variable names of each
+##' pair, `binnings` is a list of lists where each list is the
+##' binning fir to the corresponding pair by the recursive binning
+##' algorithm, `residuals` is list of numeric vectors giving the
+##' residual for each bin of each pairwise binning, `statistics` is a
+##' numeric vector giving the chi-squared statistic for each binning,
+##' `dfs` is a numeric vector giving the degrees of freedom of each
+##' binning based on the variable type combination and the final
+##' number of bins, and finally `pvalues` is a numeric vector of
+##' p-values for `statistics` assuming a chi-squared null
+##' distribution with `dfs` degrees of freedom. The order of the
+##' binnings is by increasing p-value.
 ##' @author Chris Salahub
 inDep <- function(data, stopCriteria,
                   catCon = uniRIntSplit,
@@ -104,29 +120,54 @@ inDep <- function(data, stopCriteria,
     pord <- order(pvals)
 
     ## return everything
-    list(data = datName,
-         types = typecomb[pord],
-         pairs = names(bns)[pord],
-         binnings = bns[pord],
-         residuals = sapply(binStats[pord], function(x) x$residuals),
-         statistics = sapply(binStats[pord], function(x) x$stat),
-         dfs = dfs[pord],
-         pvalues = pvals[pord])
+    inDep <- list(data = datName,
+                  types = typecomb[pord],
+                  pairs = names(bns)[pord],
+                  binnings = bns[pord],
+                  residuals = sapply(binStats[pord],
+                                     function(x) x$residuals),
+                  statistics = sapply(binStats[pord],
+                                      function(x) x$stat),
+                  dfs = dfs[pord],
+                  pvalues = pvals[pord])
+    class(inDep) <- "inDep"
+    inDep
 }
 
-##' @title Plot `inDep` output
-##' @description Plot the specified indices of the output of an
-##' `inDep` function call
-##' @details For each index, this function plots a row of three plots.
-##' The first plot is the raw data, the second plot is the ranks of
-##' the data, and the final plot is the binning contained in the
-##' output of `inDep`.
-##' @param inDep output of an `inDep` function call
-##' @param which indices of binnings to display ordered by increasing
-##' p-value
-##' @return Nothing, but plot the specified indices.
+##' Methods
+##' @title S3 methods for `inDep`
+##' @description The `summary` and `plot` methods outlined here
+##' support the quick description of an `inDep` object.
+##' @details For each index in `which`, this function produces a row
+##' of three plots. The first plot is the raw data, the second plot
+##' is the ranks of the data, and the final plot is the binning
+##' contained in the `inDep` object.
+##' @param inDep object with class `inDep`
+##' @param which indices of binnings to display in `inDep`, where
+##' binnings are ordered by increasing p-value
+##' @param ... additional arguments to pass to `plot`
+##' @return Nothing for the plot method, while summary quietly returns
+##' a summary of `inDep`
 ##' @author Chris Salahub
-inDepPlot <- function(inDep, which = 1:5, ...) {
+##' @describeIn methods Summary method for `genome`
+summary.inDep <- function(inDep) {
+    dat <- inDep$data
+    nprs <- length(inDep$pairs)
+    typtab <- table(inDep$types)
+    pvals <- quantile(inDep$pvalues, probs = seq(0, 1, 0.1))
+    sig5 <- sum(inDep$pvalues < 0.05)
+    sig1 <- sum(inDep$pvalues < 0.01)
+    cat(paste0("All ", nprs, " pairs in ", dat,
+          " recursively binned with type distribution: \n"))
+    print(typtab)
+    cat(paste0(sig5, " pairs are significant at 5% and ",
+               sig1, " pairs are significant at 1%\n"))
+    invisible(list(data = dat, npair = nprs,
+                   typeTable = typtab,
+                   pDeciles = pvals))
+}
+##' @describeIn methods Plot method for `genome`
+plot.inDep <- function(inDep, which = 1:5, ...) {
     dat <- get(inDep$data)
     prs <- strsplit(inDep$pairs[which], split = "\\:")
     typs <- strsplit(inDep$types[which], split = "\\:")
@@ -165,11 +206,10 @@ inDepPlot <- function(inDep, which = 1:5, ...) {
                             ", p = ",
                             format(inDep$pvalues[which[ii]],
                                    digits = 3)))
-        plotBinning(inDep$binnings[[ii]], factor = 0.9,
+        plotBinning(inDep$binnings[[which[ii]]], factor = 0.9,
                     xlab = "", ylab = "",
-                    fill = residualFill(inDep$binnings[[ii]]),
-                    suppressLabs = TRUE)
+                    fill = residualFill(inDep$binnings[[which[ii]]]),
+                    suppressLabs = TRUE, ...)
         mtext("Bins", side = 3, line = 0, cex = 0.6)
     }
 }
-
