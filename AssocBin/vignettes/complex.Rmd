@@ -91,3 +91,19 @@ plot(randOrd, maxOrd, xlab = "Random rank", ylab = "Max chi rank",
 ```
 
 Both methods agree on the most important relationships in the data, but tend to disagree about the less strongly related variables. Note that this plot was produced by matching the pairs ranked by $p$-values, which are only accurate for random binning.
+
+Noting the strong impact of study on these results, we might repeat this analysis with the Cleveland data alone.
+
+```{r}
+heartCleve <- heartClean[heartClean$study == "cleveland", ]
+heartCleve$study <- NULL
+cleveAssoc <- inDep(heartCleve, stopCriteria = stopCrits, catCon = maxCatCon,
+                    conCon = maxConCon)
+summary(cleveAssoc)
+```
+
+```{r, fig.width = 5, fig.height = 8}
+plot(cleveAssoc)
+plot(cleveAssoc, which = 6:10)
+plot(cleveAssoc, which = 11:15)
+```

@@ -7,13 +7,15 @@
 \usage{
 \method{summary}{inDep}(inDep)
 
-\method{plot}{inDep}(inDep, which = 1:5, ...)
+\method{plot}{inDep}(inDep, which = 1:5, border = "black", ...)
 }
 \arguments{
 \item{inDep}{object with class `inDep`}
 
 \item{which}{indices of binnings to display in `inDep`, where
 binnings are ordered by increasing p-value}
+
+\item{border}{colour of borders to be drawn on the binnings}
 
 \item{...}{additional arguments to pass to `plot`}
 }

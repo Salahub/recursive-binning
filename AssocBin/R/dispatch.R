@@ -145,6 +145,7 @@ inDep <- function(data, stopCriteria,
 ##' @param inDep object with class `inDep`
 ##' @param which indices of binnings to display in `inDep`, where
 ##' binnings are ordered by increasing p-value
+##' @param border colour of borders to be drawn on the binnings
 ##' @param ... additional arguments to pass to `plot`
 ##' @return Nothing for the plot method, while summary quietly returns
 ##' a summary of `inDep`
@@ -167,7 +168,7 @@ summary.inDep <- function(inDep) {
                    pDeciles = pvals))
 }
 ##' @describeIn methods Plot method for `genome`
-plot.inDep <- function(inDep, which = 1:5, ...) {
+plot.inDep <- function(inDep, which = 1:5, border = "black", ...) {
     dat <- get(inDep$data)
     prs <- strsplit(inDep$pairs[which], split = "\\:")
     typs <- strsplit(inDep$types[which], split = "\\:")
@@ -175,14 +176,17 @@ plot.inDep <- function(inDep, which = 1:5, ...) {
     for (ii in seq_along(prs)) {
         x <- dat[, prs[[ii]][1]] # get pair
         y <- dat[, prs[[ii]][2]]
+        scl <- length(x)/100
         if (typs[[ii]][1] == "factor") { # jitter factors
             x <- as.factor(x) # ensure type
             xtbl <- table(x)
             xbr <- c(0, xtbl)
             xa <- cumsum(xbr[-length(xbr)])/2 + cumsum(xbr[-1])/2
+            ## handle small categories thinner than scl
+            xmns <- pmin(-xtbl[as.numeric(x)]/2 + scl, 0)
+            xmxs <- pmax(xtbl[as.numeric(x)]/2 - scl, 0)
             pltx <- xa[as.numeric(x)] +
-                runif(length(x), min = -xtbl[as.numeric(x)]/2.2,
-                      max = xtbl[as.numeric(x)]/2.2)
+                runif(length(x), min = xmns, max = xmxs)
         } else {
             pltx <- x
             xbr <- NA
@@ -192,9 +196,10 @@ plot.inDep <- function(inDep, which = 1:5, ...) {
             ytbl <- table(y)
             ybr <- c(0, ytbl)
             ya <- cumsum(ybr[-length(ybr)])/2 + cumsum(ybr[-1])/2
+            ymns <- pmin(-ytbl[as.numeric(y)]/2 + scl, 0)
+            ymxs <- pmax(ytbl[as.numeric(y)]/2 - scl, 0)
             plty <- ya[as.numeric(y)] +
-                runif(length(y), min = -ytbl[as.numeric(y)]/2.2,
-                      max = ytbl[as.numeric(y)]/2.2)
+                runif(length(y), min = ymns, max = ymxs)
 
         } else {
             plty <- y
@@ -217,7 +222,7 @@ plot.inDep <- function(inDep, which = 1:5, ...) {
                             format(inDep$pvalues[which[ii]],
                                    digits = 3)))
         plotBinning(inDep$binnings[[which[ii]]], factor = 0.9,
-                    xlab = "", ylab = "",
+                    xlab = "", ylab = "", border = border,
                     fill = residualFill(inDep$binnings[[which[ii]]]),
                     suppressLabs = TRUE, ...)
         mtext("Bins", side = 3, line = 0, cex = 0.6)
