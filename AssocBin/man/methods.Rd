@@ -5,19 +5,21 @@
 \alias{plot.inDep}
 \title{S3 methods for `inDep`}
 \usage{
-\method{summary}{inDep}(inDep)
+\method{summary}{inDep}(object, ...)
 
-\method{plot}{inDep}(inDep, which = 1:5, border = "black", ...)
+\method{plot}{inDep}(x, ..., which = 1:5, border = "black")
 }
 \arguments{
-\item{inDep}{object with class `inDep`}
+\item{object}{`inDep` object to summarize}
 
-\item{which}{indices of binnings to display in `inDep`, where
+\item{...}{additional arguments to pass on to the method}
+
+\item{x}{object with class `inDep`}
+
+\item{which}{indices of binnings to display from `x`, where
 binnings are ordered by increasing p-value}
 
 \item{border}{colour of borders to be drawn on the binnings}
-
-\item{...}{additional arguments to pass to `plot`}
 }
 \value{
 Nothing for the plot method, while summary quietly returns

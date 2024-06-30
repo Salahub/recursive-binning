@@ -16,23 +16,27 @@
 ##' variables
 ##' @param dropPoints logical; should returned bins contain points?
 ##' @return An `inDep` object, with slots `data`, `types`, `pairs`,
-##' `binnings`, `residuals`, `statistics`, `dfs`, and `pvalues` that
-##' stores the results of using recursive binning with the specified
-##' splitting logic to test independence on a data set. `data` gives
-##' the name of the data object in the global environment which was
-##' split, `types` is a character vector giving the data types of each
-##' pair, `pairs` is a character vector of the variable names of each
-##' pair, `binnings` is a list of lists where each list is the
-##' binning fir to the corresponding pair by the recursive binning
-##' algorithm, `residuals` is list of numeric vectors giving the
-##' residual for each bin of each pairwise binning, `statistics` is a
-##' numeric vector giving the chi-squared statistic for each binning,
-##' `dfs` is a numeric vector giving the degrees of freedom of each
-##' binning based on the variable type combination and the final
-##' number of bins, and finally `pvalues` is a numeric vector of
-##' p-values for `statistics` assuming a chi-squared null
-##' distribution with `dfs` degrees of freedom. The order of the
-##' binnings is by increasing p-value.
+##' `binnings`, `residuals`, `statistics`, `dfs`, `logps`, and
+##' `pvalues` that stores the results of using recursive binning with
+##' the specified splitting logic to test independence on a data set.
+##' `data` gives the name of the data object in the global environment
+##' which was split, `types` is a character vector giving the data
+##' types of each pair, `pairs` is a character vector of the variable
+##' names of each pair, `binnings` is a list of lists where each list
+##' is the binning fir to the corresponding pair by the recursive
+##' binning algorithm, `residuals` is list of numeric vectors giving
+##' the residual for each bin of each pairwise binning, `statistics`
+##' is a numeric vector giving the chi-squared statistic for each
+##' binning, `dfs` is a numeric vector giving the degrees of freedom
+##' of each binning based on the variable type combination and the
+##' final number of bins, `logps` gives the natural logarithm of
+##' the statistic's p-value, and finally `pvalues` is a numeric
+##' vector of p-values for `statistics` assuming a chi-squared null
+##' distribution with `dfs` degrees of freedom.  Internally, the
+##' p-values are computed on the log scale to better distinguish
+##' between strongly dependent pairs and the `pvalues` returned are
+##' computed by calling `exp(logps)`. The order of all returned values
+##' is by increasing `logps`.
 ##' @author Chris Salahub
 inDep <- function(data, stopCriteria,
                   catCon = uniRIntSplit,
@@ -42,7 +46,7 @@ inDep <- function(data, stopCriteria,
     datName <- deparse1(substitute(data))
     if (!is.data.frame(data)) stop("`data` must be a data frame")
     if (missing(stopCriteria)) {
-        stopCriteria <- makeCriteria(depth >= 5, n < 1, expn <= 10)
+        stopCriteria <- "depth >= 6 | n < 1 | expn <= 10 | stopped"
     }
 
     ## function definition
@@ -116,7 +120,7 @@ inDep <- function(data, stopCriteria,
                 nlev[combs[1, ]], nlev[combs[2, ]], 1)
     dfs <- K - adj
     pvals <- pchisq(sapply(binStats, function(x) x$stat),
-                    df = dfs, lower.tail = FALSE)
+                    df = dfs, lower.tail = FALSE, log.p = TRUE)
     pord <- order(pvals)
 
     ## return everything
@@ -129,7 +133,8 @@ inDep <- function(data, stopCriteria,
                   statistics = sapply(binStats[pord],
                                       function(x) x$stat),
                   dfs = dfs[pord],
-                  pvalues = pvals[pord])
+                  logps = pvals[pord],
+                  pvalues = exp(pvals)[pord])
     class(inDep) <- "inDep"
     inDep
 }
@@ -142,22 +147,23 @@ inDep <- function(data, stopCriteria,
 ##' of three plots. The first plot is the raw data, the second plot
 ##' is the ranks of the data, and the final plot is the binning
 ##' contained in the `inDep` object.
-##' @param inDep object with class `inDep`
-##' @param which indices of binnings to display in `inDep`, where
+##' @param object `inDep` object to summarize
+##' @param x object with class `inDep`
+##' @param ... additional arguments to pass on to the method
+##' @param which indices of binnings to display from `x`, where
 ##' binnings are ordered by increasing p-value
 ##' @param border colour of borders to be drawn on the binnings
-##' @param ... additional arguments to pass to `plot`
 ##' @return Nothing for the plot method, while summary quietly returns
 ##' a summary of `inDep`
 ##' @author Chris Salahub
 ##' @describeIn methods Summary method for `genome`
-summary.inDep <- function(inDep) {
-    dat <- inDep$data
-    nprs <- length(inDep$pairs)
-    typtab <- table(inDep$types)
-    pvals <- quantile(inDep$pvalues, probs = seq(0, 1, 0.1))
-    sig5 <- sum(inDep$pvalues < 0.05)
-    sig1 <- sum(inDep$pvalues < 0.01)
+summary.inDep <- function(object, ...) {
+    dat <- object$data
+    nprs <- length(object$pairs)
+    typtab <- table(object$types)
+    pvals <- quantile(object$pvalues, probs = seq(0, 1, 0.1))
+    sig5 <- sum(object$pvalues < 0.05)
+    sig1 <- sum(object$pvalues < 0.01)
     cat(paste0("All ", nprs, " pairs in ", dat,
           " recursively binned with type distribution: \n"))
     print(typtab)
@@ -168,27 +174,28 @@ summary.inDep <- function(inDep) {
                    pDeciles = pvals))
 }
 ##' @describeIn methods Plot method for `genome`
-plot.inDep <- function(inDep, which = 1:5, border = "black", ...) {
-    dat <- get(inDep$data)
-    prs <- strsplit(inDep$pairs[which], split = "\\:")
-    typs <- strsplit(inDep$types[which], split = "\\:")
-    par(mfrow = c(length(which), 3), mar = c(0.5, 1.1, 2.1, 0.1))
+plot.inDep <- function(x, ..., which = 1:5, border = "black") {
+    dat <- get(x$data)
+    prs <- strsplit(x$pairs[which], split = "\\:")
+    typs <- strsplit(x$types[which], split = "\\:")
+    oldPar <- par(mfrow = c(length(which), 3),
+                  mar = c(0.5, 1.1, 2.1, 0.1))
     for (ii in seq_along(prs)) {
-        x <- dat[, prs[[ii]][1]] # get pair
+        x1 <- dat[, prs[[ii]][1]] # get pair
         y <- dat[, prs[[ii]][2]]
-        scl <- length(x)/100
+        scl <- length(x1)/100
         if (typs[[ii]][1] == "factor") { # jitter factors
-            x <- as.factor(x) # ensure type
-            xtbl <- table(x)
+            x1 <- as.factor(x1) # ensure type
+            xtbl <- table(x1)
             xbr <- c(0, xtbl)
             xa <- cumsum(xbr[-length(xbr)])/2 + cumsum(xbr[-1])/2
             ## handle small categories thinner than scl
-            xmns <- pmin(-xtbl[as.numeric(x)]/2 + scl, 0)
-            xmxs <- pmax(xtbl[as.numeric(x)]/2 - scl, 0)
-            pltx <- xa[as.numeric(x)] +
-                runif(length(x), min = xmns, max = xmxs)
+            xmns <- pmin(-xtbl[as.numeric(x1)]/2 + scl, 0)
+            xmxs <- pmax(xtbl[as.numeric(x1)]/2 - scl, 0)
+            pltx <- xa[as.numeric(x1)] +
+                runif(length(x1), min = xmns, max = xmxs)
         } else {
-            pltx <- x
+            pltx <- x1
             xbr <- NA
         }
         if (typs[[ii]][2] == "factor") {
@@ -219,12 +226,13 @@ plot.inDep <- function(inDep, which = 1:5, border = "black", ...) {
                             paste(prs[[ii]],
                                   collapse = "|"),
                             ", p = ",
-                            format(inDep$pvalues[which[ii]],
+                            format(x$pvalues[which[ii]],
                                    digits = 3)))
-        plotBinning(inDep$binnings[[which[ii]]], factor = 0.9,
+        plotBinning(x$binnings[[which[ii]]], factor = 0.9,
                     xlab = "", ylab = "", border = border,
-                    fill = residualFill(inDep$binnings[[which[ii]]]),
+                    fill = residualFill(x$binnings[[which[ii]]]),
                     suppressLabs = TRUE, ...)
         mtext("Bins", side = 3, line = 0, cex = 0.6)
     }
+    par(oldPar)
 }
