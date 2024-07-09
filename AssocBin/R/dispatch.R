@@ -153,10 +153,11 @@ inDep <- function(data, stopCriteria,
 ##' @param which indices of binnings to display from `x`, where
 ##' binnings are ordered by increasing p-value
 ##' @param border colour of borders to be drawn on the binnings
+##' @param buffer relative width of empty space separating categories
 ##' @return Nothing for the plot method, while summary quietly returns
 ##' a summary of `inDep`
 ##' @author Chris Salahub
-##' @describeIn methods Summary method for `genome`
+##' @describeIn methods Summary method for `inDep`
 summary.inDep <- function(object, ...) {
     dat <- object$data
     nprs <- length(object$pairs)
@@ -173,8 +174,9 @@ summary.inDep <- function(object, ...) {
                    typeTable = typtab,
                    pDeciles = pvals))
 }
-##' @describeIn methods Plot method for `genome`
-plot.inDep <- function(x, ..., which = 1:5, border = "black") {
+##' @describeIn methods Plot method for `inDep`
+plot.inDep <- function(x, ..., which = 1:5, border = "black",
+                       buffer = 0.01) {
     dat <- get(x$data)
     prs <- strsplit(x$pairs[which], split = "\\:")
     typs <- strsplit(x$types[which], split = "\\:")
@@ -183,7 +185,7 @@ plot.inDep <- function(x, ..., which = 1:5, border = "black") {
     for (ii in seq_along(prs)) {
         x1 <- dat[, prs[[ii]][1]] # get pair
         y <- dat[, prs[[ii]][2]]
-        scl <- length(x1)/100
+        scl <- length(x1)*buffer
         if (typs[[ii]][1] == "factor") { # jitter factors
             x1 <- as.factor(x1) # ensure type
             xtbl <- table(x1)

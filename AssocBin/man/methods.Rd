@@ -7,7 +7,7 @@
 \usage{
 \method{summary}{inDep}(object, ...)
 
-\method{plot}{inDep}(x, ..., which = 1:5, border = "black")
+\method{plot}{inDep}(x, ..., which = 1:5, border = "black", buffer = 0.01)
 }
 \arguments{
 \item{object}{`inDep` object to summarize}
@@ -20,6 +20,8 @@
 binnings are ordered by increasing p-value}
 
 \item{border}{colour of borders to be drawn on the binnings}
+
+\item{buffer}{relative width of empty space separating categories}
 }
 \value{
 Nothing for the plot method, while summary quietly returns
@@ -39,9 +41,9 @@ contained in the `inDep` object.
 }
 \section{Functions}{
 \itemize{
-\item \code{summary(inDep)}: Summary method for `genome`
+\item \code{summary(inDep)}: Summary method for `inDep`
 
-\item \code{plot(inDep)}: Plot method for `genome`
+\item \code{plot(inDep)}: Plot method for `inDep`
 
 }}
 \author{
