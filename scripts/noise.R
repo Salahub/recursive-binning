@@ -199,7 +199,7 @@ functions <- lapply(funcFuns, simFunc, sds = sds, n = n, nsim = nsim,
 
 ## plot 
 br <- 100
-pal <- brewer.pal(7, "Dark2")
+pal <- brewer.pal(7, "Pastel2")
 pchs <- 0:7
 names(pal) <- names(pchs) <- c("sine", "lines", "nonco", "x", "ellipse",
                                "four", "five")
@@ -263,7 +263,7 @@ dev.off()
 
 ## give the same treatment to the functional patterns
 br <- 100
-pal <- brewer.pal(4, "Set1")
+pal <- brewer.pal(4, "Pastel1")
 pchs <- 8:11
 names(pal) <- names(pchs) <- c("line", "parabola",
                                "exponential", "cubic")

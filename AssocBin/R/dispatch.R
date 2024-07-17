@@ -223,13 +223,12 @@ plot.inDep <- function(x, ..., which = 1:5, border = "black",
              xaxt = "n", yaxt = "n", ...)
         abline(h = cumsum(ybr), v = cumsum(xbr), lty = 2)
         mtext("Ranks", side = 3, line = 0, cex = 0.6)
-        mtext(side = 3, line = 1,
-              text = paste0("Pair: ",
-                            paste(prs[[ii]],
-                                  collapse = "|"),
-                            ", p = ",
-                            format(x$pvalues[which[ii]],
-                                   digits = 3)))
+        mtext(side = 3, line = 1, cex = 0.8,
+              text = bquote("Pair:"~.(paste(prs[[ii]],
+                                            collapse = "|"))*
+                                ","~log[10]*p~"="~.(round(log(10)*
+                                                          x$logps[which[ii]],
+                                                          1))))
         plotBinning(x$binnings[[which[ii]]], factor = 0.9,
                     xlab = "", ylab = "", border = border,
                     fill = residualFill(x$binnings[[which[ii]]]),

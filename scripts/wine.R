@@ -11,8 +11,11 @@ whites <- matrix(scan("./winequality-white.csv", what = numeric(),
 ## process into a data frame
 wines <- data.frame(rbind(reds, whites),
                     type = factor(c(rep("red", nrow(reds)),
-                             rep("white", nrow(whites)))))
-colnames(wines) <- abbreviate(c(vars, "type"), minlength = 9)
+                                    rep("white", nrow(whites)))))
+colnames(wines) <- c("fixed.acid", "volatile.acid", "citric.acid",
+                     "resid.sug", "chlorides", "free.SO2",
+                     "total.SO2", "density", "pH", "sulphate",
+                     "alcohol", "quality", "type")
 ## introduce a new categorical variable
 wines$alcohol <- cut(wines$alcohol, breaks = c(0, 9, 12, 20),
                      labels = c("low", "med", "hi"),
@@ -29,7 +32,7 @@ stopCrits <- makeCriteria(depth > 10, n < 1, expn <= 10)
 sqrRSplt <- function(bn) rIntSplit(bn, squarify = TRUE)
 wineDep <- inDep(wines, stopCriteria = stopCrits, conCon = sqrRSplt)
 summary(wineDep)
-png("wineTriplets.png", width = 3, height = 4.5, units = "in", res = 480,
+png("wineTriplets.png", width = 4, height = 6, units = "in", res = 480,
     bg = "transparent")
 plot(wineDep, pch = ".", border = NA, bg = "transparent",
      which = c(1, 2, 25, 78), buffer = 0.02)
