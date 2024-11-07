@@ -321,3 +321,46 @@ for (ii in seq_along(genFns)) {
   }
 }
 dev.off()
+
+## BEX pattern #######################################################
+## the code below generates the BEX pattern of the JASA paper
+## begin with a function that samples an 'X'
+sampleX <- function(n, xlo = 0, xhi = 1, ylo = 0, yhi = 1) {
+    x <- runif(n, min = xlo, max = xhi)
+    u <- rbinom(n, size = 1, prob = 0.5)
+    y <- (yhi - ylo)*(x - xlo)/(xhi - xlo)*(c(1, -1)[u + 1]) + ylo*(1-u) + yhi*u
+    list(x = x, y = y)
+}
+
+## something that partitions 0,1 at a given BEX resolution
+genSeq <- function(res = 2) {
+    ncells <- 2^(res - 1)
+    seq(from = 0, to = 1, length.out = ncells + 1)
+}
+
+## finally, something that puts it all together to sample the BEX
+rBEX <- function(n, res = 2) {
+    sq <- genSeq(res = res)
+    xbns <- sample(1:(length(sq)-1), size = n, replace = TRUE)
+    ybns <- sample(1:(length(sq)-1), size = n, replace = TRUE)
+    sampleX(n, xlo = sq[xbns], xhi = sq[xbns + 1],
+            ylo = sq[ybns], yhi = sq[ybns + 1])
+}
+
+## how does recursive binning do on this?
+## bin settings
+stopCrits <- makeCriteria(depth > 20, n < 1, expn <= 10)
+stopFn <- function(bns) stopper(bns, stopCrits)
+sqrfySplit <- function(bn) rIntSplit(bn, squarify = TRUE)
+maxSplit <- function(bn) maxScoreSplit(bn, scorer = chiScores)
+
+dat <- rBEX(n, res = 4)
+x <- dat$x
+y <- dat$y
+xr <- rank(x, ties.method = "random")
+yr <- rank(y, ties.method = "random")
+binning <- binner(xr, yr, splitter = sqrfySplit, stopper = stopFn)
+maxBinning <- binner(xr, yr, splitter = maxSplit, stopper = stopFn)
+stat <- binChi(binning)$stat
+pval <- pchisq(stat[ii], df = length(binning) - 1,
+               lower.tail = FALSE, log.p = TRUE)

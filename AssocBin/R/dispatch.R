@@ -82,7 +82,8 @@ inDep <- function(data, stopCriteria,
 
     ## get ranks
     ranks <- data
-    ranks[, types=="numeric"] <- apply(data[, types=="numeric"], 2, rank,
+    ranks[, types=="numeric"] <- apply(data[types=="numeric"],
+                                       2, rank,
                                        ties.method = "random")
     
     ## pairwise functions: random squarified splitting

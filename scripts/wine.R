@@ -1,3 +1,5 @@
+## TODO: load other packages to compare?
+
 ## read in wine data
 vars <- scan("./winequality-red.csv", what = character(), nlines = 1,
              sep = ";")
