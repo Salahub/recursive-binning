@@ -1,4 +1,6 @@
 ## TODO: load other packages to compare?
+library(AssocBin)
+library(BET)
 
 ## read in wine data
 vars <- scan("./winequality-red.csv", what = character(), nlines = 1,
@@ -28,7 +30,6 @@ wines$quality <- cut(wines$quality, breaks = c(0, 4.5, 5.5, 6.5,
                      labels = c("4-","5","6","7","8+"))
 
 ## look at dependence
-library(AssocBin)
 set.seed(7042024)
 stopCrits <- makeCriteria(depth > 10, n < 1, expn <= 10)
 sqrRSplt <- function(bn) rIntSplit(bn, squarify = TRUE)
@@ -37,7 +38,7 @@ summary(wineDep)
 png("wineTriplets.png", width = 4, height = 6, units = "in", res = 480,
     bg = "transparent")
 plot(wineDep, pch = ".", border = NA, bg = "transparent",
-     which = c(1, 2, 25, 78), buffer = 0.02)
+     which = c(1, 2, 3, 4), buffer = 0.02)
 dev.off()
 
 sqrMaxSplit <- function(bn) maxScoreSplit(bn, chiScores, squarify = TRUE)

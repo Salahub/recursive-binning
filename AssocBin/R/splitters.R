@@ -451,25 +451,34 @@ uniRIntSplit <- function(bin, minExp = 5) {
 rUnifSplit <- function (bin, minExp = 0, squarify = FALSE) {
     expn <- bin$expn
     prop <- minExp/expn
-    xrng <- diff(bin$bnds$x)
-    yrng <- diff(bin$bnds$y)
-    xmax <- runif(1, min = bin$bnds$x[1] + prop*xrng,
-                  max = bin$bnds$x[2] - prop*xrng)
-    ymax <- runif(1, min = bin$bnds$y[1] + prop*yrng,
-                  max = bin$bnds$y[2] - prop*yrng)
-    wider <- (bin$bnds$x[2] - bin$bnds$x[1]) >
-        (bin$bnds$y[2] - bin$bnds$y[1])
+    deltax <- diff(bin$bnds$x)
+    deltay <- diff(bin$bnds$y)  
+    wider <- deltax > deltay
     if (squarify) u <- as.numeric(wider) else u <- runif(1)
     if (u >= 0.5) {
-        newbnd <- xmax
-        below <- which(bin$x <= xmax)
-        above <- which(bin$x > xmax)
-        splitX(bin, bd = newbnd, above = above, below = below)
+        lower <- bin$bnds$x[1] + ceiling(prop*deltax)
+        upper <- bin$bnds$x[2] - ceiling(prop*deltax)
+        if (upper <= lower) {
+            bin$stopped <- TRUE
+            list(bin)
+        } else{
+            spos <- runif(1, min = lower, max = upper)
+            above <- which(bin$x > spos)
+            below <- which(bin$x <= spos)
+            splitX(bin, spos, above, below)
+        }
     }
     else {
-        newbnd <- ymax
-        below <- which(bin$y <= ymax)
-        above <- which(bin$y > ymax)
-        splitY(bin, bd = newbnd, above = above, below = below)
+        lower <- bin$bnds$y[1] + ceiling(prop*deltay)
+        upper <- bin$bnds$y[2] - ceiling(prop*deltay)
+        if (upper <= lower) {
+            bin$stopped <- TRUE
+            list(bin)
+        } else{
+            spos <- runif(1, min = lower, max = upper)
+            above <- which(bin$y > spos)
+            below <- which(bin$y <= spos)
+            splitY(bin, spos, above, below)
+        }
     }
 }
