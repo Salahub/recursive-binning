@@ -1,5 +1,5 @@
 Package: AssocBin
-Version: 1.0-1
+Version: 1.0-2
 Encoding: UTF-8
 Title: Measuring Association with Recursive Binning
 Description: An iterative implementation of a recursive binary partitioning algorithm to measure pairwise dependence with a modular design that allows user specification of the splitting logic and stop criteria. Helper functions provide suggested versions of both and support visualization and the computation of summary statistics on final binnings. For a complete description of the functionality and algorithm, see Salahub and Oldford (2023) <doi:10.48550/arXiv.2311.08561>.
