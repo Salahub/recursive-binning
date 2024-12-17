@@ -25,5 +25,5 @@ makeBin <- function(x, y,
                     expn = length(x), n = length(x), depth = 0,
                     stopped = FALSE) {
     list(x = x, y = y, bnds = bnds, expn = expn, n = n,
-         depth = depth, stopped = stopped)
+         depth = depth, stopped = stopped, original_inds = 1:n)
 }
