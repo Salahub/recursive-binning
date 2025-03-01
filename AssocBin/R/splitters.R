@@ -22,32 +22,30 @@ splitX <- function(bin, bd, above, below) {
                              y = bin$bnds$y),
                  expn = bin$expn*belowfac,
                  n = bin$n-length(above), depth = bin$depth + 1,
-                 stopped = FALSE, original_inds = which(below)),
+                 stopped = FALSE),
          makeBin(x = bin$x[above], y = bin$y[above],
                  bnds = list(x = c(bd, bin$bnds$x[2]),
                              y = bin$bnds$y),
                  expn = bin$expn*abovefac,
                  n = length(above), depth = bin$depth + 1,
-                 stopped = FALSE, original_inds = which(below)))
+                 stopped = FALSE))
 }
 ##' @describeIn marginalsplitters Splitting on y
 splitY <- function(bin, bd, above, below) {
     belowfac <- (bd - bin$bnds$y[1])/diff(bin$bnds$y)
     abovefac <- (bin$bnds$y[2] - bd)/diff(bin$bnds$y)
-    belowInds <- bin$original_inds[which(below)]
-    aboveInds <- bin$original_inds[which(above)]
     list(makeBin(x = bin$x[below], y = bin$y[below],
                  bnds = list(x = bin$bnds$x,
                              y = c(bin$bnds$y[1], bd)),
                  expn = bin$expn*belowfac,
                  n = bin$n-length(above), depth = bin$depth + 1,
-                 stopped = FALSE, original_inds = belowInds),
+                 stopped = FALSE),
          makeBin(x = bin$x[above], y = bin$y[above],
                  bnds = list(x = bin$bnds$x,
                              y = c(bd, bin$bnds$y[2])),
                  expn = bin$expn*abovefac,
                  n = length(above), depth = bin$depth + 1,
-                 stopped = FALSE, original_inds = aboveInds))
+                 stopped = FALSE))
 }
 
 ##' @title Halve at an observed point

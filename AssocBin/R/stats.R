@@ -16,9 +16,9 @@
 ##' `depth`, `bnds` (list with elements `x` and `y`), `expn`, `n`
 ##' @param agg function which is aggregates the individual statistics
 ##' computed over each bin
-##' @return A list with elements `residuals` and `stat` reporting the
-##' individual statistic values (possibly transformed) and the
-##' aggegrated statistic value.
+##' @return A list with elements `residuals`, `stat`, and `nbins`
+##' reporting the individual statistic values (possibly transformed),
+##' the aggegrated statistic value, and the number of bins in `bins`
 ##' @examples
 ##' binList1 <- list(list(x = c(1,2), y = c(3,1), depth = 1, n = 2,
 ##'                       expn = 2),
@@ -39,7 +39,9 @@ binChi <- function(bins, agg = sum) {
     ex <- sapply(bins, function(bn) bn$expn)
     resids <- (obs - ex)^2/ex
     signs <- sign(obs - ex) # signs of residuals
-    list(residuals = signs*sqrt(resids), stat = agg(resids))
+    nbins <- length(bins) # number of bins
+    list(residuals = signs*sqrt(resids), stat = agg(resids),
+         nbins = nbins)
 }
 ##' @describeIn binstatistics Mutual information
 binMI <- function(bins, agg = sum) {
@@ -49,7 +51,8 @@ binMI <- function(bins, agg = sum) {
     resids <- log(obs/ex)
     resids[obs == 0] <- 0
     probs <- obs/n
-    list(residuals = resids, stat = agg(resids*probs))
+    list(residuals = resids, stat = agg(resids*probs),
+         nbins = length(bins))
 }
 ##' @describeIn binstatistics Absolute difference between observed
 ##' and expected
@@ -58,5 +61,6 @@ binAbsDif <- function(bins, agg = sum) {
     ex <- sapply(bins, function(bin) bin$expn)
     resids <- abs(obs - ex)
     signs <- sign(obs - ex)
-    list(residuals = signs*resids, stat = agg(resids))
+    list(residuals = signs*resids, stat = agg(resids),
+         nbins = length(bins))
 }
