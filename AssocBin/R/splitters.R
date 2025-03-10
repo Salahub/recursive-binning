@@ -162,7 +162,7 @@ maxScoreSplit <- function(bin, scorer, minExp = 5,
         ## take advantage of R ordering: ensure frame includes pts
         xaug <- c(min(bin$x)-1, bin$x, xfrm) # augment with frame
         xsort <- order(xaug)
-        xlowFrm <- which(xsort == (length(xaug) - 1))
+        xlowFrm <- which(xsort == (length(xaug) - 1)) # identify frame
         xupFrm <- which(xsort == length(xaug))
         xinfrm <- xlowFrm:xupFrm
         xcntblw <- cumsum(c(0, rep(1, bin$n), 0, 0)[xsort])[xinfrm]

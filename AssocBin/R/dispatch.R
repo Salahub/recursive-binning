@@ -14,29 +14,28 @@
 ##' cateogorical and one continuous variable
 ##' @param conCon splitting function to apply to pairs of continuous
 ##' variables
-##' @param ptype one of 'conservative', 'simple', 'fitted', 'gamma',
-##' or 'best'; the type of p-values to compute for continuous pairs
+##' @param ptype one of 'simple', 'conservative', 'gamma', or
+##' 'fitted'; the type of p-values to compute for continuous pairs
 ##' and pairs of mixed type. 'Conservative' assumes a chi-square
 ##' distribution to the statistic with highly conservative degrees
 ##' of freedom that are based on continuous uniform margins and so
 ##' do not account for the constraints introduced by the ranks.
-##' 'Simple' and 'fitted' also assume a chi-square distribution but
-##' use contingency-table inspired degrees of freedom which can be
+##' 'Simple' assumes a chi-square distribution but uses
+##' contingency-table inspired degrees of freedom which can be
 ##' slightly anti-conservative in the case of continuous pairs but
-##' work well for continuous/categorical comparisons, where 'simple'
-##' uses the direct degrees of freedom and 'fitted' adjusts them to
-##' better match the true null distribution based on empirical
-##' investigation. 'Gamma' assumes a gamma distribution on the
-##' resulting statistics with parameters fit from the same empirical
-##' investigation. 'Best' mixes these by applying 'gamma' to
-##' continuous-categorical comparisons and 'fitted' to
+##' work well for continuous/categorical comparisons. 'Gamma'
+##' assumes a gamma distribution on the resulting statistics with
+##' parameters fit from the same empirical investigation. 'Fitted'
+##' mixes the gamma approach and the chi-squared approach these by
+##' applying 'gamma' to continuous-categorical comparisons and a
+##' least squares fitted version of the simple approximation to
 ##' continuous-continuous comparisons. For all
 ##' categorical-categorical comparisons the contingency table
 ##' degrees of freedom are use in a chi-squared distribution. More
 ##' details can be found in the associated paper.
 ##' @param dropPoints logical; should returned bins contain points?
 ##' @return An `inDep` object, with slots `data`, `types`, `pairs`,
-##' `binnings`, `residuals`, `statistics`, `dfs`, `logps`, and
+##' `binnings`, `residuals`, `statistics`, `K`, `logps`, and
 ##' `pvalues` that stores the results of using recursive binning with
 ##' the specified splitting logic to test independence on a data set.
 ##' `data` gives the name of the data object in the global environment
@@ -47,12 +46,11 @@
 ##' binning algorithm, `residuals` is list of numeric vectors giving
 ##' the residual for each bin of each pairwise binning, `statistics`
 ##' is a numeric vector giving the chi-squared statistic for each
-##' binning, `dfs` is a numeric vector giving the degrees of freedom
-##' of each binning based on the variable type combination and the
-##' final number of bins, `logps` gives the natural logarithm of
-##' the statistic's p-value, and finally `pvalues` is a numeric
-##' vector of p-values for `statistics` assuming a chi-squared null
-##' distribution with `dfs` degrees of freedom.  Internally, the
+##' binning, `K` is a numeric vector giving the number of bins in each
+##' binning, `logps` gives the natural logarithm of the statistic's
+##' p-value, and finally `pvalues` is a numeric vector of p-values
+##' for `statistics` based on the specified p-value computation, which
+##' defaults to 'simple'.  Internally, the
 ##' p-values are computed on the log scale to better distinguish
 ##' between strongly dependent pairs and the `pvalues` returned are
 ##' computed by calling `exp(logps)`. The order of all returned values
@@ -61,7 +59,7 @@
 inDep <- function(data, stopCriteria,
                   catCon = uniRIntSplit,
                   conCon = rIntSplit,
-                  pvals = c('simple',
+                  ptype = c('simple',
                             'conservative',
                             'gamma',
                             'best'),
@@ -142,62 +140,71 @@ inDep <- function(data, stopCriteria,
     binStats <- lapply(bns, binChi)
     obStats <- sapply(binStats, function(x) x$stat)
     K <- sapply(binStats, function(x) x$nbins)
-    pvals <- numeric(length(typecomb))
+    ptype <- match.arg(ptype)
+    pvals <- simpleDfs <- numeric(length(typecomb))
+    ## compute the simple approximate dfs
+    simpleDfs[facFac] <- K[facFac] - nlev[combs[1, facFac]] -
+        nlev[combs[2, facFac]] + 1
+    simpleDfs[facNum] <- facNumSimpleDf(K[facNum],
+                                        nlev[combs[1, facNum]])
+    simpleDfs[numNum] <- numNumSimpleDf(K[numNum])
+    ## compute the pvalues
     pvals[facFac] <- pchisq(obStats[facFac],
                             df = K[facFac] - nlev[combs[1, facFac]] -
                                 nlev[combs[2, facFac]] + 1,
                             lower.tail = FALSE, log.p = TRUE)
     if (ptype == 'simple') {
         pvals[facNum] <- pchisq(obStats[facNum],
-                                df = (K[facNum]/nlev[combs[1, facNum]] - 1)*
-                                    (nlev[combs[1, facNum]] - 1),
-                                lower.tail = FALSE, log.p = TRUE)
-        dfs[numNum] <- pchisq(obStats[numNum],
-                              df = (sqrt(K[numNum]) - 1)^2,
-                              lower.tail = FALSE, log.p = TRUE)
-    } else if (ptype == 'gamma') {
-        pvals[facNum] <- pgamma(obStats[facNum],
-                                shape = 1.1028*(0.12+0.7214*
-                                                sqrt((K[facNum]/nlev[combs[1, facNum]] - 1)*
-                                                (nlev[combs[1, facNum]] - 1)))^2
-                                scale = exp(0.3743 -
-                                            0.9675*log((K[facNum]/nlev[combs[1, facNum]] - 1)*
-                                                (nlev[combs[1, facNum]] - 1))),
-                                lower.tail = FALSE, log.p = TRUE)
-        pvals[numNum] <- pgamma(obStats[numNum],
-                                shape = -0.4988 + 0.7214*sqrt(K[numNum]),
-                                scale = exp(0.4329 -
-                                            0.9572*log((1.0016*sqrt(K[numNum]) -
-                                                        0.8577))^2),
-                                lower.tail = FALSE, log.p = TRUE)
-
-    } else if (ptype == 'best') {
-        pvals[facNum] <- pgamma(obStats[facNum],
-                                shape = 1.1028*(0.12+0.7214*
-                                                sqrt((K[facNum]/nlev[combs[1, facNum]] - 1)*
-                                                (nlev[combs[1, facNum]] - 1)))^2
-                                scale = exp(0.3743 -
-                                            0.9675*log((K[facNum]/nlev[combs[1, facNum]] - 1)*
-                                                (nlev[combs[1, facNum]] - 1))),
+                                df = facNumSimpleDf(K[facNum],
+                                                    nlev[combs[1, facNum]]),
                                 lower.tail = FALSE, log.p = TRUE)
         pvals[numNum] <- pchisq(obStats[numNum],
-                                df = (1.0016*sqrt(K[numNum]) -
-                                      0.8577)^2,
+                                df = numNumSimpleDf(K[numNum]),
+                                lower.tail = FALSE, log.p = TRUE)
+    } else if (ptype == 'conservative') {
+        pvals[facNum] <- pchisq(obStats[facNum],
+                                df = K[facNum] - nlev[combs[1, facNum]],
+                                lower.tail = FALSE, log.p = TRUE)
+        pvals[numNum] <- pchisq(obStats[facNum],
+                                df = K[facNum] - 1,
+                                lower.tail = FALSE, log.p = TRUE)
+    } else if (ptype == 'gamma') {
+        pvals[facNum] <- pgamma(obStats[facNum],
+                                shape = facNumGammaShape(K[facNum],
+                                                         nlev[combs[1, facNum]]),
+                                scale = facNumGammaScale(K[facNum],
+                                                         nlev[combs[1, facNum]]),
+                                lower.tail = FALSE, log.p = TRUE)
+        pvals[numNum] <- pgamma(obStats[numNum],
+                                shape = numNumGammaShape(K[numNum]),
+                                scale = numNumGammaScale(K[numNum]),
+                                lower.tail = FALSE, log.p = TRUE)
+    } else if (ptype == 'best') {
+        pvals[facNum] <- pgamma(obStats[facNum],
+                                shape = facNumGammaShape(K[facNum],
+                                                         nlev[combs[1, facNum]]),
+                                scale = facNumGammaScale(K[facNum],
+                                                         nlev[combs[1, facNum]]),
+                                lower.tail = FALSE, log.p = TRUE)
+        pvals[numNum] <- pchisq(obStats[numNum],
+                                df = numNumFittedDf(K[numNum]),
                                 lower.tail = FALSE, log.p = TRUE)
     } else {
-        stop("ptype must be one of ('simple', 'gamma', or 'best')")
+        stop("ptype must be one of ('simple', 'conservative', 'gamma', or 'best')")
     }
+    pord <- order(pvals)
     
     ## return everything
     inDep <- list(data = datName,
                   types = typecomb[pord],
                   pairs = names(bns)[pord],
                   binnings = bns[pord],
+                  simpleDfs = simpleDfs[pord],
+                  Ks = K[pord],
                   residuals = sapply(binStats[pord],
                                      function(x) x$residuals),
                   statistics = sapply(binStats[pord],
                                       function(x) x$stat),
-                  dfs = dfs[pord],
                   logps = pvals[pord],
                   pvalues = exp(pvals)[pord])
     class(inDep) <- "inDep"
@@ -219,6 +226,10 @@ inDep <- function(data, stopCriteria,
 ##' binnings are ordered by increasing p-value
 ##' @param border colour of borders to be drawn on the binnings
 ##' @param buffer relative width of empty space separating categories
+##' @param colrng colour range to be passed to `residualFill` for
+##' plotting
+##' @param nbr number of breaks to be passed to `residualFill` for
+##' plotting
 ##' @return Nothing for the plot method, while summary quietly returns
 ##' a summary of `inDep`
 ##' @author Chris Salahub
@@ -241,12 +252,15 @@ summary.inDep <- function(object, ...) {
 }
 ##' @describeIn methods Plot method for `inDep`
 plot.inDep <- function(x, ..., which = 1:5, border = "black",
-                       buffer = 0.01) {
+                       buffer = 0.01,
+                       colrng = c("steelblue", "white", "firebrick"),
+                       nbr = NA) {
     dat <- get(x$data)
     prs <- strsplit(x$pairs[which], split = "\\:")
     typs <- strsplit(x$types[which], split = "\\:")
     oldPar <- par(mfrow = c(length(which), 3),
                   mar = c(0.5, 1.1, 2.1, 0.1))
+    maxRes <- max(sapply(x$residuals, max))
     for (ii in seq_along(prs)) {
         x1 <- dat[, prs[[ii]][1]] # get pair
         y <- dat[, prs[[ii]][2]]
@@ -274,7 +288,6 @@ plot.inDep <- function(x, ..., which = 1:5, border = "black",
             ymxs <- pmax(ytbl[as.numeric(y)]/2 - scl, 0)
             plty <- ya[as.numeric(y)] +
                 runif(length(y), min = ymns, max = ymxs)
-
         } else {
             plty <- y
             ybr <- NA
@@ -291,12 +304,14 @@ plot.inDep <- function(x, ..., which = 1:5, border = "black",
         mtext(side = 3, line = 1, cex = 0.8,
               text = bquote("Pair:"~.(paste(prs[[ii]],
                                             collapse = "|"))*
-                                ","~log[10]*p~"="~.(round(log(10)*
-                                                          x$logps[which[ii]],
+                                ","~log[10]*p~"="~.(round(x$logps[which[ii]]/
+                                                         log(10),
                                                           1))))
         plotBinning(x$binnings[[which[ii]]], factor = 0.9,
                     xlab = "", ylab = "", border = border,
-                    fill = residualFill(x$binnings[[which[ii]]]),
+                    fill = residualFill(x$binnings[[which[ii]]],
+                                        colrng = colrng, nbr = nbr,
+                                        maxRes = maxRes),
                     suppressLabs = TRUE, ...)
         mtext("Bins", side = 3, line = 0, cex = 0.6)
     }

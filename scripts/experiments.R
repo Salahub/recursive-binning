@@ -86,8 +86,7 @@ stopFn <- function(bns) stopper(bns, criteria)
 chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
 miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
 rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
-rintSplit <- function(bn) rIntSplit(bn, minExp = 5,
-                                    splitLongSide = TRUE)
+rintSplit <- function(bn) rIntSplit(bn, minExp = 5, squarify = TRUE)
 
 ## random data plot (Fig 4.1(a))
 png("randomData.png", width = 2, height = 2, units = "in", res = 480)
@@ -317,6 +316,9 @@ for (spltr in c("chiSplit", "miSplit", "randSplit", "rsqSplit")) {
     for (p in c(0.01)) { # chi quantiles
         lines(log(2:600,10), log(qchisq(1-p, 1:599),10),
               lty = 2)
+        lines(log(2:600,10), log(qchisq(1-p, (sqrt(1:599)-1)^2),10),
+              lty = 3, col = 'firebrick')
+
     }
     ## position the legend based on the splitting rule
     if (grepl("rand", "rsq", spltr)) {
@@ -368,6 +370,9 @@ for (n in c(1e2, 1e3, 1e4)) {
         }
         for (p in c(0.01)) {
             lines(log(2:600,10), log(qchisq(1-p, 1:599),10), lty = 2)
+            lines(log(2:600,10), log(qchisq(1-p, (sqrt(1:599)-1)^2),10),
+                  lty = 3, col = 'firebrick')
+
         }
         if (n == 1e4) {
             bnds <- par()$usr
@@ -545,12 +550,12 @@ detInit <- function(bn) halfSplit(bn, margin = "x")
 ## and splitting functions
 splitters <- list(
     chi = function(bn) maxScoreSplit(bn, chiScores, minExp = 5),
-    chiLong = function(bn) maxScoreSplit(bn, chiScores, minExp = 5,
-                                         splitLongSide = TRUE),
+    chiSqr = function(bn) maxScoreSplit(bn, chiScores, minExp = 5,
+                                        squarify = TRUE),
     mi = function(bn) maxScoreSplit(bn, miScores, minExp = 5),
     rand = function(bn) rIntSplit(bn, minExp = 5),
-    randLong = function(bn) rIntSplit(bn, minExp = 5,
-                                      splitLongSide = TRUE))
+    randSqr = function(bn) rIntSplit(bn, minExp = 5,
+                                     squarify = TRUE))
 ## allocate storage for every split method
 nelements <- nsim*length(depths)*length(patFns)
 guide <- expand.grid(pat = names(patFns), dep = depths, rep = 1:nsim)
@@ -683,6 +688,7 @@ for (pat in names(patFns)) { # add mean lines
     lines(medN, medPath, col = pal[pat], lwd = 2)
 }
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
+lines(1:160, qchisq(0.95, (sqrt(1:160)-1)^2), lty = 3, col = 'firebrick')
 dev.off()
 
 ## do the same for the chi splits (Fig 4.15(a))
@@ -701,7 +707,7 @@ for (pat in names(patFns)) { # observed paths
     for (ii in 1:nsim) {
         inds <- guide$pat == pat & guide$rep == ii
         lines(nBins$chi[inds], paths$chi[inds],
-              col = adjustcolor(pal[pat], 1))
+              col = adjustcolor(pal[pat], 0.2))
     }
 }
 ## get median lines
@@ -717,6 +723,8 @@ for (pat in names(patFns)) { # add mean lines
     lines(medN, medPath, col = pal[pat], lwd = 2)
 }
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
+lines(1:160, qchisq(0.95, (sqrt(1:160)-1)^2), lty = 3, col = 'firebrick')
+dev.off()
 
 ## plotting bins for every depth: first remind of patterns
 for(i in 1:7) {
@@ -739,7 +747,7 @@ real <- 1 # choose realization
 inds <- guide$rep == real
 maxRes <- max(allMaxRes$chi[inds])
 ## for every depth, display the binning for each pattern
-for (depth in 2:10) {
+for (depth in 2:20) {
     png(file = paste0("simDataBins", depth, suffix, ".png"),
         height = m, width= 6*m, units = "in", res = 480,
         bg = "transparent")
@@ -756,7 +764,32 @@ for (depth in 2:10) {
                     fill = residualFill(binnings$chi[[ind]],
                                         colrng = c("steelblue", "white",
                                                    "firebrick"),
-                                        maxRes = maxRes))
+                                        maxRes = maxRes,
+                                        nbr = 25))
+    }
+    dev.off()
+}
+
+## do the same for squared values
+for (depth in 2:20) {
+    png(file = paste0("simDataBinsSqr", depth, suffix, ".png"),
+        height = m, width= 6*m, units = "in", res = 480,
+        bg = "transparent")
+    par(mfrow=c(1,7), mar=c(1,1,1,1)/2)
+    for(pat in names(patFns)) {
+        ind <- which(guide$dep == depth & guide$pat == pat &
+            guide$rep == real) # identify bin
+        plot(NA, ylim = c(1, n), xlim = c(1, n), # remove axes
+             axes = F, xlab = "", ylab = "", main = "",
+             bg = "transparent")
+        plotBinning(binnings$chiSqr[[ind]], pch = 19,
+                    cex = 0.1, add = TRUE,
+                    col = NA, border = borders,
+                    fill = residualFill(binnings$chiSqr[[ind]],
+                                        colrng = c("steelblue", "white",
+                                                   "firebrick"),
+                                        maxRes = maxRes,
+                                        nbr = 25))
     }
     dev.off()
 }
@@ -784,7 +817,6 @@ for (depth in 2:10) {
 
 ## and the random bins for every depth (Figure 4.17 for depth of 10)
 ## again, standardize the residuals
-real <- 10
 inds <- guide$rep == real
 maxRes <- max(allMaxRes$rand[inds])
 for (depth in 2:10) {
@@ -808,7 +840,7 @@ for (depth in 2:10) {
 }
 
 ## last the squared random bins
-maxRes <- max(allMaxRes$randLong[inds])
+maxRes <- max(allMaxRes$randSqr[inds])
 for (depth in 2:10) {
     png(file = paste0("simDataBinsRSq", depth, suffix, ".png"),
         height = m, width= 6*m, units = "in", res = 480,
@@ -820,11 +852,11 @@ for (depth in 2:10) {
         plot(NA, ylim = c(1, n), xlim = c(1, n),
              axes = F, xlab = "", ylab = "", main = "",
              bg = "transparent")
-        plotBinning(binnings$randLong[[ind]],
+        plotBinning(binnings$randSqr[[ind]],
                     pch = 19, cex = 0.1, add = TRUE,
                     col = NA, border = borders,
-                    fill = residualFill(binnings$randLong[[ind]],
-                                        maxRes = maxRes))
+                    fill = residualFill(binnings$randSqr[[ind]],
+                                        maxRes = maxRes, nbr = 25))
     }
     dev.off()
 }
