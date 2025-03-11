@@ -113,7 +113,10 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
 ##' @title Generate fills encoding bin features
 ##' @description These functions all accept a list of bins and return
 ##' a vector of colours of the same length that encode some feature of
-##' the bins.
+##' the bins. standardizedChiFill is a special case which adjusts the
+##' residuals obtained by the binChi function by the variance of each
+##' bin to obtain a better normal approximation and more even
+##' gradient.
 ##' @details Two functions are provided by default: one which
 ##' generates a fill based on bin depth and the other based on a
 ##' residual function applied to each bin.
@@ -161,5 +164,38 @@ residualFill <- function(bins, resFun = binChi, maxRes,
         }
     }
     residCols <- cut(residuals, breaks) # distribute colors
+    colorRampPalette(colrng)(length(breaks)-1)[as.numeric(residCols)]
+}
+##' @describeIn shadings Fill by variance-adjusted chi residuals
+standardizedChiFill <- function(bins, nbr = NA, breaks = NA,
+                                colrng = c("steelblue", "white",
+                                           "firebrick")) {
+    wids <- sapply(bins, function(x) diff(x$bnds$x))
+    hgts <- sapply(bins, function(x) diff(x$bnds$y))
+    obs <- sapply(bins, function(x) x$n)
+    N <- sum(obs)
+    expn <- wids*hgts/N
+    widAdj <- 1 - wids/N # avoid zero denom
+    widAdj[widAdj < 2*.Machine$double.eps] <- 1/N
+    hgtAdj <- 1 - hgts/N
+    hgtAdj[hgtAdj < 2*.Machine$double.eps] <- 1/N
+    denom <- N/(N-1)*widAdj*hgtAdj*expn
+    stRes <- (obs - expn)^2/sqrt(denom)*sign(obs - expn)
+    maxRes <- 1.01*max(abs(stRes))
+    if (is.na(breaks)) {
+        if (is.na(nbr)) { # default: 16 splits over -4, 4
+            nbr <- 16
+        }
+        if (maxRes > 4) {
+            breaks <- c(-maxRes,
+                        seq(-4, 4, length.out = nbr),
+                        maxRes)
+        } else { # arbitrary larger point to keep them constant
+            breaks <- c(-10, seq(-4, 4, length.out = nbr), 10)
+        }
+    } else {
+        breaks <- sort(breaks)
+    }
+    residCols <- cut(stRes, breaks) # distribute colors
     colorRampPalette(colrng)(length(breaks)-1)[as.numeric(residCols)]
 }

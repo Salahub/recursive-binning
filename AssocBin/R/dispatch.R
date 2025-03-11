@@ -260,7 +260,7 @@ plot.inDep <- function(x, ..., which = 1:5, border = "black",
     typs <- strsplit(x$types[which], split = "\\:")
     oldPar <- par(mfrow = c(length(which), 3),
                   mar = c(0.5, 1.1, 2.1, 0.1))
-    maxRes <- max(sapply(x$residuals, max))
+    #maxRes <- max(sapply(x$residuals, max))
     for (ii in seq_along(prs)) {
         x1 <- dat[, prs[[ii]][1]] # get pair
         y <- dat[, prs[[ii]][2]]
@@ -309,9 +309,8 @@ plot.inDep <- function(x, ..., which = 1:5, border = "black",
                                                           1))))
         plotBinning(x$binnings[[which[ii]]], factor = 0.9,
                     xlab = "", ylab = "", border = border,
-                    fill = residualFill(x$binnings[[which[ii]]],
-                                        colrng = colrng, nbr = nbr,
-                                        maxRes = maxRes),
+                    fill = standardizedChiFill(x$binnings[[which[ii]]],
+                                               colrng = colrng, nbr = nbr),
                     suppressLabs = TRUE, ...)
         mtext("Bins", side = 3, line = 0, cex = 0.6)
     }
