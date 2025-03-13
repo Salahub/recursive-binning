@@ -309,8 +309,8 @@ plot.inDep <- function(x, ..., which = 1:5, border = "black",
                                                           1))))
         plotBinning(x$binnings[[which[ii]]], factor = 0.9,
                     xlab = "", ylab = "", border = border,
-                    fill = standardizedChiFill(x$binnings[[which[ii]]],
-                                               colrng = colrng, nbr = nbr),
+                    fill = importanceFill(x$binnings[[which[ii]]],
+                                          colrng = colrng, nbr = nbr),
                     suppressLabs = TRUE, ...)
         mtext("Bins", side = 3, line = 0, cex = 0.6)
     }

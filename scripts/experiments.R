@@ -739,7 +739,7 @@ for(i in 1:7) {
 
 ## next, check the bins for every depth (Fig 4.16)
 ## some settings
-borders <- "black"
+borders <- 'black'
 if (is.na(borders)) suffix <- "NoBrdrs" else suffix <- ""
 
 ## start by getting the maximum residual to make the shading constant
@@ -747,7 +747,7 @@ real <- 1 # choose realization
 inds <- guide$rep == real
 maxRes <- max(allMaxRes$chi[inds])
 ## for every depth, display the binning for each pattern
-for (depth in 2:20) {
+for (depth in 2:10) {
     png(file = paste0("simDataBins", depth, suffix, ".png"),
         height = m, width= 6*m, units = "in", res = 480,
         bg = "transparent")
@@ -761,17 +761,16 @@ for (depth in 2:20) {
         plotBinning(binnings$chi[[ind]], pch = 19,
                     cex = 0.1, add = TRUE,
                     col = NA, border = borders,
-                    fill = residualFill(binnings$chi[[ind]],
-                                        colrng = c("steelblue", "white",
-                                                   "firebrick"),
-                                        maxRes = maxRes,
-                                        nbr = 25))
+                    fill = normalChiFill(binnings$chi[[ind]],
+                                         colrng = c("steelblue",
+                                                    "white",
+                                                    "firebrick")))
     }
     dev.off()
 }
 
 ## do the same for squared values
-for (depth in 2:20) {
+for (depth in 2:10) {
     png(file = paste0("simDataBinsSqr", depth, suffix, ".png"),
         height = m, width= 6*m, units = "in", res = 480,
         bg = "transparent")
@@ -785,11 +784,11 @@ for (depth in 2:20) {
         plotBinning(binnings$chiSqr[[ind]], pch = 19,
                     cex = 0.1, add = TRUE,
                     col = NA, border = borders,
-                    fill = residualFill(binnings$chiSqr[[ind]],
-                                        colrng = c("steelblue", "white",
-                                                   "firebrick"),
-                                        maxRes = maxRes,
-                                        nbr = 25))
+                    fill = standardizedChiFill(binnings$chiSqr[[ind]],
+                                               colrng = c("steelblue",
+                                                          "white",
+                                                          "firebrick"),
+                                               nbr = 25))
     }
     dev.off()
 }
@@ -840,7 +839,6 @@ for (depth in 2:10) {
 }
 
 ## last the squared random bins
-maxRes <- max(allMaxRes$randSqr[inds])
 for (depth in 2:10) {
     png(file = paste0("simDataBinsRSq", depth, suffix, ".png"),
         height = m, width= 6*m, units = "in", res = 480,
@@ -855,8 +853,7 @@ for (depth in 2:10) {
         plotBinning(binnings$randSqr[[ind]],
                     pch = 19, cex = 0.1, add = TRUE,
                     col = NA, border = borders,
-                    fill = residualFill(binnings$randSqr[[ind]],
-                                        maxRes = maxRes, nbr = 25))
+                    fill = normalChiFill(binnings$randSqr[[ind]]))
     }
     dev.off()
 }
