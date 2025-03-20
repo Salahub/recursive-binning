@@ -298,7 +298,7 @@ for (spltr in c("chiSplit", "miSplit", "randSplit", "rsqSplit")) {
                units = "in", res = 480, bg = "transparent")
     narrowPlot(xgrid = seq(0, 3, by = 0.5), # plot region
                xlab = expression(log[10]~"K"),
-               ygrid = seq(-1, 4, by = 1), bg = "transparent",
+               ygrid = seq(-1, 3, by = 1), bg = "transparent",
                ylab = expression(log[10]~{"("~X^2~")"}))
     points(log(data[[spltr]]["nbin",,],10), # points
            log(data[[spltr]]["chi",,],10),
@@ -352,7 +352,7 @@ for (n in c(1e2, 1e3, 1e4)) {
         png(paste0(spltr, "ChiDepth", n, ".png"), width = wid,
             height = size, units = "in", res = 480, bg = "transparent")
         narrowPlot(xgrid = seq(0, 3, by = 1), bg = "transparent",
-                   ygrid = seq(-1, 4, by = 1),
+                   ygrid = seq(-1, 3, by = 1),
                    xlab = expression(log[10]~"K"),
                    ylab = expression(log[10]~{"("~X^2~")"}),
                    mars = mar)
@@ -449,15 +449,15 @@ dev.off()
 ## SIMULATED DATA PATTERNS ###########################################
 ## patterns from Newton (2009) provided in a list of functions
 patFns <- list(
-    wave = function(n) {
-        x <- seq(-1, 1, length=n)
-        u <- x + runif(n)/3; v <- 4*((x^2 - 1/2)^2 + runif(n)/500)
-        cbind(x = u, y = v)
-    },
     cross = function(n) {
         x <- seq(-1, 1, length = n)
         y <- (x^2 + runif(n)/2)*(sample(c(-1,1), size=n, replace = T))
         cbind(x = x, y = y)
+    },
+    wave = function(n) {
+        x <- seq(-1, 1, length=n)
+        u <- x + runif(n)/3; v <- 4*((x^2 - 1/2)^2 + runif(n)/500)
+        cbind(x = u, y = v)
     },
     ring = function(n) {
         x <- seq(-1, 1, length = n)
@@ -570,11 +570,14 @@ for (splt in names(splitters)) {
                 (ii - 1)*length(patFns) + seq_along(patFns)
             binnings[[splt]][inds] <-
                 lapply(seq_along(patFns),
-                       function(kk) binner(simXr[, kk, jj],
-                                           simYr[, kk, jj],
-                                           stopper = stopFn,
-                                           splitter = splitters[[splt]],
-                                           init = detInit))
+                       function(kk) {
+                           set.seed(kk*nsim + jj) # repeatability
+                           binner(simXr[, kk, jj],
+                                  simYr[, kk, jj],
+                                  stopper = stopFn,
+                                  splitter = splitters[[splt]],
+                                  init = detInit)
+                       })
         }
     }  
 }
@@ -661,7 +664,7 @@ png("simDataRandAll.png", width = 5, height = 3, units = "in",
     res = 480, bg = "transparent")
 narrowPlot(xgrid = seq(0, 160, by = 40),
            xlab = expression(K),
-           ygrid = seq(0, 1600, by = 400),
+           ygrid = seq(0, 1200, by = 300),
            ylab = expression(X^2), bg = "transparent")
 for (ii in 1:1e4) { # null lines
     lines(depthSeq.rnd["nbin",,ii],
@@ -671,7 +674,7 @@ for (ii in 1:1e4) { # null lines
 for (pat in names(patFns)) { # observed paths
     for (ii in 1:nsim) {
         inds <- guide$pat == pat & guide$rep == ii
-        lines(nBins$rand[inds], paths$rand[inds],
+        lines(nBins$randSqr[inds], paths$randSqr[inds],
               col = adjustcolor(pal[pat], 0.2))
     }
 }
@@ -681,11 +684,13 @@ for (pat in names(patFns)) { # add mean lines
     medPath <- numeric(length(depths))
     for (ii in seq_along(depths)) {
         inds <- guide$dep == depths[ii] & guide$pat == pat
-        medN[ii] <- median(nBins$rand[inds])
-        medPath[ii] <- median(paths$rand[inds])
+        medN[ii] <- median(nBins$randSqr[inds])
+        medPath[ii] <- median(paths$randSqr[inds])
     }
     lines(medN, medPath, col = "gray30", lwd = 3)
+    points(medN, medPath, col = "gray30", pch = 20, cex = 1.2)
     lines(medN, medPath, col = pal[pat], lwd = 2)
+    points(medN, medPath, col = pal[pat], pch = 20)
 }
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
 lines(1:160, qchisq(0.95, (sqrt(1:160)-1)^2), lty = 3, col = 'firebrick')
@@ -720,7 +725,9 @@ for (pat in names(patFns)) { # add mean lines
         medPath[ii] <- median(paths$chi[inds])
     }
     lines(medN, medPath, col = "gray30", lwd = 3)
+    points(medN, medPath, col = "gray30", pch = 20, cex = 1.2)
     lines(medN, medPath, col = pal[pat], lwd = 2)
+    points(medN, medPath, col = pal[pat], pch = 20)
 }
 lines(1:160, qchisq(0.95, 1:160), lty = 2)
 lines(1:160, qchisq(0.95, (sqrt(1:160)-1)^2), lty = 3, col = 'firebrick')
@@ -736,6 +743,15 @@ for(i in 1:7) {
          bg = "transparent")
     dev.off()
 }
+png(file = "redRanks.png", height = m, width= 6*m,
+    units = "in", res = 480, bg = "transparent")
+par(mar=c(1,1,1,1)/2, mfrow = c(1,7))
+for(i in 1:7) {
+    plot(simXr[, i, 3], simYr[, i, 3], xlab = "", ylab = "",
+         axes= F, pch = 19, cex = 0.2, col = "firebrick",
+         bg = "transparent")
+}
+dev.off()
 
 ## next, check the bins for every depth (Fig 4.16)
 ## some settings
@@ -743,11 +759,11 @@ borders <- 'black'
 if (is.na(borders)) suffix <- "NoBrdrs" else suffix <- ""
 
 ## start by getting the maximum residual to make the shading constant
-real <- 1 # choose realization
+real <- 3 # choose realization
 inds <- guide$rep == real
 maxRes <- max(allMaxRes$chi[inds])
 ## for every depth, display the binning for each pattern
-for (depth in 2:10) {
+for (depth in seq(2, 10, by = 2)) {
     png(file = paste0("simDataBins", depth, suffix, ".png"),
         height = m, width= 6*m, units = "in", res = 480,
         bg = "transparent")
@@ -761,10 +777,10 @@ for (depth in 2:10) {
         plotBinning(binnings$chi[[ind]], pch = 19,
                     cex = 0.1, add = TRUE,
                     col = NA, border = borders,
-                    fill = normalChiFill(binnings$chi[[ind]],
-                                         colrng = c("steelblue",
-                                                    "white",
-                                                    "firebrick")))
+                    fill = importanceFill(binnings$chi[[ind]],
+                                          colrng = c("steelblue",
+                                                     "white",
+                                                     "firebrick")))
     }
     dev.off()
 }
@@ -853,7 +869,7 @@ for (depth in 2:10) {
         plotBinning(binnings$randSqr[[ind]],
                     pch = 19, cex = 0.1, add = TRUE,
                     col = NA, border = borders,
-                    fill = normalChiFill(binnings$randSqr[[ind]]))
+                    fill = importanceFill(binnings$randSqr[[ind]]))
     }
     dev.off()
 }

@@ -226,10 +226,13 @@ inDep <- function(data, stopCriteria,
 ##' binnings are ordered by increasing p-value
 ##' @param border colour of borders to be drawn on the binnings
 ##' @param buffer relative width of empty space separating categories
+##' @param dropPoints logical: should points be dropped for the plot
+##' of the binnings?
 ##' @param colrng colour range to be passed to `residualFill` for
 ##' plotting
 ##' @param nbr number of breaks to be passed to `residualFill` for
 ##' plotting
+##' @param pch point type passed to plot
 ##' @return Nothing for the plot method, while summary quietly returns
 ##' a summary of `inDep`
 ##' @author Chris Salahub
@@ -252,9 +255,9 @@ summary.inDep <- function(object, ...) {
 }
 ##' @describeIn methods Plot method for `inDep`
 plot.inDep <- function(x, ..., which = 1:5, border = "black",
-                       buffer = 0.01,
+                       buffer = 0.01, dropPoints = FALSE,
                        colrng = c("steelblue", "white", "firebrick"),
-                       nbr = NA) {
+                       nbr = NA, pch = ".") {
     dat <- get(x$data)
     prs <- strsplit(x$pairs[which], split = "\\:")
     typs <- strsplit(x$types[which], split = "\\:")
@@ -293,12 +296,13 @@ plot.inDep <- function(x, ..., which = 1:5, border = "black",
             ybr <- NA
         }
         ## create three plot areas
-        plot(x = pltx, y = plty, xaxt = "n", yaxt = "n", ...)
+        plot(x = pltx, y = plty, xaxt = "n", yaxt = "n", pch = pch,
+             ...)
         abline(h = cumsum(ybr), v = cumsum(xbr), lty = 2)
         mtext("Raw", side = 3, line = 0, cex = 0.6)
         plot(x = rank(pltx, ties.method = "random"),
              y = rank(plty, ties.method = "random"),
-             xaxt = "n", yaxt = "n", ...)
+             xaxt = "n", yaxt = "n", pch = pch, ...)
         abline(h = cumsum(ybr), v = cumsum(xbr), lty = 2)
         mtext("Ranks", side = 3, line = 0, cex = 0.6)
         mtext(side = 3, line = 1, cex = 0.8,
@@ -306,12 +310,13 @@ plot.inDep <- function(x, ..., which = 1:5, border = "black",
                                             collapse = "|"))*
                                 ","~log[10]*p~"="~.(round(x$logps[which[ii]]/
                                                          log(10),
-                                                          1))))
+                                                         1))))
+        if (dropPoints) thirdPch = NA else thirdPch = pch
         plotBinning(x$binnings[[which[ii]]], factor = 0.9,
                     xlab = "", ylab = "", border = border,
                     fill = importanceFill(x$binnings[[which[ii]]],
                                           colrng = colrng, nbr = nbr),
-                    suppressLabs = TRUE, ...)
+                    suppressLabs = TRUE, pch = thirdPch, ...)
         mtext("Bins", side = 3, line = 0, cex = 0.6)
     }
     par(oldPar)
