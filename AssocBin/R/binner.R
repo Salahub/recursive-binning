@@ -71,11 +71,11 @@ binner <- function(x, y, stopper, splitter, init = halfSplit,
 ##' @description `uniBinner` is an iterative implementation of a
 ##' recursive binary partitioning algorithm which accepts the
 ##' splitting and stopping functions that guide partitioning as
-##' arguments and applies them to the margin `y` alone.
-##' @details `binner` creates a one-dimensional histogram of `y` for
-##' each categorical value of `x` by recursively splitting partitions
-##' of the data using `splitter` until `stopper` indicates that all
-##' partitions are not to be split.
+##' arguments and applies them to a specified margin alone.
+##' @details `binner` creates a one-dimensional histogram of `y` or
+##' `x` for each categorical value of the other by recursively
+##' splitting partitions of the data using `splitter` until
+##' `stopper` indicates that all partitions are not to be split.
 ##' @param x factor vector for the the first variable
 ##' @param y numeric vector of the second variable (to be split)
 ##' @param stopper function which accepts a list with elements
@@ -87,30 +87,52 @@ binner <- function(x, y, stopper, splitter, init = halfSplit,
 ##' the bin at that position in the original list
 ##' @param dropPoints logical; should points be dropped from final
 ##' bins?
+##' @param on one of 'x' or 'y': the margin to split
 ##' @return A list of lists each with elements `x`, `y`, `bnds`,
 ##' `expn`, `n`, and `stopped`.
 ##' @author Chris Salahub
-uniBinner <- function(x, y, stopper, splitter, dropPoints = FALSE) {
-    xtab <- table(x)
-    xbrks <- rbind(cumsum(c(0, xtab[-length(xtab)])),
-                   cumsum(xtab))
-    colnames(xbrks) <- names(xtab)
-    ## initial bin splits data by category
-    binList <- lapply(names(xtab),
-                      function(lev) {
-                          makeBin(x[x == lev], y[x == lev],
-                                  bnds = list(x = xbrks[, lev],
-                                              y = range(y) - c(1,0)),
-                                  expn = sum(x == lev),
-                                  n = sum(x == lev), depth = 1,
-                                  stopped = FALSE)
-                      })
+uniBinner <- function(x, y, stopper, splitter, dropPoints = FALSE,
+                      on = "y") {
+    if (on == "y") {
+        xtab <- table(x)
+        xbrks <- rbind(cumsum(c(0, xtab[-length(xtab)])),
+                       cumsum(xtab))
+        colnames(xbrks) <- names(xtab)
+        ## initial bin splits data by category
+        binList <- lapply(names(xtab),
+                          function(lev) {
+                              makeBin(x[x == lev], y[x == lev],
+                                      bnds = list(x = xbrks[, lev],
+                                                  y = range(y) - c(1,0)),
+                                      expn = sum(x == lev),
+                                      n = sum(x == lev), depth = 1,
+                                      stopped = FALSE)
+                          })
+    } else if (on == "x") {
+        ytab <- table(y)
+        ybrks <- rbind(cumsum(c(0, ytab[-length(ytab)])),
+                       cumsum(ytab))
+        colnames(ybrks) <- names(ytab)
+        ## initial bin splits data by category
+        binList <- lapply(names(ytab),
+                          function(lev) {
+                              makeBin(x[y == lev], y[y == lev],
+                                      bnds = list(x = range(x) - c(1,0),
+                                                  y = xbrks[, lev]),
+                                      expn = sum(y == lev),
+                                      n = sum(y == lev), depth = 1,
+                                      stopped = FALSE)
+                          })
+    } else {
+        stop('Argument "on" must be one of "x" or "y"')
+    }
+    
     stopStatus <- stopper(binList) # initialize logical vector
-
+    
     while (any(!stopStatus)) { # check the stop criteria
         oldBins <- binList[stopStatus] # stopped bins
         oldStop <- stopStatus[stopStatus] # all TRUE
-        newBins <- lapply(binList[!stopStatus], splitter) # split bins
+        newBins <- lapply(binList[!stopStatus], splitter, on = on)
         newBins <- unlist(newBins, recursive = FALSE) # simplify
         newStop <- stopper(newBins) # get stop values
         if (dropPoints) { # drop points in stopped bins

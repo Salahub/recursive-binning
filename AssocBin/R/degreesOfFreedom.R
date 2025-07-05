@@ -25,11 +25,11 @@ numNumSimpleDf <- function(nbins){
 }
 ##' @describeIn degreesoffreedom Dual continuous gamma shape
 numNumGammaShape <- function(nbins){
-    (0.1199774 + 0.7214124 * sqrt(ctsSimpleDf(nbins)))^2
+    (0.1199774 + 0.7214124 * sqrt(numNumSimpleDf(nbins)))^2
 }
 ##' @describeIn degreesoffreedom Dual continuous gamma scale
 numNumGammaScale <- function(nbins){
-    log_df <- log(ctsSimpleDf(nbins))
+    log_df <- log(numNumSimpleDf(nbins))
     exp(0.4329157 + (1 - 0.9571741) * log_df)
 }
 ##' @describeIn degreesoffreedom Mixed type simple df
@@ -38,16 +38,16 @@ facNumSimpleDf <- function(nbins, ncat){
 }
 ##' @describeIn degreesoffreedom Mixed type fitted df
 facNumFittedDf <- function(nbins, ncat){
-    0.201221 + 0.992706 * catSimpleDf(nbins, ncat)
+    0.201221 + 0.992706 * facNumSimpleDf(nbins, ncat)
 }
 ##' @describeIn degreesoffreedom Mixed type gamma shape
 facNumGammaShape <- function(nbins, ncat){
-    df_simple <- catSimpleDf(nbins, ncat)
-    1.102814 * ctsGammaShape(df_simple)
+    df_simple <- facNumSimpleDf(nbins, ncat)
+    1.102814 * numNumGammaShape(df_simple)
 }
 ##' @describeIn degreesoffreedom Mixed type gamma scale
 facNumGammaScale <- function(nbins, ncat){
-    df_simple <- catSimpleDf(nbins, ncat)
+    df_simple <- facNumSimpleDf(nbins, ncat)
     log_df <- log(df_simple)
     exp(0.3742961 + (1 - 0.9674642) * log_df)
 }

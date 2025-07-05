@@ -20,9 +20,9 @@ binAbsDif(bins, agg = sum)
 computed over each bin}
 }
 \value{
-A list with elements `residuals` and `stat` reporting the
-individual statistic values (possibly transformed) and the
-aggegrated statistic value.
+A list with elements `residuals`, `stat`, and `nbins`
+reporting the individual statistic values (possibly transformed),
+the aggegrated statistic value, and the number of bins in `bins`
 }
 \description{
 These functions compute statistics based on observed

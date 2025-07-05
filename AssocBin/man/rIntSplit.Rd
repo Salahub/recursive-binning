@@ -4,7 +4,7 @@
 \alias{rIntSplit}
 \title{Random integer splitting}
 \usage{
-rIntSplit(bin, minExp = 5, squarify = FALSE)
+rIntSplit(bin, minExp = 5, squarify = TRUE)
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,

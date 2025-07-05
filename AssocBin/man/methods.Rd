@@ -2,17 +2,33 @@
 % Please edit documentation in R/dispatch.R
 \name{summary.inDep}
 \alias{summary.inDep}
+\alias{print.inDep}
 \alias{plot.inDep}
 \title{S3 methods for `inDep`}
 \usage{
-\method{summary}{inDep}(object, ...)
+\method{summary}{inDep}(object, ..., adjustP = FALSE)
 
-\method{plot}{inDep}(x, ..., which = 1:5, border = "black", buffer = 0.01)
+\method{print}{inDep}(object, ...)
+
+\method{plot}{inDep}(
+  x,
+  ...,
+  which = 1:5,
+  border = "black",
+  buffer = 0.01,
+  dropPoints = FALSE,
+  colrng = c("steelblue", "white", "firebrick"),
+  nbr = NA,
+  pch = "."
+)
 }
 \arguments{
 \item{object}{`inDep` object to summarize}
 
 \item{...}{additional arguments to pass on to the method}
+
+\item{adjustP}{logical: should the p-values be adjusted for
+multiple testing?}
 
 \item{x}{object with class `inDep`}
 
@@ -22,6 +38,17 @@ binnings are ordered by increasing p-value}
 \item{border}{colour of borders to be drawn on the binnings}
 
 \item{buffer}{relative width of empty space separating categories}
+
+\item{dropPoints}{logical: should points be dropped for the plot
+of the binnings?}
+
+\item{colrng}{colour range to be passed to `residualFill` for
+plotting}
+
+\item{nbr}{number of breaks to be passed to `residualFill` for
+plotting}
+
+\item{pch}{point type passed to plot}
 }
 \value{
 Nothing for the plot method, while summary quietly returns
@@ -42,6 +69,8 @@ contained in the `inDep` object.
 \section{Functions}{
 \itemize{
 \item \code{summary(inDep)}: Summary method for `inDep`
+
+\item \code{print(inDep)}: Print method for `inDep`
 
 \item \code{plot(inDep)}: Plot method for `inDep`
 

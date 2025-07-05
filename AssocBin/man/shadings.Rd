@@ -3,6 +3,7 @@
 \name{depthFill}
 \alias{depthFill}
 \alias{residualFill}
+\alias{importanceFill}
 \title{Generate fills encoding bin features}
 \usage{
 depthFill(bins, colrng = c("white", "firebrick"))
@@ -14,6 +15,13 @@ residualFill(
   colrng = c("steelblue", "white", "firebrick"),
   breaks = NA,
   nbr = NA
+)
+
+importanceFill(
+  bins,
+  nbr = NA,
+  breaks = NA,
+  colrng = c("steelblue", "white", "firebrick")
 )
 }
 \arguments{
@@ -43,7 +51,13 @@ A vector of colours the same length as `bins`.
 \description{
 These functions all accept a list of bins and return
 a vector of colours of the same length that encode some feature of
-the bins.
+the bins. importanceFill is a special case which adjusts the
+residuals obtained by the binChi function by the variance of each
+bin to obtain a better normal approximation and then only shades
+those bins which are greater than 2 standard deviations from the
+mean with a color ramp that fully saturates for any bins which
+are greater than a 0.001 standard normal quantile with a
+Bonferroni correction applied to account for the number of bins.
 }
 \details{
 Shadings
@@ -57,6 +71,8 @@ residual function applied to each bin.
 \item \code{depthFill()}: Fill by depth
 
 \item \code{residualFill()}: Fill by residual values
+
+\item \code{importanceFill()}: Fill by variance-adjusted chi residuals
 
 }}
 \examples{

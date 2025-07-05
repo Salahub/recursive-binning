@@ -249,41 +249,75 @@ maxScoreSplit <- function(bin, scorer, minExp = 5,
 ##' vector of scores for each
 ##' @param minExp numeric giving the minimum expected count allowed
 ##' in a bin
+##' @param on one of "x" or "y": the margin to split
 ##' @return A list of two bins resulting from the split of `bin` at
 ##' the maximum split location along y
 ##' @author Chris Salahub
-uniMaxScoreSplit <- function(bin, scorer, minExp = 5) {
+uniMaxScoreSplit <- function(bin, scorer, minExp = 5, on = "y") {
     expn <- bin$expn
     prop <- minExp/expn
-    deltay <- diff(bin$bnds$y)
-    yfrm <- bin$bnds$y + ceiling(prop*deltay)*c(1, -1)
-    if ((yfrm[2] - yfrm[1]) >= 0) {
-        yaug <- c(min(bin$y)-1, bin$y, yfrm)
-        ysort <- order(yaug)
-        ylowFrm <- which(ysort == (length(yaug) - 1))
-        yupFrm <- which(ysort == length(yaug))
-        yinfrm <- ylowFrm:yupFrm
-        ycntblw <- cumsum(c(0, rep(1, bin$n), 0, 0)[ysort])[yinfrm]
-        yscore <- scorer(bounds = c(bin$bnds$y[1],
-                                    yaug[ysort][yinfrm],
-                                    bin$bnds$y[2]),
-                         nbelow = ycntblw, n = bin$n)
-        ymax <- which.max(yscore)
-        if (all(abs(yscore - yscore[1]) < sqrt(.Machine$double.eps))) {
-            ymax <- ceiling((yupFrm - ylowFrm)/2)
+    if (on == "y") {
+        deltay <- diff(bin$bnds$y)
+        yfrm <- bin$bnds$y + ceiling(prop*deltay)*c(1, -1)
+        if ((yfrm[2] - yfrm[1]) >= 0) {
+            yaug <- c(min(bin$y)-1, bin$y, yfrm)
+            ysort <- order(yaug)
+            ylowFrm <- which(ysort == (length(yaug) - 1))
+            yupFrm <- which(ysort == length(yaug))
+            yinfrm <- ylowFrm:yupFrm
+            ycntblw <- cumsum(c(0, rep(1, bin$n), 0, 0)[ysort])[yinfrm]
+            yscore <- scorer(bounds = c(bin$bnds$y[1],
+                                        yaug[ysort][yinfrm],
+                                        bin$bnds$y[2]),
+                             nbelow = ycntblw, n = bin$n)
+            ymax <- which.max(yscore)
+            if (all(abs(yscore - yscore[1]) < sqrt(.Machine$double.eps))) {
+                ymax <- ceiling((yupFrm - ylowFrm)/2)
+            }
+        } else ymax <- NA
+        if (is.na(ymax)) {
+            bin$stopped <- TRUE
+            list(bin)
+        } else {
+            newbnd <- yaug[ysort][yinfrm[ymax]]
+            yclean <- ysort[-c(yupFrm, ylowFrm)][-1] - 1
+            below <- yclean[seq_len(ycntblw[ymax])]
+            if (newbnd >= bin$y[yclean[bin$n]]) {
+                above <- integer(0)
+            } else above <- yclean[(ycntblw[ymax]+1):bin$n]
+            splitY(bin, bd = newbnd, above = above, below = below)
         }
-    } else ymax <- NA
-    if (is.na(ymax)) {
-        bin$stopped <- TRUE
-        list(bin)
-    } else {
-        newbnd <- yaug[ysort][yinfrm[ymax]]
-        yclean <- ysort[-c(yupFrm, ylowFrm)][-1] - 1
-        below <- yclean[seq_len(ycntblw[ymax])]
-        if (newbnd >= bin$y[yclean[bin$n]]) {
-            above <- integer(0)
-        } else above <- yclean[(ycntblw[ymax]+1):bin$n]
-        splitY(bin, bd = newbnd, above = above, below = below)
+    } else if (on == "x") {
+        deltax <- diff(bin$bnds$x)
+        xfrm <- bin$bnds$x + ceiling(prop*deltax)*c(1, -1)
+        if ((xfrm[2] - xfrm[1]) >= 0) {
+            xaug <- c(min(bin$x)-1, bin$x, xfrm)
+            xsort <- order(xaug)
+            xlowFrm <- which(xsort == (length(xaug) - 1))
+            xupFrm <- which(xsort == length(xaug))
+            xinfrm <- xlowFrm:xupFrm
+            xcntblw <- cumsum(c(0, rep(1, bin$n), 0, 0)[xsort])[xinfrm]
+            xscore <- scorer(bounds = c(bin$bnds$x[1],
+                                        xaug[xsort][xinfrm],
+                                        bin$bnds$x[2]),
+                             nbelow = xcntblw, n = bin$n)
+            xmax <- which.max(xscore)
+            if (all(abs(xscore - xscore[1]) < sqrt(.Machine$double.eps))) {
+                xmax <- ceiling((xupFrm - xlowFrm)/2)
+            }
+        } else xmax <- NA
+        if (is.na(xmax)) {
+            bin$stopped <- TRUE
+            list(bin)
+        } else {
+            newbnd <- xaug[xsort][xinfrm[xmax]]
+            xclean <- xsort[-c(xupFrm, xlowFrm)][-1] - 1
+            below <- xclean[seq_len(xcntblw[xmax])]
+            if (newbnd >= bin$x[xclean[bin$n]]) {
+                above <- integer(0)
+            } else above <- xclean[(xcntblw[xmax]+1):bin$n]
+            splitY(bin, bd = newbnd, above = above, below = below)
+        }
     }
 }
 
@@ -358,7 +392,7 @@ sandboxMaxSplit <- function(bin, scorer, ties = halfCutTie,
 ##' bin <- makeBin(x = 1:10, y = sample(1:10))
 ##' rIntSplit(bin, minExp = 2)
 ##' @author Chris Salahub
-rIntSplit <- function(bin, minExp = 5, squarify = FALSE) {
+rIntSplit <- function(bin, minExp = 5, squarify = TRUE) {
   expn <- bin$expn
   prop <- minExp/expn
   deltax <- diff(bin$bnds$x)
@@ -406,27 +440,46 @@ rIntSplit <- function(bin, minExp = 5, squarify = FALSE) {
 ##' `bnds` (list with elements `x` and `y`), `expn`, `n`
 ##' @param minExp numeric giving the minimum expected count allowed
 ##' in a bin
+##' @param on one of "x" or "y": the margin to split
 ##' @return A list of two bins resulting from the split of `bin`
 ##' along the corresponding margin at the maximum location
 ##' @examples
 ##' bin <- makeBin(x = 1:10, y = sample(1:10))
 ##' rIntSplit(bin, minExp = 2)
 ##' @author Chris Salahub
-uniRIntSplit <- function(bin, minExp = 5) {
+uniRIntSplit <- function(bin, minExp = 5, on = "y") {
   expn <- bin$expn
   prop <- minExp/expn
-  deltay <- diff(bin$bnds$y)
-  lower <- bin$bnds$y[1] + ceiling(prop*deltay)
-  upper <- bin$bnds$y[2] - ceiling(prop*deltay)
-  if (upper <= lower) {
-      bin$stopped <- TRUE
-      list(bin)
-  } else{
-      locs <- seq(from = lower, to = upper, by = 1)
-      spos <- sample(locs, size = 1)
-      above <- which(bin$y > spos)
-      below <- which(bin$y <= spos)
-      splitY(bin, spos, above, below)
+  if (on == "y") {
+      deltay <- diff(bin$bnds$y)
+      lower <- bin$bnds$y[1] + ceiling(prop*deltay)
+      upper <- bin$bnds$y[2] - ceiling(prop*deltay)
+      if (upper <= lower) {
+          bin$stopped <- TRUE
+          list(bin)
+      } else{
+          locs <- seq(from = lower, to = upper, by = 1)
+          spos <- sample(locs, size = 1)
+          above <- which(bin$y > spos)
+          below <- which(bin$y <= spos)
+          splitY(bin, spos, above, below)
+      }
+  } else if (on == "x") {
+      deltax <- diff(bin$bnds$x)
+      lower <- bin$bnds$x[1] + ceiling(prop*deltax)
+      upper <- bin$bnds$x[2] - ceiling(prop*deltax)
+      if (upper <= lower) {
+          bin$stopped <- TRUE
+          list(bin)
+      } else{
+          locs <- seq(from = lower, to = upper, by = 1)
+          spos <- sample(locs, size = 1)
+          above <- which(bin$x > spos)
+          below <- which(bin$x <= spos)
+          splitY(bin, spos, above, below)
+      }
+  } else {
+      stop('Argument "on" must be one of "x" or "y"')
   }
 }
 
