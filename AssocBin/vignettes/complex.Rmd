@@ -37,11 +37,11 @@ heartClean <- na.omit(heartClean)
 str(heartClean)
 ```
 
-This leaves 740 observations over 12 variables to be binned. Running the binning process is very straightforward. First, stop criteria are defined. Next, the function `inDep` is called. This function performs pairwise binning on all variable pairs in this data set and returns an `inDep` object, which contains these binnings alongside data about them that allow us to assess the relationships between these pairs.
+This leaves 740 observations over 12 variables to be binned. Running the binning process is very straightforward. First, stop criteria are defined. Next, the function `DepSearch` is called. This function performs pairwise binning on all variable pairs in this data set and returns a `DepSearch` object, which contains these binnings alongside data about them that allow us to assess the relationships between these pairs.
 
 ```{r}
 stopCrits <- makeCriteria(depth >= 6, n < 1, expn <= 10)
-assocs <- inDep(heartClean, stopCriteria = stopCrits)
+assocs <- DepSearch(heartClean, stopCriteria = stopCrits)
 ```
 
 The resulting object can be explored using `plot` and `summary` methods.
@@ -67,10 +67,10 @@ The shadings in the final column of each of these plots highlight the cells with
 The $p$-values reported are computed assuming the $\chi^2$ statistics for each pair are $\chi^2_{df}$-distributed with $df$ given by the number of cells less the number of constraints in estimation. By default, binning is therefore done at random to ensure this approximation is accurate. When other splitting methods are used these default $p$-values are no longer accurate. Of course, such splitting methods may still be desirable for better plotting qualities and so we can customize the bins by changing the splitting logic.
 
 ```{r}
-maxCatCon <- function(bn) uniMaxScoreSplit(bn, chiScores)
+maxCatCon <- function(bn, on) uniMaxScoreSplit(bn, chiScores, on = on)
 maxConCon <- function(bn) maxScoreSplit(bn, chiScores)
-maxPairs <- inDep(data = heartClean, stopCriteria = stopCrits, 
-                  catCon = maxCatCon, conCon = maxCatCon)
+maxPairs <- DepSearch(data = heartClean, stopCriteria = stopCrits, 
+                      catCon = maxCatCon, conCon = maxConCon)
 summary(maxPairs)
 ```
 
@@ -90,15 +90,15 @@ plot(randOrd, maxOrd, xlab = "Random rank", ylab = "Max chi rank",
      main = "Rankings of pair significance between methods")
 ```
 
-Both methods agree on the most important relationships in the data, but tend to disagree about the less strongly related variables. Note that this plot was produced by matching the pairs ranked by $p$-values, which are only accurate for random binning.
+The most important relationships in the data are the same under both splitting methods, but tend to disagree about the less strongly related variables. Note that this plot was produced by matching the pairs ranked by $p$-values, which are only accurate for random binning.
 
-Noting the strong impact of study on these results, we might repeat this analysis with the Cleveland data alone.
+Given the strong impact of study on these results, we might repeat this analysis with the Cleveland data alone.
 
 ```{r}
 heartCleve <- heartClean[heartClean$study == "cleveland", ]
 heartCleve$study <- NULL
-cleveAssoc <- inDep(heartCleve, stopCriteria = stopCrits, catCon = maxCatCon,
-                    conCon = maxConCon)
+cleveAssoc <- DepSearch(heartCleve, stopCriteria = stopCrits, catCon = maxCatCon,
+                        conCon = maxConCon)
 summary(cleveAssoc)
 ```
 

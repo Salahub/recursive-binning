@@ -4,7 +4,7 @@
 \alias{uniRIntSplit}
 \title{Univariate random integer splitting}
 \usage{
-uniRIntSplit(bin, minExp = 5)
+uniRIntSplit(bin, minExp = 5, on = "y")
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -12,6 +12,8 @@ uniRIntSplit(bin, minExp = 5)
 
 \item{minExp}{numeric giving the minimum expected count allowed
 in a bin}
+
+\item{on}{one of "x" or "y": the margin to split}
 }
 \value{
 A list of two bins resulting from the split of `bin`

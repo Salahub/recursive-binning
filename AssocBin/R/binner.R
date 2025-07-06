@@ -118,7 +118,7 @@ uniBinner <- function(x, y, stopper, splitter, dropPoints = FALSE,
                           function(lev) {
                               makeBin(x[y == lev], y[y == lev],
                                       bnds = list(x = range(x) - c(1,0),
-                                                  y = xbrks[, lev]),
+                                                  y = ybrks[, lev]),
                                       expn = sum(y == lev),
                                       n = sum(y == lev), depth = 1,
                                       stopped = FALSE)

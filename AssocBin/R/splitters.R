@@ -476,7 +476,7 @@ uniRIntSplit <- function(bin, minExp = 5, on = "y") {
           spos <- sample(locs, size = 1)
           above <- which(bin$x > spos)
           below <- which(bin$x <= spos)
-          splitY(bin, spos, above, below)
+          splitX(bin, spos, above, below)
       }
   } else {
       stop('Argument "on" must be one of "x" or "y"')

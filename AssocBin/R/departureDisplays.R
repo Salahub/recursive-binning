@@ -1,18 +1,19 @@
-##' Departure display
+##' depDisplay
 ##' @title Generate a departure display
 ##' @description This is a generic function which generates a
 ##' departure display to show the dependence between pairs of
 ##' variables for several common data structures.
 ##' @details `depDisplay` is a wrapper of the `plotBinning` function
 ##' with defaults set to be informative for most investigations.
-##' @param x a `data.frame`, `inDep` object, or a vector
+##' @param x a `data.frame`, `DepSearch` object, or a vector
 ##' @param y an optional vector, only used if `x` is a vector
+##' @param ... additional arguments to pass to plot
 ##' @param pair the pair of variables to display when `x` is a
-##' `data.frame` or an `inDep`. If `x` is a `data.frame`, pair can
+##' `data.frame` or an `DepSearch`. If `x` is a `data.frame`, pair can
 ##' be specified in three ways: as a string with format "<y>:<z>",
 ##' as a character vector of length two, or as a numeric vector of
 ##' length two specifying the pair of variables to bin. If `x` is
-##' an `inDep`, pair must be either a number or a string of the
+##' an `DepSearch`, pair must be either a number or a string of the
 ##' format "<y>:<z>" specifying which binned pair of `x` to display.
 ##' @return Invisibly returns the binning obtained and generates a
 ##' departure display of the pairwise dependence.
@@ -32,8 +33,7 @@
 depDisplay <- function(x, y, ..., pair) {
     UseMethod("depDisplay")
 }
-
-##' @describeIn Departuredisplay Default depDisplay method
+##' @describeIn depDisplay Default depDisplay method
 depDisplay.default <- function(x, y, ...) {
     colrng <- c("steelblue", "white", "firebrick")
     crits <- "depth >= 6 | n < 1 | expn <= 10 | stopped"
@@ -59,8 +59,7 @@ depDisplay.default <- function(x, y, ...) {
                 ...)
     invisible(binned)
 }
-
-##' @describeIn Departuredisplay data.frame method for depDisplay
+##' @describeIn depDisplay data.frame method for depDisplay
 depDisplay.data.frame <- function(x, ..., pair) {
     if (missing(pair)) {
         warning("'pair' not provided, binning first two variables from 'names(x)'.")
@@ -88,8 +87,8 @@ depDisplay.data.frame <- function(x, ..., pair) {
         pair <- pair[1:2]
     }
 
-    y <- x[pair[1]]
-    z <- x[pair[2]]
+    y <- x[[pair[1]]]
+    z <- x[[pair[2]]]
     colrng <- c("steelblue", "white", "firebrick")
     crits <- "depth >= 6 | n < 1 | expn <= 10 | stopped"
     stopFn <- function(bns) stopper(bns, crits)
@@ -98,15 +97,21 @@ depDisplay.data.frame <- function(x, ..., pair) {
     if (ycat & zcat) {
         binned <- catBinner(y, z)
     } else if (ycat) { # in binner notation, x = y, y = z
+        z <- rank(z, ties.method="random")
         binned <- uniBinner(y, z, on = "y",
                             stopper = stopFn,
                             splitter = uniRIntSplit)
     } else if (zcat) {
+        y <- rank(y, ties.method="random")
         binned <- uniBinner(y, z, on = "x",
                             stopper = stopFn,
                             splitter = uniRIntSplit)
     } else {
-        binned <- binner(y, z, rIntSplit)
+        y <- rank(y, ties.method="random")
+        z <- rank(z, ties.method="random")
+        binned <- binner(y, z,
+                         stopper = stopFn,
+                         splitter = rIntSplit)
     }
     plotBinning(binned, factor = 0.9, border = NA,
                 fill = importanceFill(binned, colrng = colrng,
@@ -114,9 +119,8 @@ depDisplay.data.frame <- function(x, ..., pair) {
                 ...)
     invisible(binned)
 }
-
-##' @describeIn Departuredisplay inDep method for depDisplay
-depDisplay.inDep <- function(x, ..., pair) {
+##' @describeIn depDisplay DepSearch method for depDisplay
+depDisplay.DepSearch <- function(x, ..., pair) {
     if (missing(pair)) {
         pair <- 1
     } else if (!is.character(pair)) {

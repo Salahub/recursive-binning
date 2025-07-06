@@ -4,7 +4,7 @@
 \alias{uniBinner}
 \title{Single margin binning}
 \usage{
-uniBinner(x, y, stopper, splitter, dropPoints = FALSE)
+uniBinner(x, y, stopper, splitter, dropPoints = FALSE, on = "y")
 }
 \arguments{
 \item{x}{factor vector for the the first variable}
@@ -22,6 +22,8 @@ the bin at that position in the original list}
 
 \item{dropPoints}{logical; should points be dropped from final
 bins?}
+
+\item{on}{one of 'x' or 'y': the margin to split}
 }
 \value{
 A list of lists each with elements `x`, `y`, `bnds`,
@@ -31,13 +33,13 @@ A list of lists each with elements `x`, `y`, `bnds`,
 `uniBinner` is an iterative implementation of a
 recursive binary partitioning algorithm which accepts the
 splitting and stopping functions that guide partitioning as
-arguments and applies them to the margin `y` alone.
+arguments and applies them to a specified margin alone.
 }
 \details{
-`binner` creates a one-dimensional histogram of `y` for
-each categorical value of `x` by recursively splitting partitions
-of the data using `splitter` until `stopper` indicates that all
-partitions are not to be split.
+`binner` creates a one-dimensional histogram of `y` or
+`x` for each categorical value of the other by recursively
+splitting partitions of the data using `splitter` until
+`stopper` indicates that all partitions are not to be split.
 }
 \author{
 Chris Salahub

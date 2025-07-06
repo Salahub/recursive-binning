@@ -4,7 +4,7 @@
 \alias{uniMaxScoreSplit}
 \title{Univariate score maximizing splitting}
 \usage{
-uniMaxScoreSplit(bin, scorer, minExp = 5)
+uniMaxScoreSplit(bin, scorer, minExp = 5, on = "y")
 }
 \arguments{
 \item{bin}{a bin to be split with elements `x`, `y`, `depth`,
@@ -16,6 +16,8 @@ vector of scores for each}
 
 \item{minExp}{numeric giving the minimum expected count allowed
 in a bin}
+
+\item{on}{one of "x" or "y": the margin to split}
 }
 \value{
 A list of two bins resulting from the split of `bin` at
