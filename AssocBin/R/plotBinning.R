@@ -181,7 +181,7 @@ importanceFill <- function(bins, nbr = NA, breaks = NA,
     hgtAdj <- 1 - hgts/N
     expn <- wids*hgts/N
     denom <- N/(N-1)*widAdj*hgtAdj*expn
-    stRes <- (obs - expn)/(sqrt(expn))
+    stRes <- (obs - expn)/(sqrt(denom))
     stRes[denom == 0] <- 0 # full margin bins have obs = exp
     maxRes <- 1.01*max(abs(stRes))
     nbins <- length(bins)

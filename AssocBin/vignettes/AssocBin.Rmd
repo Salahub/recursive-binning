@@ -10,9 +10,49 @@ vignette: >
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(AssocBin)
 ```
 
-The `AssocBin` package implements the core algorithm and several helpers to measure the association between two variables using a recursive binary partitioning (or binning) of the data. At each step, the algorithm is provided with a list of bins that have edges, contained points, and other features and then splits those bins which fail some stopping checks. Though it is not forced by any function contained, it is assumed the user will provide the algorithm with *ranked* variables along each margin, as every helper function assumes this is the case. The core logic of the test rests on the observation that variable ranks will have a joint uniform density only under independence.
+This vignette introduces users to the main features of the `AssocBin` package. It begins with a high-level overview of the basic functions and their uses before examining ways to customize the package behaviour. Rather than get into technical detail from the beginning, the package outputs and classes will be used to demonstrate these aspects of the implementation. Hopefully, that will make this vignette more approachable.
+
+## Basic functions
+
+The simplest ways to use the `AssocBin` package to explore a data set are the `DepSearch` and `depDisplay` functions. `DepSearch` performs all pairwise comparisons between variables using recursive random binning and returns the results in a `DepSearch` S3 object. `depDisplay` generates a departure display, a two-dimensional histogram highlighting areas of high and low density, for a given variable pair. To demonstrate these two functions, let's examine a version of the [heart disease data](https://archive.ics.uci.edu/dataset/45/heart+disease) from the UCI machine learning data repository that comes included in the package.
+
+```{r}
+data(heart)
+summary(heart)
+```
+
+This data set records more than a dozen measurements of heart function and demographics collected from patients admitted to several US hospitals. Of particular interest is the `num` variable, which records the presence and severity of heart disease in each patient. Patients with a `num` value of zero have healthy hearts and larger values of `num` indicate increasingly severe heart disease. We first clean the data somewhat by removing mostly missing variables and omitting records that are mostly incomplete.
+
+```{r}
+heartClean <- heart
+heartClean$thal <- NULL
+heartClean$ca <- NULL
+heartClean$slope <- NULL
+heartClean <- na.omit(heartClean)
+str(heartClean)
+```
+
+Individual pairwise relationships can now be investigated using `depDisplay`, which displays a version of the scatterplot between a pair of variables processed to highlight regions with more or fewer points than we would expect if the pair was independent. Here, we'll use it to look at the relationship of a few variables with `num`, starting with `sex`: the sex of the patient.
+
+```{r, fig.width=7, fig.height=5}
+depDisplay(heartClean$sex, heartClean$num)
+```
+
+Optional arguments can be supplied to make the plot easier to read and understand in the same way as for many other R objects:
+
+```{r, fig.width=7, fig.height=5}
+depDisplay(heartClean$sex, heartClean$num, xlab = "Sex", ylab = "Heart disease severity", pch = 20)
+```
+
+Labels and point types aside, reading this plot requires some understanding of the underlying logic of the algorithm. In the case of `sex` and `num`, both categorical variables, the plot generated is analogous to a mosaic plot. The marginal proportions of each categorical level are reflected by the size of the corresponding labelled segment on that margin. Hence, the area of each cell is proportional to the number of points which would occur with the corresponding combination of categorical levels under independence. In effect, the cells are a visualization of the joint distribution of these variables under independence.
+
+To overlay the observed counts on this imagined joint distribution, saturation is employed. To determine the level of saturation for the cell with level $i$ on the first categorical variable and level $j$ on the second, the Pearson residual
+$$r_{ij} = \frac{o_{ij} - e_{ij}}{\sqrt{e_{ij}}}$$
+Each cell's observed count is compared to the expected count and colouring is added if the difference between the two is larger  Saturation is then added to indicate whether more or fewer points occur in that cell than expected: red indicates an excess of points while blue indicates a lack. Cells which remain white have a small enough difference 
+
 
 This vignette will demonstrate how to set up, run, and process the results from this core algorithm using some of the defined helpers. A more complete description can be found in the associated pre-print, https://arxiv.org/abs/2311.08561. We begin by loading the package.
 

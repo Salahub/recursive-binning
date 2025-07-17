@@ -43,14 +43,18 @@ depDisplay.default <- function(x, y, ...) {
     if (xcat & ycat) {
         binned <- catBinner(x, y)
     } else if (xcat) {
+        y <- rank(y, ties.method="random")
         binned <- uniBinner(x, y, on = "y",
                             stopper = stopFn,
                             splitter = uniRIntSplit)
     } else if (ycat) {
+        x <- rank(x, ties.method="random")
         binned <- uniBinner(x, y, on = "x",
                             stopper = stopFn,
                             splitter = uniRIntSplit)
     } else {
+        x <- rank(x, ties.method="random")
+        y <- rank(y, ties.method="random")
         binned <- binner(x, y, rIntSplit)
     }
     plotBinning(binned, factor = 0.9, border = NA,
