@@ -55,7 +55,8 @@ depDisplay.default <- function(x, y, ...) {
     } else {
         x <- rank(x, ties.method="random")
         y <- rank(y, ties.method="random")
-        binned <- binner(x, y, rIntSplit)
+        binned <- binner(x, y, stopper = stopFn,
+                         splitter = rIntSplit)
     }
     plotBinning(binned, factor = 0.9, border = NA,
                 fill = importanceFill(binned, colrng = colrng,
