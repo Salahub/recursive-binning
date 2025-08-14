@@ -85,10 +85,13 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
                  xlab = xlab, ylab = ylab, xaxt = xaxt,
                  yaxt = yaxt, ...)
         }
-    } # add bins and points
+    } # add bins
     for (ii in seq_along(bins)) {
         rect(xbnds[ii,1], ybnds[ii,1], xbnds[ii,2], ybnds[ii,2],
              col = fill[ii], border = border)
+    }
+    ## add points after to avoid overplotting
+    for (ii in seq_along(bins)) {
         if (xfac) {
             xa <- diff(bins[[ii]]$bnds$x)/2
             pltx <- jitter(rep((bins[[ii]]$bnds$x[1] +
