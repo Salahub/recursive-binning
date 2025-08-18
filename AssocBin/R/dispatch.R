@@ -387,7 +387,8 @@ plot.DepSearch <- function(x, ..., which = 1:5, border = "black",
                     xlab = "", ylab = "", border = border,
                     fill = importanceFill(x$binnings[[which[ii]]],
                                           colrng = colrng, nbr = nbr),
-                    suppressLabs = TRUE, pch = thirdPch, ...)
+                    showYax = FALSE, showXax = FALSE, pch = thirdPch,
+                    ...)
         mtext("Bins", side = 3, line = 0, cex = 0.6)
     }
     par(oldPar)

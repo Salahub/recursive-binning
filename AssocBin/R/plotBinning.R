@@ -12,12 +12,12 @@
 ##' of the same length as `bins`
 ##' @param add logical, should the plot of bins be added to the
 ##' current plot area?
-##' @param factor number between 0 and 1, what factor should be
-##' applied to jittering of categorical variables?
+##' @param factor number between 0 and 1 giving the factor applied to
+##' jitter categorical variables
 ##' @param xlab string, the label to be placed on the x axis
 ##' @param ylab string, the label to be placed on the y axis
-##' @param suppressLabs logical, should axis labels be suppressed or
-##' displayed?
+##' @param showXax logical indicating whether to plot x axis markings
+##' @param showYax logical indicating whether to plot y axis markings
 ##' @param border argument to be passed to `rect` internally giving
 ##' the border colour
 ##' @param ... optional additional arguments to be passed to `plot`,
@@ -34,17 +34,16 @@
 ##' plotBinning(bin3)
 ##' @author Chris Salahub
 plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
-                        xlab = "x", ylab = "y", suppressLabs = FALSE,
-                        border = "black", ...) {
+                        xlab = "x", ylab = "y", showXax = FALSE,
+                        showYax = FALSE, border = "black", ...) {
     if (missing(fill)) fill <- rep(NA, length(bins)) # custom fill
     nbins <- length(bins)
     xbnds <- t(sapply(bins, function(bn) bn$bnds$x))
     ybnds <- t(sapply(bins, function(bn) bn$bnds$y))
     xfac <- is.factor(bins[[1]]$x)
     yfac <- is.factor(bins[[1]]$y) # check bin 1 for factor status
-    if (suppressLabs) {
-        xaxt <- yaxt <- "n"
-    } else xaxt <- yaxt <- "s"
+    if (!showYax) yaxt <- "n" else yaxt <- "s"
+    if (!showXax) xaxt <- "n" else xaxt <- "s"
     if (!add) { # create new plot area
         if (xfac & yfac) { # depends on what is a factor
             plot(NA, xlim = range(xbnds), ylim = range(ybnds),
@@ -54,9 +53,11 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
             unqy <- unique(ybnds)
             xlocs <- sort((unqx[,1] + unqx[,2])/2)
             ylocs <- sort((unqy[,1] + unqy[,2])/2)
-            if (!suppressLabs) {
+            if (showXax) {
                 mtext(levels(bins[[1]]$x), at = xlocs, side = 1,
                       line = 1)
+            }
+            if (showYax) {
                 mtext(levels(bins[[1]]$y), at = ylocs, side = 2,
                       line = 1)
             }
@@ -66,7 +67,7 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
                  ...)
             unqx <- unique(xbnds)
             xlocs <- sort((unqx[,1] + unqx[,2])/2)
-            if (!suppressLabs) {
+            if (showXax) {
                 mtext(levels(bins[[1]]$x), at = xlocs, side = 1,
                       line = 1)
             }
@@ -76,7 +77,7 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
                  ...)
             unqy <- unique(ybnds)
             ylocs <- sort((unqy[,1] + unqy[,2])/2)
-            if (!suppressLabs) {
+            if (showYax) {
                 mtext(levels(bins[[1]]$y), at = ylocs, side = 2,
                       line = 1)
             }
@@ -89,8 +90,7 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
     for (ii in seq_along(bins)) {
         rect(xbnds[ii,1], ybnds[ii,1], xbnds[ii,2], ybnds[ii,2],
              col = fill[ii], border = border)
-    }
-    ## add points after to avoid overplotting
+    } # add points after to avoid overplotting
     for (ii in seq_along(bins)) {
         if (xfac) {
             xa <- diff(bins[[ii]]$bnds$x)/2
