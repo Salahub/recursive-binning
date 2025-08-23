@@ -54,10 +54,14 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
             xlocs <- sort((unqx[,1] + unqx[,2])/2)
             ylocs <- sort((unqy[,1] + unqy[,2])/2)
             if (showXax) {
+                axis(side = 1, labels = FALSE,
+                     at = c(unqx[,1], unqx[nrow(unqx),2]))
                 mtext(levels(bins[[1]]$x), at = xlocs, side = 1,
                       line = 1)
             }
             if (showYax) {
+                axis(side = 2, labels = FALSE,
+                     at = c(unqy[,1], unqy[nrow(unqy),2]))
                 mtext(levels(bins[[1]]$y), at = ylocs, side = 2,
                       line = 1)
             }
@@ -68,6 +72,8 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
             unqx <- unique(xbnds)
             xlocs <- sort((unqx[,1] + unqx[,2])/2)
             if (showXax) {
+                axis(side = 1, labels = FALSE,
+                     at = c(unqx[,1], unqx[nrow(unqx),2]))
                 mtext(levels(bins[[1]]$x), at = xlocs, side = 1,
                       line = 1)
             }
@@ -78,6 +84,8 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
             unqy <- unique(ybnds)
             ylocs <- sort((unqy[,1] + unqy[,2])/2)
             if (showYax) {
+                axis(side = 2, labels = FALSE,
+                     at = c(unqy[,1], unqy[nrow(unqy),2]))
                 mtext(levels(bins[[1]]$y), at = ylocs, side = 2,
                       line = 1)
             }

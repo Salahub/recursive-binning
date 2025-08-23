@@ -18,6 +18,8 @@
 ##' @param quants list of two named vectors `x` and `y` providing the
 ##' quantiles to display on the corresponding axis in the case it is
 ##' a continuous variable. Defaults to the five number summary.
+##' @param border string providing the colour of bin borders to draw,
+##' NA suppresses borders
 ##' @return Invisibly returns the binning obtained and generates a
 ##' departure display of the pairwise dependence.
 ##' @examples
@@ -37,10 +39,13 @@ depDisplay <- function(x, y, ..., pair, quants) {
     UseMethod("depDisplay")
 }
 ##' @describeIn depDisplay Default depDisplay method
-depDisplay.default <- function(x, y, ..., quants) {
+depDisplay.default <- function(x, y, ..., quants, border) {
     if (missing(quants)) {
         quants = list(x = seq(0, 1, length.out=5),
                       y = seq(0, 1, length.out=5))
+    }
+    if (missing(border)) {
+        border = NA
     }
     colrng <- c("steelblue", "white", "firebrick")
     crits <- "depth >= 6 | n < 1 | expn <= 10 | stopped"
@@ -49,45 +54,49 @@ depDisplay.default <- function(x, y, ..., quants) {
     ycat <- class(y) %in% c("factor", "character", "logical")
     if (xcat & ycat) {
         binned <- catBinner(x, y)
-        plotBinning(binned, factor = 0.9, border = NA,
+        plotBinning(binned, factor = 0.9, border = border,
                     fill = importanceFill(binned, colrng = colrng,
                                           nbr = NA),
                     showXax = TRUE, showYax = TRUE,
                     ...)
     } else if (xcat) {
-        y <- rank(y, ties.method="random")
-        binned <- uniBinner(x, y, on = "y",
+        y_ <- rank(y, ties.method="random")
+        binned <- uniBinner(x, y_, on = "y",
                             stopper = stopFn,
                             splitter = uniRIntSplit)
-        plotBinning(binned, factor = 0.9, border = NA,
+        plotBinning(binned, factor = 0.9, border = border,
                     fill = importanceFill(binned, colrng = colrng,
                                           nbr = NA),
                     showXax = TRUE, showYax = FALSE,
                     ...)
+        axis(side = 2, at = length(y)*quants$y, labels = FALSE)
         mtext(side = 2, at = length(y)*quants$y, line = 1,
               text = quantile(y, quants$y))
     } else if (ycat) {
-        x <- rank(x, ties.method="random")
-        binned <- uniBinner(x, y, on = "x",
+        x_ <- rank(x, ties.method="random")
+        binned <- uniBinner(x_, y, on = "x",
                             stopper = stopFn,
                             splitter = uniRIntSplit)
-        plotBinning(binned, factor = 0.9, border = NA,
+        plotBinning(binned, factor = 0.9, border = border,
                     fill = importanceFill(binned, colrng = colrng,
                                           nbr = NA),
                     showXax = FALSE, showYax = TRUE,
                     ...)
+        axis(side = 1, at = length(x)*quants$x, labels = FALSE)
         mtext(side = 1, at = length(x)*quants$x, line = 1,
               text = quantile(x, quants$x))
     } else {
-        x <- rank(x, ties.method="random")
-        y <- rank(y, ties.method="random")
-        binned <- binner(x, y, stopper = stopFn,
+        x_ <- rank(x, ties.method="random")
+        y_ <- rank(y, ties.method="random")
+        binned <- binner(x_, y_, stopper = stopFn,
                          splitter = rIntSplit)
-        plotBinning(binned, factor = 0.9, border = NA,
+        plotBinning(binned, factor = 0.9, border = border,
                     fill = importanceFill(binned, colrng = colrng,
                                           nbr = NA),
                     showXax = FALSE, showYax = FALSE,
                     ...)
+        axis(side = 1, at = length(x)*quants$x, labels = FALSE)
+        axis(side = 2, at = length(y)*quants$y, labels = FALSE)
         mtext(side = 1, at = length(x)*quants$x, line = 1,
               text = quantile(x, quants$x))
         mtext(side = 2, at = length(y)*quants$y, line = 1,
@@ -96,10 +105,13 @@ depDisplay.default <- function(x, y, ..., quants) {
     invisible(binned)
 }
 ##' @describeIn depDisplay data.frame method for depDisplay
-depDisplay.data.frame <- function(x, ..., pair, quants) {
+depDisplay.data.frame <- function(x, ..., pair, quants, border) {
     if (missing(quants)) {
         quants = list(x = seq(0, 1, length.out=5),
                       y = seq(0, 1, length.out=5))
+    }
+    if (missing(border)) {
+        border = NA
     }
     if (missing(pair)) {
         warning("'pair' not provided, binning first two variables from 'names(x)'.")
@@ -135,47 +147,51 @@ depDisplay.data.frame <- function(x, ..., pair, quants) {
     zcat <- class(z) %in% c("factor", "character", "logical")
     if (ycat & zcat) { # in binner notation, x = y, y = z
         binned <- catBinner(y, z)
-        plotBinning(binned, factor = 0.9, border = NA,
+        plotBinning(binned, factor = 0.9, border = border,
                     fill = importanceFill(binned, colrng = colrng,
                                           nbr = NA),
                     showXax = TRUE, showYax = TRUE,
                     ...)
     } else if (ycat) {
         z <- rank(z, ties.method="random")
-        binned <- uniBinner(y, z, on = "y",
+        binned <- uniBinner(y, z_, on = "y",
                             stopper = stopFn,
                             splitter = uniRIntSplit)
-        plotBinning(binned, factor = 0.9, border = NA,
+        plotBinning(binned, factor = 0.9, border = border,
                     fill = importanceFill(binned, colrng = colrng,
                                           nbr = NA),
                     showXax = TRUE, showYax = FALSE,
                     ...)
+        axis(side = 2, at = length(z)*quants$y, labels = FALSE)
         mtext(side = 2, at = length(z)*quants$y, line = 1,
               text = quantile(z, quants$y))
 
     } else if (zcat) {
-        y <- rank(y, ties.method="random")
-        binned <- uniBinner(y, z, on = "x",
+        y_ <- rank(y, ties.method="random")
+        binned <- uniBinner(y_, z, on = "x",
                             stopper = stopFn,
                             splitter = uniRIntSplit)
-        plotBinning(binned, factor = 0.9, border = NA,
+        plotBinning(binned, factor = 0.9, border = border,
                     fill = importanceFill(binned, colrng = colrng,
                                           nbr = NA),
                     showXax = FALSE, showYax = TRUE,
                     ...)
+        axis(side = 1, at = length(y)*quants$x, labels = FALSE)
         mtext(side = 1, at = length(y)*quants$x, line = 1,
               text = quantile(y, quants$x))
     } else {
-        y <- rank(y, ties.method="random")
-        z <- rank(z, ties.method="random")
-        binned <- binner(y, z,
+        y_ <- rank(y, ties.method="random")
+        z_ <- rank(z, ties.method="random")
+        binned <- binner(y_, z_,
                          stopper = stopFn,
                          splitter = rIntSplit)
-        plotBinning(binned, factor = 0.9, border = NA,
+        plotBinning(binned, factor = 0.9, border = border,
                     fill = importanceFill(binned, colrng = colrng,
                                           nbr = NA),
                     showXax = FALSE, showYax = FALSE,
                     ...)
+        axis(side = 1, at = length(y)*quants$x, labels = FALSE)
+        axis(side = 2, at = length(z)*quants$x, labels = FALSE)
         mtext(side = 1, at = length(y)*quants$x, line = 1,
               text = quantile(y, quants$x))
         mtext(side = 2, at = length(z)*quants$y, line = 1,
@@ -184,10 +200,13 @@ depDisplay.data.frame <- function(x, ..., pair, quants) {
     invisible(binned)
 }
 ##' @describeIn depDisplay DepSearch method for depDisplay
-depDisplay.DepSearch <- function(x, ..., pair, quants) {
+depDisplay.DepSearch <- function(x, ..., pair, quants, border) {
     if (missing(quants)) {
         quants = list(x = seq(0, 1, length.out=5),
                       y = seq(0, 1, length.out=5))
+    }
+    if (missing(border)) {
+        border = NA
     }
     if (missing(pair)) {
         pair <- 1
@@ -217,7 +236,7 @@ depDisplay.DepSearch <- function(x, ..., pair, quants) {
                         error = function(e) NA)
     if (is.na(depData)) {
         print("x data not found, displaying without marginal quantiles.")
-        plotBinning(x$binnings[[pair]], factor = 0.9, border = NA,
+        plotBinning(x$binnings[[pair]], factor = 0.9, border = border,
                     fill = importanceFill(x$binnings[[pair]],
                                           colrng = colrng,
                                           nbr = NA),
@@ -229,33 +248,41 @@ depDisplay.DepSearch <- function(x, ..., pair, quants) {
         ycat <- class(y) %in% c("factor", "character", "logical")
         zcat <- class(z) %in% c("factor", "character", "logical")
         if (ycat & zcat) {
-            plotBinning(x$binnings[[pair]], factor = 0.9, border = NA,
+            plotBinning(x$binnings[[pair]], factor = 0.9,
+                        border = border,
                         fill = importanceFill(binned, colrng = colrng,
                                               nbr = NA),
                         showXax = TRUE, showYax = TRUE,
                         ...)
         } else if (ycat) {
-            plotBinning(x$binnings[[pair]], factor = 0.9, border = NA,
+            plotBinning(x$binnings[[pair]], factor = 0.9,
+                        border = border,
                         fill = importanceFill(binned, colrng = colrng,
                                               nbr = NA),
                         showXax = TRUE, showYax = FALSE,
                         ...)
+            axis(side = 2, at = length(z)*quants$y, labels = FALSE)
             mtext(side = 2, at = length(z)*quants$y, line = 1,
                   text = quantile(z, quants$y))
         } else if (zcat) {
-            plotBinning(x$binnings[[pair]], factor = 0.9, border = NA,
+            plotBinning(x$binnings[[pair]], factor = 0.9,
+                        border = border,
                         fill = importanceFill(binned, colrng = colrng,
                                               nbr = NA),
                         showXax = FALSE, showYax = TRUE,
                         ...)
+            axis(side = 1, at = length(y)*quants$x, labels = FALSE)
             mtext(side = 1, at = length(y)*quants$x, line = 1,
                   text = quantile(y, quants$x))
         } else {
-            plotBinning(x$binnings[[pair]], factor = 0.9, border = NA,
+            plotBinning(x$binnings[[pair]], factor = 0.9,
+                        border = border,
                         fill = importanceFill(binned, colrng = colrng,
                                               nbr = NA),
                         showXax = FALSE, showYax = FALSE,
                         ...)
+            axis(side = 1, at = length(y)*quants$x, labels = FALSE)
+            axis(side = 2, at = length(z)*quants$y, labels = FALSE)
             mtext(side = 1, at = length(y)*quants$x, line = 1,
                   text = quantile(y, quants$x))
             mtext(side = 2, at = length(z)*quants$y, line = 1,

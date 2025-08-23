@@ -11,7 +11,8 @@ plotBinning(
   factor = 0.5,
   xlab = "x",
   ylab = "y",
-  suppressLabs = FALSE,
+  showXax = FALSE,
+  showYax = FALSE,
   border = "black",
   ...
 )
@@ -27,15 +28,16 @@ of the same length as `bins`}
 \item{add}{logical, should the plot of bins be added to the
 current plot area?}
 
-\item{factor}{number between 0 and 1, what factor should be
-applied to jittering of categorical variables?}
+\item{factor}{number between 0 and 1 giving the factor applied to
+jitter categorical variables}
 
 \item{xlab}{string, the label to be placed on the x axis}
 
 \item{ylab}{string, the label to be placed on the y axis}
 
-\item{suppressLabs}{logical, should axis labels be suppressed or
-displayed?}
+\item{showXax}{logical indicating whether to plot x axis markings}
+
+\item{showYax}{logical indicating whether to plot y axis markings}
 
 \item{border}{argument to be passed to `rect` internally giving
 the border colour}

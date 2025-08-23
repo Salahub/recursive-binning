@@ -15,16 +15,45 @@ library(AssocBin)
 
 This vignette introduces users to the main features of the `AssocBin` package. It begins with a high-level overview of the basic functions and their uses before examining ways to customize the package behaviour. Rather than get into technical detail from the beginning, the package outputs and classes will be used to demonstrate these aspects of the implementation. Hopefully, that will make this vignette more approachable.
 
-## Basic functions
+## Basic use
 
-The simplest ways to use the `AssocBin` package to explore a data set are the `DepSearch` and `depDisplay` functions. `DepSearch` performs all pairwise comparisons between variables using recursive random binning and returns the results in a `DepSearch` S3 object. `depDisplay` generates a departure display, a two-dimensional histogram highlighting areas of high and low density, for a given variable pair. To demonstrate these two functions, let's examine a version of the [heart disease data](https://archive.ics.uci.edu/dataset/45/heart+disease) from the UCI machine learning data repository that comes included in the package.
+It's easiest to understand the use of `AssocBin` in the context of exploring a data set. Included in the package is a version of the the [heart disease data](https://archive.ics.uci.edu/dataset/45/heart+disease) from the UCI machine learning data repository.
+
+### Heart data
+
+The `heart` data can be loaded from the package using:
 
 ```{r}
 data(heart)
-summary(heart)
 ```
 
-This data set records more than a dozen measurements of heart function and demographics collected from patients admitted to several US hospitals. Of particular interest is the `num` variable, which records the presence and severity of heart disease in each patient. Patients with a `num` value of zero have healthy hearts and larger values of `num` indicate increasingly severe heart disease. We first clean the data somewhat by removing mostly missing variables and omitting records that are mostly incomplete.
+Inspecting the data:
+
+```{r}
+str(heart)
+```
+
+It contains 920 observations of 15 variables collected on patients referred to various hospitals around the world to undergo a series of measurements of heart function in order to relate them to the presence of coronary heart disease. The variables are:
+
+1. `age`: age
+2. `sex`: sex
+3. `cp`: clinical description of any chest pain
+4. `trestbps`: resting blood pressure on hospital admission
+5. `chol`: blood serum cholesterol concentration
+6. `fbs`: indicator of whether fasting blood sugar is greater than 120 mg/dl
+7. `restecg`: classification of heart waves at rest as measured by an electrocardiogram
+8. `thalach`: maximum heart rate achieved in an exercise test
+9. `exang`: whether the exercise test induced angina
+10. `oldpeak`: ST heart wave depression induced by the exercise test
+11. `slope`: the slope of the ST heart wave peak during the exercise test
+12. `ca`: the count of calcified major blood vessels in the heart identified by [fluoroscopic imaging](https://en.wikipedia.org/wiki/Fluoroscopy)
+13. `thal`: categorization of any defects in heart circulation induced by exercise as measured by [thallium scintigraphy](https://pmc.ncbi.nlm.nih.gov/articles/PMC1272184/)
+14. `num`: count of major blood vessels in the heart with a narrowing of greater than 50%
+15. `study`: the location of the patient's testing
+
+Of particular interest is the `num` variable, the original response in the study which collected the data ([Detrano et al., 1989](https://www.semanticscholar.org/paper/International-application-of-a-new-probability-for-Detrano-J%C3%A1nosi/a7d714f8f87bfc41351eb5ae1e5472f0ebbe0574)). It counts the number of diseased of coronary vessels, where the presence of disease is defined as a narrowing of the vessel by more than 50% from a healthy baseline. Basically, patients with `num=0` have hearts without serious coronary artery disease and the severity of disease increases with each integer increase of `num` due to more blood vessels being blocked significantly.
+
+For simplicity, we'll clean the data somewhat by removing mostly missing variables and dropping incomplete observations for the rest of the vignette.
 
 ```{r}
 heartClean <- heart
@@ -35,30 +64,113 @@ heartClean <- na.omit(heartClean)
 str(heartClean)
 ```
 
-Individual pairwise relationships can now be investigated using `depDisplay`, which displays a version of the scatterplot between a pair of variables processed to highlight regions with more or fewer points than we would expect if the pair was independent. Here, we'll use it to look at the relationship of a few variables with `num`, starting with `sex`: the sex of the patient.
+### Exploration using basic functions
 
-```{r, fig.width=7, fig.height=5}
+The simplest ways to use the `AssocBin` package to explore a data set are the `DepSearch` and `depDisplay` functions. `DepSearch` performs all pairwise comparisons between variables using recursive random binning and returns the results in a `DepSearch` S3 object. `depDisplay` generates a departure display, a two-dimensional histogram highlighting areas of high and low density, for a given variable pair.
+
+#### Dual categorical variables
+
+We start by comparing a pair of variables directly. Using `depDisplay`, we can inspect the relationship between patient `sex` and `num` using a departure display
+
+```{r, fig.width=6, fig.height=6, fig.align = 'center'}
 depDisplay(heartClean$sex, heartClean$num)
 ```
 
-Optional arguments can be supplied to make the plot easier to read and understand in the same way as for many other R objects:
+Optional arguments can be supplied to change plot features following the `plot` naming conventions.
 
-```{r, fig.width=7, fig.height=5}
-depDisplay(heartClean$sex, heartClean$num, xlab = "Sex", ylab = "Heart disease severity", pch = 20)
+```{r, fig.width=6, fig.height=6, fig.align = 'center'}
+SexVsNum <- depDisplay(heartClean$sex, heartClean$num, xlab = "Sex", 
+                       ylab = "Number of arteries >50% obstructed", 
+                       pch = 20)
 ```
 
-Labels and point types aside, reading this plot requires some understanding of the underlying logic of the algorithm. In the case of `sex` and `num`, both categorical variables, the plot generated is analogous to a mosaic plot. The marginal proportions of each categorical level are reflected by the size of the corresponding labelled segment on that margin. Hence, the area of each cell is proportional to the number of points which would occur with the corresponding combination of categorical levels under independence. In effect, the cells are a visualization of the joint distribution of these variables under independence.
+Labels and point types aside, reading this plot requires a basic understanding of the underlying algorithm. `sex` and `num` are both categorical variables, and so the departure display is a particular way of encoding the contingency table between them. Explicitly:
 
-To overlay the observed counts on this imagined joint distribution, saturation is employed. To determine the level of saturation for the cell with level $i$ on the first categorical variable and level $j$ on the second, the Pearson residual
-$$r_{ij} = \frac{o_{ij} - e_{ij}}{\sqrt{e_{ij}}}$$
-Each cell's observed count is compared to the expected count and colouring is added if the difference between the two is larger  Saturation is then added to indicate whether more or fewer points occur in that cell than expected: red indicates an excess of points while blue indicates a lack. Cells which remain white have a small enough difference 
+```{r}
+rbind(cbind(table(num = heartClean$num, sex = heartClean$sex), total = table(heartClean$num)),
+            total = c(table(heartClean$sex), nrow(heartClean)))
+```
+
+Each coloured cell, or bin, in the departure display corresponds to a count in the table excluding the columns and rows labelled `total`, which provide the marginal distributions. The width and height of each bin reflect these distributions and are proportional to the corresponding row and column totals respectively. The area of each bin is therefore proportional to the expected proportion of points it contains under the assumption of independence (when the joint distribution is proportional to the product of the marginal distributions). Saturation and hue communicate how severely the observed counts exceed or fall short of this expected count.
+
+Take, for example, the bin with labelled 'female' horizontally and '0' vertically. The width of this bin is given by the count of female patients (174) divided by the total number of patients (740) then multiplied by the width of the plotting area. This means it occupies a relative width of $w= 174/740 = 0.235$ of the plot width. Its height is similarly determined by the count of patients without any coronary artery disease (CAD) divided by the total number and it has a relative height of $h= 357/740 = 0.482$ to the plot. 
+
+Under independence, the joint probability $P(\text{sex}=x, \text{num}=y)$ obeys the factorization
+$$P(\text{sex}=x, \text{num}=y) = P(\text{sex}=x) P(\text{num}=y)$$
+and so the expected count of patients in our example bin, female patients without CAD, is given by
+$$\frac{357}{740}*\frac{174}{740}*740=83.9.$$
+Referring to the analogous bin in the contingency table, we have observed 131. As this is a larger number than expected, the bin is given a red hue (blue-shaded bins indicate fewer observations in a bin than expected). The saturation of this shading is determined by the magnitude of the *standardized Pearson residual*. For bin $i$ with expected count $e_i$, observed count of $o_i$, relative width $w_i$, and relative height $h_i$ this is defined as
+$$r_i = \frac{o_{i} - e_{i}}{\sqrt{e_{i}(1 - w_i)(1 - h_i)}}.$$
+The standardized Pearson residuals are a corrected version of the typical Pearson residuals for contingency tables which follow a standard normal distribution. This fact is used in the departure display to determine the saturation, where no saturation is applied to standardized residuals which have an absolute value less than 2 and a colour ramp applied which achieves its deepest saturation at 4. For our example bin, the standardized residual is
+$$\frac{131 - 83.9}{\sqrt{83.9 \left ( 1 - \frac{174}{740} \right ) \left ( 1 - \frac{357}{740} \right )}} = 8.17,$$
+which is quite a bit larger than the upper part of the colour ramp and so receives the deepest possible saturation. 
+
+The same process as has been applied to this example bin is applied to all other bins to obtain their hues and saturations before $o_i$ points are overlaid at randomly chosen positions within each bin to add a second visual display of density. In this way, the departure display communicates visually the departure of the observed counts from what we would expect if the two variables were independent. Areas of deep red saturation indicate regions with far more points and areas of deep blue indicate areas with far fewer points than we would expect under typical sampling variation. These therefore draw our attention to these areas that the model of independence does not explain well.
+
+In the example bin, we can see the model of independence does not describe the observed pattern well: many more female patients lack CAD and many more male patients have CAD than we would expect under independence. Note the `SexVsNum <-` assignment in the `depDisplay` call. Aside from plotting, the function passes the resulting bins invisibly to allow further exploration. As each bin is stored as a list of features, these are not very easy to inspect:
+```{r}
+str(SexVsNum, 1)
+```
+```{r}
+str(SexVsNum[[1]])
+```
+Helper functions allow us to compute aggregate and individual bin statistics, however. For example, to compute the $\chi^2$ test statistic for independence, simply call `binChi`.
+
+```{r}
+binChi(SexVsNum)
+```
+This computes the $\chi^2$ statistic and Pearson residuals for the bins. The correct degrees of freedom for this statistic are returned by other helper functions, but more on that later.
+
+#### Comparisons involving continuous variables
+
+When one or more variable is continuous, the output of `depDisplay` changes in a few important ways even though it is read in the same way. Consider a comparison of `age` and `num`.
+
+```{r, fig.width=6, fig.height=6, fig.align = 'center'}
+set.seed(1235) # more on this later
+# the depDisplay function also has a method for data.frames
+AgeVsNum <- depDisplay(x = heartClean, pair="age:num", xlab = "Age", 
+                       ylab = "Number of arteries >50% obstructed", 
+                       pch = 20, col = adjustcolor('gray50', alpha.f=0.5))
+```
+
+Or, for a pair of continuous variables, `thalach` and `oldpeak`.
+
+```{r, fig.width=6, fig.height=6, fig.align = 'center'}
+set.seed(812)
+AgeVsChol <- depDisplay(heartClean$thalach, heartClean$oldpeak, 
+                        xlab = "Maximum heart rate during exercise",
+                        ylab = "ST wave depression during exercise",
+                        pch = 20, col = adjustcolor('gray50', alpha.f=0.5))
+```
+
+Note that in both of these cases, the bins no longer sit on a simple grid. Adding borders makes this even clearer (with the side effect of making a statistical plot look a bit like a Piet Mondrian piece).
+
+```{r, fig.width=6, fig.height=6, fig.align = 'center'}
+set.seed(812)
+AgeVsNum <- depDisplay(heartClean$thalach, heartClean$oldpeak, 
+                       xlab = "Maximum heart rate during exercise",
+                       ylab = "ST wave depression during exercise",
+                       pch = 20, col = adjustcolor('gray50', alpha.f=0.5),
+                       border = "black")
+```
+
+When both variables are categorical, the joint distribution can be fully described by the joint probabilities of each bin. When one, or both, of the variables being compared are continuous, representing the joint distribution between the two is more complicated. No single contingency table fully represents their joint distribution. To create a set of bins to display the data, we need an algorithm to build a bivariate histogram.
+
+Creating such a histogram can be done in many ways (see Chapter 2.3 [here](https://uwspace.uwaterloo.ca/items/87effe1e-e2a4-4e28-a977-072ba9b06ca7) for a brief survey), but there are advantages to constructing them using random recursive splits (see [Salahub and Oldford, 2025](https://arxiv.org/abs/2311.08561)). These splits occur in a stepwise fashion, where each bin is split at each step until a set of stop criteria are satisfied. In the case of random recursive splits to measure association, natural stop criteria are based on the size of the bin which is proportional to the number of points we expect it to contain.
+
+Of course, this requires that we know the expected count of each bin. We can accomplish this by converting continuous margins to their ranks, thereby ensuring a uniform distribution along the corresponding axis. To give a sense of the original distribution, the axis therefore displays the five number summary of the data at the corresponding ranks to give the minimum, maximum, median, and quartiles.
+
+With the construction understood, the interpretation of these plots continues largely the same as in the dual categorical case. In the plot of `age` and `num`, we can see dark red areas in the top right and bottom left corners and light blue areas in the bottom right and top left, suggesting that the number of blocked arteries tends to increase in the patients for this study. For `thalach` and `oldpeak`, the opposite trend is shown. In both cases, the saturation is much lighter than the case of `sex` and `num`, suggesting a weaker association.
+
+#### All variables at once
+
+Instead of 
+
+### Customizing AssocBin
+
 
 
 This vignette will demonstrate how to set up, run, and process the results from this core algorithm using some of the defined helpers. A more complete description can be found in the associated pre-print, https://arxiv.org/abs/2311.08561. We begin by loading the package.
-
-```{r}
-library(AssocBin)
-```
 
 Now we can move on to some simple examples to establish how the algorithm works. We start by generating some independent data and taking the ranks.
 

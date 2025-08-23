@@ -7,13 +7,13 @@
 \alias{depDisplay.DepSearch}
 \title{Generate a departure display}
 \usage{
-depDisplay(x, y, ..., pair)
+depDisplay(x, y, ..., pair, quants)
 
-\method{depDisplay}{default}(x, y, ...)
+\method{depDisplay}{default}(x, y, ..., quants, border)
 
-\method{depDisplay}{data.frame}(x, ..., pair)
+\method{depDisplay}{data.frame}(x, ..., pair, quants, border)
 
-\method{depDisplay}{DepSearch}(x, ..., pair)
+\method{depDisplay}{DepSearch}(x, ..., pair, quants, border)
 }
 \arguments{
 \item{x}{a `data.frame`, `DepSearch` object, or a vector}
@@ -29,6 +29,13 @@ as a character vector of length two, or as a numeric vector of
 length two specifying the pair of variables to bin. If `x` is
 an `DepSearch`, pair must be either a number or a string of the
 format "<y>:<z>" specifying which binned pair of `x` to display.}
+
+\item{quants}{list of two named vectors `x` and `y` providing the
+quantiles to display on the corresponding axis in the case it is
+a continuous variable. Defaults to the five number summary.}
+
+\item{border}{string providing the colour of bin borders to draw,
+NA suppresses borders}
 }
 \value{
 Invisibly returns the binning obtained and generates a
