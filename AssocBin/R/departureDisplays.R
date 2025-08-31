@@ -228,36 +228,49 @@ depDisplay.DepSearch <- function(x, ..., pair, quants, border) {
         if (!clear) {
             stop("'pair' is unclear, its format should be '<y>:<z>'.")
         }
-        pair <- which(x$pairs == pair)
+        test_pair <- which(x$pairs == pair)
+        if (length(test_pair) < 1) {
+            flip <- paste(rev(strsplit(pair, ":", fixed=TRUE)[[1]]),
+                          collapse = ":")
+            test_pair <- which(x$pairs == flip)
+            if (length(test_pair) < 1) {
+                stop(paste0("'pair' name ", pair, " not found."))
+            } else {
+                pair <- test_pair
+            }
+        } else {
+            pair <- test_pair
+        }
     }
 
     colrng <- c("steelblue", "white", "firebrick")
-    depData <- tryCatch(get(x$datName),
-                        error = function(e) NA)
-    if (is.na(depData)) {
+    depData <- tryCatch(get(x$data),
+                        error = function(e) "Failed")
+    if (identical(depData, "Failed")) {
         print("x data not found, displaying without marginal quantiles.")
         plotBinning(x$binnings[[pair]], factor = 0.9, border = border,
                     fill = importanceFill(x$binnings[[pair]],
                                           colrng = colrng,
                                           nbr = NA),
-                    ...)
+                    showXax = TRUE, showYax = TRUE, ...)
     } else {
         pairVars <- strsplit(x$pairs[pair], ":")[[1]]
+        bins <- x$binnings[[pair]]
         y <- depData[[pairVars[1]]]
         z <- depData[[pairVars[2]]]
         ycat <- class(y) %in% c("factor", "character", "logical")
         zcat <- class(z) %in% c("factor", "character", "logical")
         if (ycat & zcat) {
-            plotBinning(x$binnings[[pair]], factor = 0.9,
+            plotBinning(bins, factor = 0.9,
                         border = border,
-                        fill = importanceFill(binned, colrng = colrng,
+                        fill = importanceFill(bins, colrng = colrng,
                                               nbr = NA),
                         showXax = TRUE, showYax = TRUE,
                         ...)
         } else if (ycat) {
-            plotBinning(x$binnings[[pair]], factor = 0.9,
+            plotBinning(bins, factor = 0.9,
                         border = border,
-                        fill = importanceFill(binned, colrng = colrng,
+                        fill = importanceFill(bins, colrng = colrng,
                                               nbr = NA),
                         showXax = TRUE, showYax = FALSE,
                         ...)
@@ -265,9 +278,9 @@ depDisplay.DepSearch <- function(x, ..., pair, quants, border) {
             mtext(side = 2, at = length(z)*quants$y, line = 1,
                   text = quantile(z, quants$y))
         } else if (zcat) {
-            plotBinning(x$binnings[[pair]], factor = 0.9,
+            plotBinning(bins, factor = 0.9,
                         border = border,
-                        fill = importanceFill(binned, colrng = colrng,
+                        fill = importanceFill(bins, colrng = colrng,
                                               nbr = NA),
                         showXax = FALSE, showYax = TRUE,
                         ...)
@@ -275,9 +288,9 @@ depDisplay.DepSearch <- function(x, ..., pair, quants, border) {
             mtext(side = 1, at = length(y)*quants$x, line = 1,
                   text = quantile(y, quants$x))
         } else {
-            plotBinning(x$binnings[[pair]], factor = 0.9,
+            plotBinning(bins, factor = 0.9,
                         border = border,
-                        fill = importanceFill(binned, colrng = colrng,
+                        fill = importanceFill(bins, colrng = colrng,
                                               nbr = NA),
                         showXax = FALSE, showYax = FALSE,
                         ...)

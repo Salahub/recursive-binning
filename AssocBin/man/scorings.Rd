@@ -4,7 +4,7 @@
 \alias{chiScores}
 \alias{miScores}
 \alias{randScores}
-\title{Scoring functions to choose splits}
+\title{Scoring functions}
 \usage{
 chiScores(bounds, nbelow, n)
 
@@ -26,16 +26,22 @@ A vector of scores.
 }
 \description{
 These functions define scores to evaluate candidate
-splits along a single margin within partition.
+splits along a single margin within a partition.
 }
 \details{
 Scorings
 
-Each of these functions accepts `boundss`, an ordered
+Each of these functions accepts `bounds`, an ordered
 numeric vector containing the candidate splits within a bin and
 the bin bounds all in increasing order, and `nbelow` which gives
 the count of points below each split. `n` is used to determine the
 number of points above the split.
+
+This implementation choice was made because AssocBin only considers
+splits on observed points. It can be proven that, for any convex
+scoring function, the internal maximum will occur at an observed
+point. This choice therefore limits the computational search required
+to identify and split at the optimal coordinate.
 }
 \section{Functions}{
 \itemize{

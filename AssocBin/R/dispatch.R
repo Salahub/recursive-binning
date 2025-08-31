@@ -319,10 +319,10 @@ summary.DepSearch <- function(object, ..., adjustP=FALSE) {
                    pDeciles = pdecs))
 }
 ##' @describeIn methods Print method for `DepSearch`
-print.DepSearch <- function(object, ...) {
-    nprs <- length(object$pairs)
+print.DepSearch <- function(x, ...) {
+    nprs <- length(x$pairs)
     cat(paste0("Recursive binning results for all ", nprs, " pairs in ",
-               object$data))
+               x$data))
 }
 ##' @describeIn methods Plot method for `DepSearch`
 plot.DepSearch <- function(x, ..., which = 1:5, border = "black",

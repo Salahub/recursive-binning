@@ -123,7 +123,7 @@ This computes the $\chi^2$ statistic and Pearson residuals for the bins. The cor
 
 #### Comparisons involving continuous variables
 
-When one or more variable is continuous, the output of `depDisplay` changes in a few important ways even though it is read in the same way. Consider a comparison of `age` and `num`.
+When one or more variable is continuous, the output of `depDisplay` changes in a few important ways even though it is read the same. Consider a comparison of `age` and `num`.
 
 ```{r, fig.width=6, fig.height=6, fig.align = 'center'}
 set.seed(1235) # more on this later
@@ -143,7 +143,7 @@ AgeVsChol <- depDisplay(heartClean$thalach, heartClean$oldpeak,
                         pch = 20, col = adjustcolor('gray50', alpha.f=0.5))
 ```
 
-Note that in both of these cases, the bins no longer sit on a simple grid. Adding borders makes this even clearer (with the side effect of making a statistical plot look a bit like a Piet Mondrian piece).
+Note that in both of these cases, the bins no longer sit on a simple grid. Adding borders makes this even clearer (with the side effect of making this statistical graphic look a bit like a Piet Mondrian piece).
 
 ```{r, fig.width=6, fig.height=6, fig.align = 'center'}
 set.seed(812)
@@ -154,150 +154,186 @@ AgeVsNum <- depDisplay(heartClean$thalach, heartClean$oldpeak,
                        border = "black")
 ```
 
-When both variables are categorical, the joint distribution can be fully described by the joint probabilities of each bin. When one, or both, of the variables being compared are continuous, representing the joint distribution between the two is more complicated. No single contingency table fully represents their joint distribution. To create a set of bins to display the data, we need an algorithm to build a bivariate histogram.
+As before, the labels on the axis of the categorical variable denote the relative sizes of each labelled category. In contrast, the continuous margin is rather chaotic and worth discussing.
+
+When both variables are categorical, the joint distribution can be fully described by the joint probabilities of each bin. When one, or both, of the variables being compared are continuous, representing the joint distribution between the two is more complicated. No single contingency table fully represents their joint distribution because aggregation obscures variation at finer resolutions. As well, any constant grid applied to every data set will have blind spots: patterns which it lacks power to detect. To create a set of bins to display and measure continuous data, then, we need a dynamic algorithm to build a bivariate histogram for a given data set.
 
 Creating such a histogram can be done in many ways (see Chapter 2.3 [here](https://uwspace.uwaterloo.ca/items/87effe1e-e2a4-4e28-a977-072ba9b06ca7) for a brief survey), but there are advantages to constructing them using random recursive splits (see [Salahub and Oldford, 2025](https://arxiv.org/abs/2311.08561)). These splits occur in a stepwise fashion, where each bin is split at each step until a set of stop criteria are satisfied. In the case of random recursive splits to measure association, natural stop criteria are based on the size of the bin which is proportional to the number of points we expect it to contain.
 
 Of course, this requires that we know the expected count of each bin. We can accomplish this by converting continuous margins to their ranks, thereby ensuring a uniform distribution along the corresponding axis. To give a sense of the original distribution, the axis therefore displays the five number summary of the data at the corresponding ranks to give the minimum, maximum, median, and quartiles.
 
-With the construction understood, the interpretation of these plots continues largely the same as in the dual categorical case. In the plot of `age` and `num`, we can see dark red areas in the top right and bottom left corners and light blue areas in the bottom right and top left, suggesting that the number of blocked arteries tends to increase in the patients for this study. For `thalach` and `oldpeak`, the opposite trend is shown. In both cases, the saturation is much lighter than the case of `sex` and `num`, suggesting a weaker association.
+With the construction understood, the interpretation of these plots continues largely the same as in the dual categorical case. In the plot of `age` and `num`, we can see dark red areas in the top right and bottom left corners and light blue areas in the bottom right and top left, suggesting that the number of blocked arteries tends to increase in the patients for this study. For `thalach` and `oldpeak`, the opposite trend is shown. In both cases, the saturation is much lighter than the case of `sex` and `num`, suggesting weaker associations for these latter two comparisons.
 
 #### All variables at once
 
-Instead of 
+Instead of exploring the data piecemeal using pairs chosen one at a time, we can assess the associations between all pairs with one call to the `DepSearch` (for *Dep*endence *Search*) function. 
+
+```{r}
+heartAssociations <- DepSearch(heartClean)
+```
+
+This returns a `DepSearch` object, which contains the generated bins for all pairs of variables in the dataset along with details such as the degrees of freedom of the binning, the number of bins, the $\chi^2$ statistic for each pair, and the $p$-value of that statistic. These results can then be viewed at a high level using the associated `summary` method.
+
+```{r}
+summary(heartAssociations)
+```
+
+Triplet plots which display the original data, the rank data, and the bins which form the basis of each $p$-value can be inspected using `plot`. By default, this displays the top five strongest associations.
+
+```{r, fig.width=6, fig.height=6, fig.align='center'}
+plot(heartAssociations)
+```
+
+The indices of the pairs to display can be specified by the `which` argument. Note that values given to `which` specify the indices of the pairs when placed in order from strongest to weakest association, so that `plot(heartAssociations, which = 1:5)` produces the same plot as the default call. As there are 66 pairs in this data, the weakest associations can be displayed by specifying `which=61:66`.
+
+```{r, fig.width=6, fig.height=6, fig.align='center'}
+plot(heartAssociations, which = 62:66)
+```
+
+By providing the data on the original scale, the rank scale, and as it is 'seen' by the algorithm through the binning of the ranks, an analyst can quickly understand the structure of any dependence between a pair of variables. Moreover, as all pairs are evaluated using $p$-values, comparisons between all pairs are fair regardless of the data types of each pair.
+
+It should be noted here that these $p$-values are computed only approximately. As explored in [Salahub and Oldford, 2025](https://arxiv.org/abs/2311.08561), the rank margins vary less than uniformly distributed margins because they lay on a lattice. Therefore, the classical $\chi^2$ test based on arbitrary partitions which takes 
+$$df = K - 1$$
+produces smaller statistics than would be expected for truly uniform data. This creates overly conservative $p$-values in the case of comparisons involving one or more continuous variables. Extensive simulations carried out using different approximations found that a simple approximation inspired by contingency tables works quite well to account for this.
+
+For a contingency table with $R$ rows and $C$ columns, we account for the constrained row and column totals by subtracting a degree of freedom from each. So, supposing $RC = K$ (the total number of bins), the degrees of freedom are not given by $K-1$ but instead
+$$df = (R-1)(C-1).$$
+Taking this same idea to the dual continuous case where recursive binning has generated $K$ bins, we ignore the arbitrary and mis-aligned nature of the bins and instead treat the $K$ bins like the result of a regular grid with its implied contingency table along rows and columns. This suggests the approximation 
+$$df = (\sqrt{K} - 1)^2,$$
+which works surprisingly well in practice. Similarly, when one variable is categorical on $M$ categories and the other is continuous, the same line of thinking leads to a formula using the average number of bins per category as
+$$df = (M-1) \left ( \frac{K}{M} - 1 \right ).$$
+Optionally, the argument `ptype` can be set in the call to `DepSearch` to change the $p$-value approximation used. The other options include the conservative $K-1$, a gamma approximation to the distribution, and a fitted degrees of freedom based on a large empirical study.
 
 ### Customizing AssocBin
 
+For people who want to experiment with recursive binning, `AssocBin` offers plenty of room for customization. While the default settings split bins randomly until they reach a certain minimum size, by changing the scoring function and stop criteria, very different behaviours are possible. Several optional arguments to `DepSearch` control these aspects of binning: `stopCriteria` allows for stop criteria to be set, `catCon` allows specification of the splitting function to use on the continuous margin of mixed pairs with one categorical and one continuous variable, and `conCon` allows specification of the splitting function to use for dual continuous margins.
 
+#### Stop criteria
 
-This vignette will demonstrate how to set up, run, and process the results from this core algorithm using some of the defined helpers. A more complete description can be found in the associated pre-print, https://arxiv.org/abs/2311.08561. We begin by loading the package.
+The simplest of these to use and specify is `stopCriteria`, which is supported by the helper function `makeCriteria`. This helper captures the arguments passed to it and stores these as a single logical expression which is then parsed and evaluated within each bin to determine whether splitting should continue. As a result, they must reference one of the named bin features
 
-Now we can move on to some simple examples to establish how the algorithm works. We start by generating some independent data and taking the ranks.
+1. `x`: vector giving the horizontal coordinates of observations within the bin,
+2. `y`: vector giving the vertical coordinates of observations within the bin,
+3. `bnds`: a list of two vectors, `x` and `y` which give the horizontal and vertical extents of the bin,
+4. `expn`: the expected number of points in the bin,
+5. `n`: the observed number of points in the bin, and
+6. `depth`: the number of recursive splits required to create the bin from the initial bin containing all points
 
+Arguments passed to `makeCriteria` which reference objects not included in this list rely on lexical scoping within `R`, and so should be used deliberately and with care. Generally, the stop criteria can be constructed with a simple call such as
 ```{r}
-set.seed(9023831)
-n <- 100
-randx <- rnorm(n)
-randy <- rnorm(n)
-plot(randx, randy)
+stopCrits <- makeCriteria(depth >= 10, # maximum depth of 10
+                          expn <= 10, # smallest possible bin size of 5
+                          n < 1 # don't split empty bins
+                          )
+stopCrits
+```
+Note that it is necessary to specify a stop criterion of `expn <= 2*k` to restrict bin size to `k`, as splitting a bin with `expn < 2*k` will necessarily produce at least one bin with `expn < k`. Of course, more complicated logical expressions are also possible. For example, one could implement a splitting procedure that stops splitting any bin which achieves some threshold for the $\chi^2$ residual in the bin to create a greedy algorithm which preserves any large departures it encounters.
+```{r}
+greedyCrits <- makeCriteria(abs(expn - n)/sqrt(expn) > 4,
+                            expn <= 10,
+                            n < 1)
+greedyCrits
 ```
 
+#### Splitting functions
+
+If splitting behaviour more complex than the random splits is desired, provided functionals can be used to construct custom splitting functions. While any splitting function could be specified so long as it accepts a `bin` and returns a list of two `bin`s that partition the original, the provided splitting functions are implemented under a specific framework of optimization.
+
+It can be proven that any convex objective function which compares $o_i$ and $e_i$ (the observed and expected counts within a bin) will be maximized by a split at one of the observations within the bin. Therefore, scoring functions need only consider splits at observation coordinates for many common scores like the mutual information (implemented as `miScores`) or the $\chi^2$ statistic (implemented as `chiScores`). In each bin, the scoring functions assess the score resulting from splits at each observation (and some 'pseudo-observations' to allow the creation of empty bins) and identify which coordinate creates a split which optimizes the score. For this reason, the included scoring functions accept three arguments: `bounds`, `nbelow`, and `n`, as these alone can be used to determine the maximum for many bin-scoring functions.^[More complex splitting logic based on arbitrary bin features is supported by `sandboxMaxSplit`, which applies the scoring function directly to the list of bins at each step.]
+
+In practice, these facts are not relevant to the user when setting up scoring. To set up the algorithm to maximize the $\chi^2$ statistic, for example, we use the following lines.
 ```{r}
-rankx <- rank(randx, ties.method = "random")
-ranky <- rank(randy, ties.method = "random")
-plot(rankx, ranky)
+conConChi <- function(bn) maxScoreSplit(bin = bn, scorer = chiScores)
+# the univariate splitter requires an additional argument specifying which
+# margin should be split
+catConChi <- function(bn, on) uniMaxScoreSplit(bin = bn, scorer = chiScores,
+                                               on = on)
 ```
 
-With rank data in hand, we can work on setting up the algorithm. This requires (minimally) three steps:
-
-1. Defining the stop criteria
-2. Defining a stopping function
-3. Defining a splitting function
-
-`AssocBin` has been built in a modular way so any of these can be custom-defined and swapped into the algorithm by a user, but helpers are provided for the suggested use case. Let's look at how the stop criteria are defined:
-
+Then, we pass them to the `DepSearch` call, maybe alongside our greedy stop criteria.
 ```{r}
-criteria <- makeCriteria(expn <= 10, n == 0, depth >= d)
-str(criteria)
+heartAssociations_greedy <- DepSearch(heartClean,
+                                      stopCriteria=greedyCrits,
+                                      catCon=catConChi,
+                                      conCon=conConChi)
 ```
 
-The `makeCriteria` function captures its arguments and appends them into a character separated by `|`. This creates a single logical statement which is evaluated within each bin (treated as an environment) to determine whether than bin's named elements satisfy the stop criteria. The wrapper that performs this evaluation is `stopper`, which is set up by defining a closure using the criteria:
+Plotting this greedy version of the algorithm, the top associations do not change much:
+```{r, fig.width=6, fig.height=6, fig.align='center'}
+plot(heartAssociations_greedy)
+```
 
+Indeed, a key finding of [Salahub and Oldford, 2025](https://arxiv.org/abs/2311.08561) is that binning algorithms based on maximization do not perform much better than random splits in the identification of patterns, and that maximization introduces systematic bias to pattern detection. A downside of maximization, however, can be seen in the considerably inflated significance of the top association between `study` and `chol` in this greedy algorithm compared to the random one. By actively seeking large residual values, maximization prevents the computation of correct, or approximately correct, $p$-values through typical distributional approximations. Large simulations must be used instead.
+
+Maximizing in a greedy way is not all bad, however. For one, it makes the algorithm deterministic for a given sample, while the random algorithm is inherently somewhat noisy. Additionally, and evidently in the case of the top association, it produces sharper departure displays which better highlight the areas of low and high point concentration.
+
+#### Customizing plots
+
+Aside from control over how binning is performed, plots of binnings can be customized in `AssocBin`. In the simplest case, this works by using the usual graphical parameters as shown previously.
+```{r, fig.width=6, fig.height=6, fig.align='center'}
+# a final way to use depDisplay is on a depSearch object
+depDisplay(heartAssociations, pair="thalach:oldpeak",
+           xlab = "Maximum heart rate during exercise",
+           ylab = "ST wave depression during exercise",
+           pch = "+", col = adjustcolor('purple', alpha.f=0.5),
+           border = "black")
+```
+
+Finer control is obtained using the lower-level `plotBinning` function and the different bin fill helper functions. Let's start by saving these particular bins so we can display them in different ways.
 ```{r}
-stopper
+thalachOldpeak <- heartAssociations$binnings[["thalach:oldpeak"]]
+```
+
+To use `plotBinning`, these bins must be passed in alongside a fill function to colour the bins. Fill functions must accept a list of bins and return a vector of colours that can be interpreted by R's plotting functions. While custom fill functions can be defined to encode any aspect of a bin, the three included fill functions `depthFill`, `residualFill`, and `importanceFill` saturate bins based on their depth, the magnitude and sign of their residuals (based on a provided residual function), and the threshold on standardized Pearson residuals defined above. All three options lead to very different displays.
+```{r, fig.width=6, fig.height=6, fig.align='center'}
+# note that plotBinning does not have access to the marginal information to plot
+# quantiles and so the marginal labels give the ranks
+plotBinning(thalachOldpeak, pch = 20, 
+            xlab = "Maximum heart rate during exercise",
+            ylab = "ST wave depression during exercise",
+            showXax = TRUE, showYax = TRUE,
+            fill=depthFill(thalachOldpeak))
+```
+
+The depth fill, for example, lets us see the path of the algorithm. Less shaded areas indicate points where splitting was stopped earlier than areas with deeper saturation. For this particular pair, it is not so striking, but a very different pattern results from strong linear structures. Consider the following example which accesses low-level functions to perform binning manually.
+```{r, fig.width=6, fig.height=6, fig.align='center'}
+x <- rnorm(1000)
+y <- 2*x + rnorm(1000, sd = 0.3)
+rankx <- rank(x, ties.method = "random")
+ranky <- rank(y, ties.method = "random")
+
+# set up splitting criteria: depth stop limits run time (not necessary here)
+criteria <- makeCriteria(expn <= 10, n == 0, depth >= 10)
+# define the stop function using these criteria
 stopFn <- function(bns) stopper(bns, criteria)
+# use binner to run the algorithm
+xyBins <- binner(x = rankx, y = ranky, stopper = stopFn, splitter = rIntSplit)
+
+# plot with depthfill
+set.seed(2119)
+plotBinning(xyBins, fill=depthFill(xyBins), pch = 20)
 ```
 
-In this way, many criteria can be quickly checked and the `makeCriteria` function can be adapted to changes in the named elements of a bin. Note that `d` is not defined yet. This is deliberate choice that allows us to use R's lexical scoping to set it dynamically and modify the depth criteria on the fly.
+The advantage of the recursive splitting is obvious when viewed with this plot. In contrast to regular grids, the adaptive two-dimensional histogram generated by recursive binning with stop criteria places a greater density of bins, and therefore more focus, in areas of high density than those of low density. Even when these bins are chosen randomly, this creates a more efficient use of the same number of bins.
 
-Next, we set up the splitting logic. The helper provided to support different splitting logic is the `maxScoreSplit` function, which accepts a bin, score function, and numeric value specifying the minimum expected number of observations (proportional to the area) allowed for bins to put a floor on the minimum bin size. It uses the score function to evaluate splits at every observation in the bin and chooses the one which maximizes the score subject to the minimum size constraint. `chiScores` computes $\chi^2$ statistic-like scores based on
-$$\frac{(o - e)^2}{e}$$
-where $e$ is the expected number of points in a bin and $o$ is the observed number. `miScores` instead takes inspiration from the mutual information in
-$$\frac{o}{n} \log \frac{o}{e}.$$
-Finally, `randScores` supports random splitting by sampling random uniform values in place of computing a score for each potential split. To set up their use, all can be placed in appropriate closures.
-```{r}
-chiSplit <- function(bn) maxScoreSplit(bn, chiScores, minExp = 5)
-miSplit <- function(bn) maxScoreSplit(bn, miScores, minExp = 5)
-rndSplit <- function(bn) maxScoreSplit(bn, randScores, minExp = 5)
+A more typical fill can be gleaned from the `residualFill` function.
+```{r, fig.width=6, fig.height=6, fig.align='center'}
+plotBinning(thalachOldpeak, pch = 20, 
+            xlab = "Maximum heart rate during exercise",
+            ylab = "ST wave depression during exercise",
+            showXax = TRUE, showYax = TRUE,
+            fill=residualFill(thalachOldpeak, nbr = 10))
 ```
 
-With all the necessary preliminaries set up, we can apply the algorithm to our data. This is done by using the `binner` function with the appropriate arguments.
-
-```{r}
-d <- 5
-randBin <- binner(x = rankx, y = ranky, stopper = stopFn, splitter = chiSplit)
+The fill from this function simply represents the residuals. By defauly, blue indicates a negative residual while red indicates a positive one. A great deal of customization is possible with this function: custom colour breaks can be specified using `breaks`, or alternatively the number of breaks can be specified using `nbr` to increase or decrease the resolution. Should we want to use a different residual function to generate the saturation, the `resFun` can be specified. We can also change the colour range using the `colrng` argument.
+```{r, fig.width=6, fig.height=6, fig.align='center'}
+plotBinning(thalachOldpeak, pch = 20, 
+            xlab = "Maximum heart rate during exercise",
+            ylab = "ST wave depression during exercise",
+            showXax = TRUE, showYax = TRUE,
+            fill=residualFill(thalachOldpeak, nbr = 50,
+                              resFun=binMI,
+                              colrng = c("orange", "pink", "blue")))
 ```
 
-We can visualize the result using the helper `plotBinning`:
-
-```{r}
-plotBinning(randBin, pch = 19, cex = 1,
-            col = adjustcolor("gray50", 0.5))
-```
-
-This plot is augmented by filling the displayed bins. The `fill` argument to `plotBinning` accepts a vector of colour values, but two useful cases are shading by residual and shading by depth. These cases are completed by `residualFill`, which computes the Pearson residual
-$$\text{sign}(o - e)\sqrt{\frac{(o - e)^2}{e}}$$
-and uses a divergent palette to shade the bins. Trying both for our simple data:
-
-```{r}
-## first fill by depth
-plotBinning(randBin, pch = 19, cex = 1,
-            fill = depthFill(randBin),
-            col = adjustcolor("gray50", 0.5))
-```
-```{r}
-## next fill by residual
-plotBinning(randBin, pch = 19, cex = 1,
-            fill = residualFill(randBin, colrng = c("steelblue", "white", "firebrick")),
-            col = adjustcolor("gray50", 0.5))
-```
-
-The default shading highlights bins with Pearson residuals which are significant at the asymptotic 95\% critical values. Pearson residuals less than -1.96 are shaded in blue and those greater than 1.96 are shaded in red. Changing this behaviour to create different shading can be completed by specifying custom colour break points and corresponding colours or by specifying the number of breaks through the `nbr` argument.
-
-```{r}
-## next fill by residual
-plotBinning(randBin, pch = 19, cex = 1,
-            fill = residualFill(randBin, colrng = c("steelblue", "white", "firebrick"),
-                                nbr = 50),
-            col = adjustcolor("gray50", 0.5))
-```
-
-This fill is much more interesting when applied to a larger sample of data which is not random and uniform.
-
-```{r}
-depx <- rnorm(10*n)
-depy <- depx + rnorm(10*n, sd = 0.4)
-plot(depx, depy)
-```
-
-```{r}
-d <- 10 # change maximum depth due to larger sample size
-depx.rank <- rank(depx)
-depy.rank <- rank(depy)
-depBins <- binner(depx.rank, depy.rank, stopper = stopFn, splitter = chiSplit)
-plotBinning(depBins, pch = ".", cex = 1)
-```
-
-```{r}
-plotBinning(depBins, pch = ".", cex = 1,
-            fill = residualFill(depBins))
-```
-
-The Pearson residuals, which use red to display areas of unusually high density and blue for areas of unusually low density, effectively highlight the pattern of the data and the regions which depart the most from an assumption of uniformity (and therefore independence). Even under random splitting they provide some idea of the structure in the data (though the bins aren't as regular).
-
-```{r}
-set.seed(591241)
-depBins.rand <- binner(depx.rank, depy.rank, stopper = stopFn, splitter = rndSplit)
-plotBinning(depBins.rand, pch = ".", cex = 1, 
-            fill = residualFill(depBins.rand))
-```
-
-Once a binning has been completed, we can compute the $\chi^2$ statistic on the bins using `binChi`.
-
-```{r}
-binChi(randBin)$stat
-binChi(depBins)$stat
-binChi(depBins.rand)$stat
-```
-
-As might be expected, the statistic for the strongly dependent data is much larger than for the uniform data and the maximizing splits result in a larger statistic value than the random splits. These statistics can then be used to rank different associations or to generate a p-value. For more examples of the method in use, try `demo(simulatedPatterns)` (which is fast) or `demo(sp500)` (which takes a very long time to run due to the size of the dataset).
+Finally, the `importanceFill` function implements the procedure described above. It standardizes the $\chi^2$ residuals and applies a Bonferroni correction before shading only those bins with residuals significant when standardized and multiple testing is accounted for. This is the default fill applied to bins by `depDisplay`.

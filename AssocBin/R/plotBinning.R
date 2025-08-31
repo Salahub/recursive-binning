@@ -121,7 +121,7 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
 }
 
 ##' Shadings
-##' @title Generate fills encoding bin features
+##' @title Encoding bin features to bin colour fills
 ##' @description These functions all accept a list of bins and return
 ##' a vector of colours of the same length that encode some feature of
 ##' the bins. importanceFill is a special case which adjusts the
@@ -131,17 +131,16 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
 ##' mean with a color ramp that fully saturates for any bins which
 ##' are greater than a 0.001 standard normal quantile with a
 ##' Bonferroni correction applied to account for the number of bins.
-##' @details Two functions are provided by default: one which
-##' generates a fill based on bin depth and the other based on a
-##' residual function applied to each bin.
+##' @details depthFill and residualFill do as indicated: mapping the
+##' bin depths and residual colours to saturations applied to the bins.
 ##' @param bins list of bins to be visualized
 ##' @param colrng hue range to be passed to `colorRampPalette` to
 ##' generate the final hue scale
 ##' @param resFun function which returns a result with a name element
 ##' `residuals` that is a numeric vector of the same length as `bins`
 ##' @param maxRes numeric maximum value of the residuals to maintain
-##' the correct origin, taken to be the maximum observed residual if
-##' not provided
+##' the correct origin and scale the saturation correctly, taken to be
+##' the maximum observed residual if not provided
 ##' @param breaks numeric vector of breakpoints to control hues,
 ##' defaults to breakpoints that indicate Pearson residuals outside
 ##' the asymptotic 95 percent confidence interval around zero under
@@ -156,7 +155,7 @@ plotBinning <- function(bins, fill, add = FALSE, factor = 0.5,
 ##'                       scorer = chiScores, minExp = 2),
 ##'                recursive = FALSE)
 ##' plotBinning(bin3, fill = depthFill(bin3)) # all the same depth
-##' plotBinning(bin3, fill = residualFill(bin3)) # diff resids
+##' plotBinning(bin3, fill = residualFill(bin3)) # chi resids
 ##' @author Chris Salahub
 ##' @describeIn shadings Fill by depth
 depthFill <- function(bins, colrng = c("white", "firebrick")) {

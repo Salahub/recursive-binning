@@ -8,7 +8,7 @@
 \usage{
 \method{summary}{DepSearch}(object, ..., adjustP = FALSE)
 
-\method{print}{DepSearch}(object, ...)
+\method{print}{DepSearch}(x, ...)
 
 \method{plot}{DepSearch}(
   x,

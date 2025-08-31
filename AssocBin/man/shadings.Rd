@@ -4,7 +4,7 @@
 \alias{depthFill}
 \alias{residualFill}
 \alias{importanceFill}
-\title{Generate fills encoding bin features}
+\title{Encoding bin features to bin colour fills}
 \usage{
 depthFill(bins, colrng = c("white", "firebrick"))
 
@@ -34,8 +34,8 @@ generate the final hue scale}
 `residuals` that is a numeric vector of the same length as `bins`}
 
 \item{maxRes}{numeric maximum value of the residuals to maintain
-the correct origin, taken to be the maximum observed residual if
-not provided}
+the correct origin and scale the saturation correctly, taken to be
+the maximum observed residual if not provided}
 
 \item{breaks}{numeric vector of breakpoints to control hues,
 defaults to breakpoints that indicate Pearson residuals outside
@@ -62,9 +62,8 @@ Bonferroni correction applied to account for the number of bins.
 \details{
 Shadings
 
-Two functions are provided by default: one which
-generates a fill based on bin depth and the other based on a
-residual function applied to each bin.
+depthFill and residualFill do as indicated: mapping the
+bin depths and residual colours to saturations applied to the bins.
 }
 \section{Functions}{
 \itemize{
@@ -82,7 +81,7 @@ bin3 <- unlist(lapply(bin2, maxScoreSplit,
                       scorer = chiScores, minExp = 2),
                recursive = FALSE)
 plotBinning(bin3, fill = depthFill(bin3)) # all the same depth
-plotBinning(bin3, fill = residualFill(bin3)) # diff resids
+plotBinning(bin3, fill = residualFill(bin3)) # chi resids
 }
 \author{
 Chris Salahub

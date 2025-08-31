@@ -1,6 +1,6 @@
 importFrom("utils", "combn")
 importFrom("grDevices", "colorRampPalette")
-importFrom("graphics", "points", "rect", "abline", "mtext", "par")
+importFrom("graphics", "points", "rect", "abline", "mtext", "par", "axis")
 importFrom("stats", "runif", "pchisq", "quantile", "pgamma", "qnorm", "rmultinom")
 export(binner)
 export(plotBinning)
